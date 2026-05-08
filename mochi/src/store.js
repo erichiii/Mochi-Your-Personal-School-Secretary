@@ -79,8 +79,8 @@ const useStore = create((set, get) => ({
     const decks = await db.decks.orderBy('createdAt').toArray()
     set({ decks })
   },
-  createDeck: async (name) => {
-    const id = await db.decks.add({ name, createdAt: Date.now() })
+  createDeck: async (name, subjectId = null) => {
+    const id = await db.decks.add({ name, subjectId, createdAt: Date.now() })
     await get().loadDecks()
     return id
   },

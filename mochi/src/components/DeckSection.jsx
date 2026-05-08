@@ -1,23 +1,26 @@
 import { useEffect, useState } from 'react'
-import { Layers, Plus, X, Pencil, Trash2, GalleryHorizontal } from 'lucide-react'
+import { Layers, Plus, X, Pencil, Trash2, GalleryHorizontal, ChevronRight, ChevronDown } from 'lucide-react'
 import useStore from '../store'
 import ConfirmModal from './ConfirmModal'
 
 export default function DeckSection() {
   const {
+    subjects, loadSubjects,
     decks, loadDecks, createDeck, updateDeck, deleteDeck,
     flashcards, loadFlashcards,
     activeDeckId, setActiveDeck,
   } = useStore()
 
-  const [creatingDeck, setCreatingDeck] = useState(false)
+  const [creatingForSubject, setCreatingForSubject] = useState(null) // subjectId | 'unassigned' | null
   const [newDeckName, setNewDeckName] = useState('')
   const [renamingId, setRenamingId] = useState(null)
   const [renameValue, setRenameValue] = useState('')
   const [hoveredId, setHoveredId] = useState(null)
-  const [confirmDelete, setConfirmDelete] = useState(null) // { id, name }
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [collapsedGroups, setCollapsedGroups] = useState({})
 
   useEffect(() => {
+    loadSubjects()
     loadDecks()
     loadFlashcards()
   }, [])
@@ -25,13 +28,14 @@ export default function DeckSection() {
   const countFor = (deckId) => flashcards.filter((c) => c.deckId === deckId).length
   const generalCount = flashcards.filter((c) => !c.deckId).length
 
-  const handleCreateDeck = async () => {
+  const handleCreateDeck = async (subjectId) => {
     const name = newDeckName.trim()
-    if (!name) { setCreatingDeck(false); setNewDeckName(''); return }
-    const id = await createDeck(name)
-    setActiveDeck(id)
-    setCreatingDeck(false)
+    setCreatingForSubject(null)
     setNewDeckName('')
+    if (!name) return
+    const sid = subjectId === 'unassigned' ? null : subjectId
+    const id = await createDeck(name, sid)
+    setActiveDeck(id)
   }
 
   const handleRenameSubmit = async () => {
@@ -45,10 +49,172 @@ export default function DeckSection() {
     setConfirmDelete(null)
   }
 
-  const startRename = (deck) => {
-    setRenamingId(deck.id)
-    setRenameValue(deck.name)
+  const toggleGroup = (key) => setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }))
+
+  // Build ordered list: top-level subjects first, then their subsections (one level deep)
+  const topLevel = subjects.filter((s) => !s.parentId)
+  const subsOf = (id) => subjects.filter((s) => s.parentId === id)
+  const decksFor = (subjectId) => decks.filter((d) => d.subjectId === subjectId)
+  const unassignedDecks = decks.filter((d) => !d.subjectId)
+
+  const renderNewDeckInput = (subjectId) => (
+    <div
+      className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl mb-0.5"
+      style={{ background: 'var(--mochi-cream)', border: '1.5px solid var(--mochi-border)' }}
+    >
+      <Layers size={12} style={{ color: 'var(--mochi-text-muted)', flexShrink: 0 }} />
+      <input
+        autoFocus
+        value={newDeckName}
+        onChange={(e) => setNewDeckName(e.target.value)}
+        onBlur={() => handleCreateDeck(subjectId)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleCreateDeck(subjectId)
+          if (e.key === 'Escape') { setCreatingForSubject(null); setNewDeckName('') }
+        }}
+        placeholder="Deck name…"
+        className="flex-1 min-w-0 bg-transparent outline-none text-xs font-semibold"
+        style={{ color: 'var(--mochi-text)' }}
+      />
+      <button onMouseDown={() => { setCreatingForSubject(null); setNewDeckName('') }} style={{ color: 'var(--mochi-text-muted)', flexShrink: 0 }}>
+        <X size={11} />
+      </button>
+    </div>
+  )
+
+  const renderDeckItem = (deck, indent = false) => {
+    const isActive = activeDeckId === deck.id
+    const isRenaming = renamingId === deck.id
+    const isHovered = hoveredId === deck.id
+    const count = countFor(deck.id)
+
+    return (
+      <div
+        key={deck.id}
+        className="relative"
+        style={indent ? { paddingLeft: '10px' } : {}}
+        onMouseEnter={() => setHoveredId(deck.id)}
+        onMouseLeave={() => setHoveredId(null)}
+      >
+        <div
+          onClick={() => { if (!isRenaming) setActiveDeck(deck.id) }}
+          className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+          style={
+            isActive
+              ? { background: 'var(--mochi-pink)', border: '1.5px solid var(--mochi-pink-mid)', color: 'var(--mochi-pink-dark)' }
+              : { color: 'var(--mochi-text-soft)', border: '1.5px solid transparent' }
+          }
+          onMouseEnter={(e) => { if (!isActive && !isRenaming) e.currentTarget.style.background = 'var(--mochi-cream)' }}
+          onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+        >
+          <Layers size={13} style={{ flexShrink: 0 }} />
+
+          {isRenaming ? (
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onBlur={handleRenameSubmit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRenameSubmit()
+                if (e.key === 'Escape') setRenamingId(null)
+                e.stopPropagation()
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 min-w-0 bg-transparent outline-none text-xs font-semibold"
+              style={{ color: 'var(--mochi-text)' }}
+            />
+          ) : (
+            <span className="flex-1 min-w-0 truncate text-xs">{deck.name}</span>
+          )}
+
+          {!isRenaming && !isHovered && (
+            <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+              style={{
+                background: isActive ? 'var(--mochi-pink-mid)' : 'var(--mochi-border)',
+                color: isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)',
+              }}>
+              {count}
+            </span>
+          )}
+
+          {!isRenaming && isHovered && (
+            <div className="flex items-center gap-0.5 flex-shrink-0">
+              <button
+                title="Rename"
+                onClick={(e) => { e.stopPropagation(); setRenamingId(deck.id); setRenameValue(deck.name) }}
+                className="p-0.5 rounded transition-colors"
+                style={{ color: isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--mochi-text)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)')}
+              >
+                <Pencil size={11} />
+              </button>
+              <button
+                title="Delete"
+                onClick={(e) => { e.stopPropagation(); setConfirmDelete({ id: deck.id, name: deck.name }) }}
+                className="p-0.5 rounded transition-colors"
+                style={{ color: isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#E05050')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)')}
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
   }
+
+  const renderSubjectGroup = (subject, indent = false) => {
+    const key = `s-${subject.id}`
+    const isCollapsed = collapsedGroups[key]
+    const groupDecks = decksFor(subject.id)
+    const subs = subsOf(subject.id)
+    if (groupDecks.length === 0 && subs.length === 0 && creatingForSubject !== subject.id) return null
+
+    return (
+      <div key={subject.id} style={indent ? { paddingLeft: '8px' } : {}}>
+        <div className="flex items-center px-1 mb-0.5 mt-1.5">
+          <button
+            onClick={() => toggleGroup(key)}
+            className="flex items-center gap-1 flex-1 min-w-0"
+            style={{ color: 'var(--mochi-text-muted)' }}
+          >
+            {isCollapsed ? <ChevronRight size={10} /> : <ChevronDown size={10} />}
+            <span className="text-[10px] font-bold uppercase tracking-wider truncate">{subject.name}</span>
+          </button>
+          <button
+            onClick={() => { setCreatingForSubject(subject.id); setNewDeckName('') }}
+            title="New deck"
+            className="p-0.5 rounded-lg transition-colors flex-shrink-0"
+            style={{ color: 'var(--mochi-text-muted)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = 'var(--mochi-text)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-muted)' }}
+          >
+            <Plus size={11} />
+          </button>
+        </div>
+
+        {!isCollapsed && (
+          <>
+            {creatingForSubject === subject.id && renderNewDeckInput(subject.id)}
+            {groupDecks.map((d) => renderDeckItem(d, false))}
+            {subs.map((sub) => renderSubjectGroup(sub, true))}
+          </>
+        )}
+      </div>
+    )
+  }
+
+  // Subjects that have decks (or subsections with decks)
+  const hasContent = (s) => {
+    if (decksFor(s.id).length > 0) return true
+    return subsOf(s.id).some((sub) => decksFor(sub.id).length > 0)
+  }
+
+  const visibleTopLevel = topLevel.filter((s) => hasContent(s) || creatingForSubject === s.id || subsOf(s.id).some((sub) => creatingForSubject === sub.id))
 
   return (
     <div className="flex flex-col gap-0.5 px-2">
@@ -57,168 +223,75 @@ export default function DeckSection() {
         <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--mochi-text-muted)' }}>
           Decks
         </p>
-        <button
-          onClick={() => { setCreatingDeck(true); setNewDeckName('') }}
-          title="New deck"
-          className="p-1 rounded-lg transition-colors"
-          style={{ color: 'var(--mochi-text-muted)' }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = 'var(--mochi-text)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-muted)' }}
-        >
-          <Plus size={13} />
-        </button>
       </div>
 
-      {/* New deck inline input */}
-      {creatingDeck && (
-        <div
-          className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl mb-0.5"
-          style={{ background: 'var(--mochi-cream)', border: '1.5px solid var(--mochi-border)' }}
-        >
-          <Layers size={12} style={{ color: 'var(--mochi-text-muted)', flexShrink: 0 }} />
-          <input
-            autoFocus
-            value={newDeckName}
-            onChange={(e) => setNewDeckName(e.target.value)}
-            onBlur={handleCreateDeck}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreateDeck()
-              if (e.key === 'Escape') { setCreatingDeck(false); setNewDeckName('') }
-            }}
-            placeholder="Deck name…"
-            className="flex-1 min-w-0 bg-transparent outline-none text-xs font-semibold"
-            style={{ color: 'var(--mochi-text)' }}
-          />
-          <button
-            onMouseDown={() => { setCreatingDeck(false); setNewDeckName('') }}
-            style={{ color: 'var(--mochi-text-muted)', flexShrink: 0 }}
-          >
-            <X size={11} />
-          </button>
-        </div>
-      )}
+      {/* Subject-grouped decks */}
+      {visibleTopLevel.map((s) => renderSubjectGroup(s, false))}
 
-      {/* Deck items */}
-      {decks.map((deck) => {
-        const isActive = activeDeckId === deck.id
-        const isRenaming = renamingId === deck.id
-        const isHovered = hoveredId === deck.id
-        const count = countFor(deck.id)
-
-        return (
-          <div
-            key={deck.id}
-            className="relative"
-            onMouseEnter={() => setHoveredId(deck.id)}
-            onMouseLeave={() => setHoveredId(null)}
-          >
-            <div
-              onClick={() => { if (!isRenaming) setActiveDeck(deck.id) }}
-              className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer"
-              style={
-                isActive
-                  ? { background: 'var(--mochi-pink)', border: '1.5px solid var(--mochi-pink-mid)', color: 'var(--mochi-pink-dark)' }
-                  : { color: 'var(--mochi-text-soft)', border: '1.5px solid transparent' }
-              }
-              onMouseEnter={(e) => { if (!isActive && !isRenaming) e.currentTarget.style.background = 'var(--mochi-cream)' }}
-              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+      {/* Unassigned decks */}
+      {(unassignedDecks.length > 0 || creatingForSubject === 'unassigned') && (
+        <div>
+          <div className="flex items-center px-1 mb-0.5 mt-1.5">
+            <span className="flex-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--mochi-text-muted)' }}>
+              Unassigned
+            </span>
+            <button
+              onClick={() => { setCreatingForSubject('unassigned'); setNewDeckName('') }}
+              title="New deck"
+              className="p-0.5 rounded-lg transition-colors flex-shrink-0"
+              style={{ color: 'var(--mochi-text-muted)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = 'var(--mochi-text)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-muted)' }}
             >
-              <Layers size={13} style={{ flexShrink: 0 }} />
-
-              {isRenaming ? (
-                <input
-                  autoFocus
-                  value={renameValue}
-                  onChange={(e) => setRenameValue(e.target.value)}
-                  onBlur={handleRenameSubmit}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleRenameSubmit()
-                    if (e.key === 'Escape') setRenamingId(null)
-                    e.stopPropagation()
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex-1 min-w-0 bg-transparent outline-none text-sm font-semibold"
-                  style={{ color: 'var(--mochi-text)' }}
-                />
-              ) : (
-                <span className="flex-1 min-w-0 truncate">{deck.name}</span>
-              )}
-
-              {/* Count badge — hidden when renaming or action icons visible */}
-              {!isRenaming && !isHovered && (
-                <span
-                  className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                  style={{
-                    background: isActive ? 'var(--mochi-pink-mid)' : 'var(--mochi-border)',
-                    color: isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)',
-                  }}
-                >
-                  {count}
-                </span>
-              )}
-
-              {/* Action icons — appear on hover */}
-              {!isRenaming && isHovered && (
-                <div className="flex items-center gap-0.5 flex-shrink-0">
-                  <button
-                    title="Rename"
-                    onClick={(e) => { e.stopPropagation(); startRename(deck) }}
-                    className="p-0.5 rounded transition-colors"
-                    style={{ color: isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--mochi-text)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)')}
-                  >
-                    <Pencil size={11} />
-                  </button>
-                  <button
-                    title="Delete"
-                    onClick={(e) => { e.stopPropagation(); setConfirmDelete({ id: deck.id, name: deck.name }) }}
-                    className="p-0.5 rounded transition-colors"
-                    style={{ color: isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = '#E05050')}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)')}
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                </div>
-              )}
-            </div>
+              <Plus size={11} />
+            </button>
           </div>
-        )
-      })}
-
-      {/* General (uncategorized) */}
-      {generalCount > 0 && (
-        <div
-          onClick={() => setActiveDeck('unlinked')}
-          className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer"
-          style={
-            activeDeckId === 'unlinked'
-              ? { background: 'var(--mochi-pink)', border: '1.5px solid var(--mochi-pink-mid)', color: 'var(--mochi-pink-dark)' }
-              : { color: 'var(--mochi-text-soft)', border: '1.5px solid transparent' }
-          }
-          onMouseEnter={(e) => { if (activeDeckId !== 'unlinked') e.currentTarget.style.background = 'var(--mochi-cream)' }}
-          onMouseLeave={(e) => { if (activeDeckId !== 'unlinked') e.currentTarget.style.background = 'transparent' }}
-        >
-          <GalleryHorizontal size={13} style={{ flexShrink: 0 }} />
-          <span className="flex-1 min-w-0 truncate">General</span>
-          <span
-            className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-            style={{
-              background: activeDeckId === 'unlinked' ? 'var(--mochi-pink-mid)' : 'var(--mochi-border)',
-              color: activeDeckId === 'unlinked' ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)',
-            }}
-          >
-            {generalCount}
-          </span>
+          {creatingForSubject === 'unassigned' && renderNewDeckInput('unassigned')}
+          {unassignedDecks.map((d) => renderDeckItem(d, false))}
         </div>
       )}
 
-      {/* Empty hint */}
-      {decks.length === 0 && !creatingDeck && (
-        <p className="text-xs px-2.5 py-1 italic" style={{ color: 'var(--mochi-text-muted)' }}>
-          No decks yet
-        </p>
+      {/* No subjects yet — show a plain "New Deck" shortcut */}
+      {subjects.length === 0 && decks.length === 0 && creatingForSubject !== 'unassigned' && (
+        <>
+          <button
+            onClick={() => { setCreatingForSubject('unassigned'); setNewDeckName('') }}
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold w-full"
+            style={{ color: 'var(--mochi-text-muted)', border: '1.5px dashed var(--mochi-border)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--mochi-cream)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <Plus size={12} />New deck
+          </button>
+        </>
+      )}
+
+      {/* General (unlinked cards) */}
+      {generalCount > 0 && (
+        <>
+          <div className="my-1.5 mx-1" style={{ borderTop: '1px solid var(--mochi-border)' }} />
+          <div
+            onClick={() => setActiveDeck('unlinked')}
+            className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+            style={
+              activeDeckId === 'unlinked'
+                ? { background: 'var(--mochi-pink)', border: '1.5px solid var(--mochi-pink-mid)', color: 'var(--mochi-pink-dark)' }
+                : { color: 'var(--mochi-text-soft)', border: '1.5px solid transparent' }
+            }
+            onMouseEnter={(e) => { if (activeDeckId !== 'unlinked') e.currentTarget.style.background = 'var(--mochi-cream)' }}
+            onMouseLeave={(e) => { if (activeDeckId !== 'unlinked') e.currentTarget.style.background = 'transparent' }}
+          >
+            <GalleryHorizontal size={13} style={{ flexShrink: 0 }} />
+            <span className="flex-1 min-w-0 truncate text-xs">General</span>
+            <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+              style={{
+                background: activeDeckId === 'unlinked' ? 'var(--mochi-pink-mid)' : 'var(--mochi-border)',
+                color: activeDeckId === 'unlinked' ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)',
+              }}>
+              {generalCount}
+            </span>
+          </div>
+        </>
       )}
 
       {/* Confirm delete */}
