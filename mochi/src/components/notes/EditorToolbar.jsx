@@ -187,6 +187,38 @@ export default function EditorToolbar({ editor, onImageUpload }) {
 
         <Sep />
 
+        {/* Font size */}
+        {(() => {
+          const raw = editor.getAttributes('textStyle')?.fontSize
+          const size = raw ? parseInt(raw) : 16
+          const decrease = () => {
+            const next = Math.max(size - 2, 10)
+            if (next === 16 && !raw) return
+            editor.chain().focus().setFontSize(next).run()
+          }
+          const increase = () => {
+            editor.chain().focus().setFontSize(Math.min(size + 2, 72)).run()
+          }
+          return (
+            <div className="flex items-center gap-0.5">
+              <Btn title="Decrease font size" onMouseDown={decrease}>
+                <span style={{ fontSize: '11px', fontWeight: 700, lineHeight: 1 }}>A-</span>
+              </Btn>
+              <span
+                className="w-6 text-center text-[10px] font-semibold select-none"
+                style={{ color: 'var(--mochi-text-muted)' }}
+              >
+                {size}
+              </span>
+              <Btn title="Increase font size" onMouseDown={increase}>
+                <span style={{ fontSize: '11px', fontWeight: 700, lineHeight: 1 }}>A+</span>
+              </Btn>
+            </div>
+          )
+        })()}
+
+        <Sep />
+
         {/* Insert */}
         <Btn
           title="Insert table"

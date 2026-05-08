@@ -9,8 +9,9 @@ const useStore = create((set, get) => ({
     set({ subjects })
   },
   createSubject: async (data) => {
-    await db.subjects.add({ parentId: null, ...data, createdAt: Date.now() })
+    const id = await db.subjects.add({ parentId: null, ...data, createdAt: Date.now() })
     await get().loadSubjects()
+    return id
   },
   updateSubject: async (id, data) => {
     await db.subjects.update(id, data)
@@ -26,6 +27,13 @@ const useStore = create((set, get) => ({
     await db.notes.where('subjectId').equals(id).modify({ subjectId: null })
     await db.subjects.delete(id)
     await get().loadSubjects()
+  },
+
+  // ── All Notes label (persisted to localStorage) ───────────
+  allNotesLabel: localStorage.getItem('mochi_all_notes_label') || 'All Notes',
+  setAllNotesLabel: (label) => {
+    localStorage.setItem('mochi_all_notes_label', label)
+    set({ allNotesLabel: label })
   },
 
   // ── Notes ─────────────────────────────────────────────────

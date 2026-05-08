@@ -13,7 +13,7 @@ export default function App() {
         style={{ background: 'var(--mochi-cream)' }}
       >
         <Sidebar />
-        <div className="flex-1 min-w-0 overflow-hidden h-full">
+        <div className="flex-1 min-w-0 overflow-hidden" style={{ height: '100vh' }}>
           <Routes>
             <Route path="/" element={<Navigate to="/notes" replace />} />
             <Route path="/notes" element={<NotesPage />} />

@@ -9,18 +9,24 @@ import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 import Highlight from '@tiptap/extension-highlight'
-import { FileText } from 'lucide-react'
+import { TextStyle } from '@tiptap/extension-text-style'
+import { FileText, Plus } from 'lucide-react'
 import useStore from '../../store'
 import EditorToolbar from './EditorToolbar'
 import SubjectPicker from './SubjectPicker'
+import { FontSize } from '../../extensions/FontSize'
 
 export default function EditorPane() {
-  const { notes, activeNoteId, updateNote, createNote } = useStore()
+  const { notes, activeNoteId, updateNote, createNote, loadNotes } = useStore()
   const activeNote = notes.find((n) => n.id === activeNoteId) ?? null
 
   const [title, setTitle] = useState('')
   const saveTimer = useRef(null)
   const titleTimer = useRef(null)
+  const lastLoadedId = useRef(null)
+
+  // Ensure data is fresh on remount (tab switch back to Notes)
+  useEffect(() => { loadNotes() }, [])
 
   const editor = useEditor({
     extensions: [
@@ -36,6 +42,8 @@ export default function EditorPane() {
       TableCell,
       TableHeader,
       Highlight,
+      TextStyle,
+      FontSize,
     ],
     content: '',
     onUpdate: ({ editor }) => {
@@ -47,19 +55,25 @@ export default function EditorPane() {
     },
   })
 
-  // Load note content when active note changes
+  // Load content when the active note changes
   useEffect(() => {
-    if (!editor) return
+    if (!editor || editor.isDestroyed) return
+
     if (!activeNote) {
-      editor.commands.setContent('')
-      setTitle('')
+      if (lastLoadedId.current !== null) {
+        editor.commands.setContent('')
+        setTitle('')
+        lastLoadedId.current = null
+      }
       return
     }
-    const current = editor.getHTML()
-    if (current !== activeNote.content) {
+
+    // Only reset content when switching to a different note
+    if (lastLoadedId.current !== activeNote.id) {
       editor.commands.setContent(activeNote.content || '')
+      setTitle(activeNote.title || '')
+      lastLoadedId.current = activeNote.id
     }
-    setTitle(activeNote.title || '')
   }, [activeNoteId, editor])
 
   // Cleanup timers
@@ -95,54 +109,57 @@ export default function EditorPane() {
     input.click()
   }
 
-  if (!activeNote) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <FileText size={48} className="mx-auto mb-4" style={{ color: 'var(--mochi-border)' }} />
-          <p className="text-base font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>
-            Select a note to open it
-          </p>
-          <p className="text-xs mb-4" style={{ color: 'var(--mochi-text-muted)' }}>
-            or create a new one
-          </p>
-          <button
-            onClick={() => createNote()}
-            className="px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-80"
-            style={{
-              background: 'var(--mochi-lavender)',
-              color: 'var(--mochi-lavender-dark)',
-              border: '1.5px solid var(--mochi-lavender-mid)',
-            }}
-          >
-            New note
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Title + subject picker */}
-      <div className="px-8 pt-6 pb-3" style={{ borderBottom: '1.5px solid var(--mochi-border)' }}>
-        <input
-          value={title}
-          onChange={handleTitleChange}
-          placeholder="Untitled"
-          className="w-full bg-transparent outline-none text-2xl font-bold placeholder:opacity-30 mb-2"
-          style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-text)' }}
-        />
-        <SubjectPicker noteId={activeNoteId} />
+    <div className="flex-1 flex flex-col overflow-hidden relative">
+      {/* ── Active note header ─────────────────────────────── */}
+      {activeNote && (
+        <div className="px-8 pt-6 pb-3" style={{ borderBottom: '1.5px solid var(--mochi-border)' }}>
+          <input
+            value={title}
+            onChange={handleTitleChange}
+            placeholder="Untitled"
+            className="w-full bg-transparent outline-none text-2xl font-bold placeholder:opacity-30 mb-2"
+            style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-text)' }}
+          />
+          <SubjectPicker noteId={activeNoteId} />
+        </div>
+      )}
+
+      {/* ── Toolbar ────────────────────────────────────────── */}
+      {activeNote && (
+        <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
+      )}
+
+      {/* ── Editor content — ALWAYS mounted so Tiptap keeps its DOM node ── */}
+      <div className="flex-1 overflow-y-auto px-8 py-6" style={{ display: activeNote ? 'block' : 'none' }}>
+        <EditorContent editor={editor} />
       </div>
 
-      {/* Toolbar */}
-      <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
-
-      {/* Editor content */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
-        <EditorContent editor={editor} className="tiptap-editor" />
-      </div>
+      {/* ── Empty state overlay ────────────────────────────── */}
+      {!activeNote && (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <FileText size={48} className="mx-auto mb-4" style={{ color: 'var(--mochi-border)' }} />
+            <p className="text-base font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>
+              Select a note to open it
+            </p>
+            <p className="text-xs mb-4" style={{ color: 'var(--mochi-text-muted)' }}>
+              or create a new one
+            </p>
+            <button
+              onClick={() => createNote()}
+              className="px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-80"
+              style={{
+                background: 'var(--mochi-lavender)',
+                color: 'var(--mochi-lavender-dark)',
+                border: '1.5px solid var(--mochi-lavender-mid)',
+              }}
+            >
+              New note
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
