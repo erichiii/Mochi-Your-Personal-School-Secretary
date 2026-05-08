@@ -9,7 +9,7 @@ const useStore = create((set, get) => ({
     set({ subjects })
   },
   createSubject: async (data) => {
-    await db.subjects.add({ ...data, createdAt: Date.now() })
+    await db.subjects.add({ parentId: null, ...data, createdAt: Date.now() })
     await get().loadSubjects()
   },
   updateSubject: async (id, data) => {
@@ -17,6 +17,12 @@ const useStore = create((set, get) => ({
     await get().loadSubjects()
   },
   deleteSubject: async (id) => {
+    // cascade: clear note assignments and delete all subsections first
+    const subs = await db.subjects.where('parentId').equals(id).toArray()
+    for (const sub of subs) {
+      await db.notes.where('subjectId').equals(sub.id).modify({ subjectId: null })
+      await db.subjects.delete(sub.id)
+    }
     await db.notes.where('subjectId').equals(id).modify({ subjectId: null })
     await db.subjects.delete(id)
     await get().loadSubjects()
