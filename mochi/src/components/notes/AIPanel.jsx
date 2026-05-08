@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Sparkles, BookOpen, Brain, FileText, Upload, X,
   AlertCircle, Loader2, FileUp, Layers,
@@ -58,7 +58,7 @@ const extractPdfText = async (file) => {
 }
 
 export default function AIPanel({ editor, noteId, onClose }) {
-  const { createFlashcard, notes } = useStore()
+  const { createFlashcard, notes, decks, loadDecks } = useStore()
 
   const [mode, setMode] = useState('primer')
   const [insertMode, setInsertMode] = useState('replace') // 'replace' | 'append'
@@ -68,9 +68,12 @@ export default function AIPanel({ editor, noteId, onClose }) {
   const [success, setSuccess] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState([]) // [{ name, text }]
   const [fcCount, setFcCount] = useState(8)
+  const [fcDeckId, setFcDeckId] = useState(null) // null = General
   const [fcLoading, setFcLoading] = useState(false)
   const [fcSuccess, setFcSuccess] = useState(0) // number of cards generated
   const fileRef = useRef()
+
+  useEffect(() => { loadDecks() }, [])
 
   const getSourceText = () => {
     if (uploadedFiles.length > 0) return uploadedFiles.map((f) => f.text).join('\n\n---\n\n')
@@ -158,6 +161,7 @@ export default function AIPanel({ editor, noteId, onClose }) {
         await createFlashcard({
           front: card.front,
           back: card.back,
+          deckId: fcDeckId,
           noteId: noteId ?? null,
           subjectId: activeNote?.subjectId ?? null,
         })
@@ -379,6 +383,20 @@ export default function AIPanel({ editor, noteId, onClose }) {
           <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--mochi-text-muted)' }}>
             Flashcards
           </p>
+
+          {/* Deck picker */}
+          <div className="flex flex-col gap-1 mb-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--mochi-text-muted)' }}>Save to deck</label>
+            <select
+              value={fcDeckId ?? ''}
+              onChange={(e) => setFcDeckId(e.target.value ? Number(e.target.value) : null)}
+              className="w-full px-2.5 py-1.5 rounded-xl text-xs outline-none"
+              style={{ background: 'var(--mochi-cream)', border: '1.5px solid var(--mochi-border)', color: 'var(--mochi-text)' }}
+            >
+              <option value="">General</option>
+              {decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </div>
 
           {/* Count selector */}
           <div className="flex items-center gap-1.5 mb-2">

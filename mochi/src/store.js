@@ -73,6 +73,31 @@ const useStore = create((set, get) => ({
   },
   setActiveNote: (id) => set({ activeNoteId: id }),
 
+  // ── Decks ─────────────────────────────────────────────────
+  decks: [],
+  loadDecks: async () => {
+    const decks = await db.decks.orderBy('createdAt').toArray()
+    set({ decks })
+  },
+  createDeck: async (name) => {
+    const id = await db.decks.add({ name, createdAt: Date.now() })
+    await get().loadDecks()
+    return id
+  },
+  updateDeck: async (id, data) => {
+    await db.decks.update(id, data)
+    await get().loadDecks()
+  },
+  deleteDeck: async (id) => {
+    await db.flashcards.where('deckId').equals(id).modify({ deckId: null })
+    await db.decks.delete(id)
+    if (get().activeDeckId === id) set({ activeDeckId: null })
+    await get().loadDecks()
+    await get().loadFlashcards()
+  },
+  activeDeckId: null,
+  setActiveDeck: (id) => set({ activeDeckId: id }),
+
   // ── Flashcards ────────────────────────────────────────────
   flashcards: [],
   loadFlashcards: async () => {
@@ -80,7 +105,7 @@ const useStore = create((set, get) => ({
     set({ flashcards })
   },
   createFlashcard: async (data) => {
-    await db.flashcards.add({ noteId: null, subjectId: null, ...data, createdAt: Date.now() })
+    await db.flashcards.add({ deckId: null, noteId: null, subjectId: null, ...data, createdAt: Date.now() })
     await get().loadFlashcards()
   },
   updateFlashcard: async (id, data) => {

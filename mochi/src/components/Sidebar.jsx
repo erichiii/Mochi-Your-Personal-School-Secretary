@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { BookOpen, CheckSquare, Calendar, Brain, Layers, ChevronLeft, ChevronRight } from 'lucide-react'
 import SubjectSection from './notes/SubjectSection'
+import DeckSection from './DeckSection'
 
 const NAV = [
   {
@@ -49,6 +50,7 @@ const NAV = [
 export default function Sidebar() {
   const location = useLocation()
   const onNotes = location.pathname === '/notes'
+  const onFlashcards = location.pathname === '/flashcards'
   const [collapsed, setCollapsed] = useState(false)
 
   return (
@@ -117,11 +119,16 @@ export default function Sidebar() {
       {/* Subjects — only on /notes and expanded */}
       {onNotes && !collapsed && (
         <>
-          <div
-            className="my-3 mx-2"
-            style={{ borderTop: '1px solid var(--mochi-border)' }}
-          />
+          <div className="my-3 mx-2" style={{ borderTop: '1px solid var(--mochi-border)' }} />
           <SubjectSection />
+        </>
+      )}
+
+      {/* Decks — only on /flashcards and expanded */}
+      {onFlashcards && !collapsed && (
+        <>
+          <div className="my-3 mx-2" style={{ borderTop: '1px solid var(--mochi-border)' }} />
+          <DeckSection />
         </>
       )}
     </aside>
