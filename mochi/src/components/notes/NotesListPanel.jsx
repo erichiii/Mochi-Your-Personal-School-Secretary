@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, FileText, Trash2, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Plus, FileText, Trash2, PanelLeftClose, PanelLeftOpen, Search, X } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import useStore from '../../store'
 import ConfirmModal from '../ConfirmModal'
@@ -16,6 +16,7 @@ export default function NotesListPanel() {
   const [collapsed, setCollapsed] = useState(false)
   const [panelWidth, setPanelWidth] = useState(260)
   const [confirmModal, setConfirmModal] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const drag = useRef({ active: false, startX: 0, startW: 0 })
 
   useEffect(() => { loadNotes(); loadSubjects() }, [])
@@ -33,7 +34,16 @@ export default function NotesListPanel() {
     return notes.filter((n) => n.subjectId === activeSubjectFilter)
   }
 
-  const filtered = getFiltered()
+  const bySubject = getFiltered()
+  const filtered = searchQuery.trim()
+    ? bySubject.filter((n) => {
+        const q = searchQuery.toLowerCase()
+        return (
+          n.title.toLowerCase().includes(q) ||
+          stripHtml(n.content).toLowerCase().includes(q)
+        )
+      })
+    : bySubject
   const activeSection = subjects.find((s) => s.id === activeSubjectFilter) ?? null
 
   const handleNew = () =>
@@ -158,16 +168,43 @@ export default function NotesListPanel() {
         </button>
       </div>
 
+      {/* Search bar */}
+      <div className="px-3 py-2" style={{ borderBottom: '1.5px solid var(--mochi-border)' }}>
+        <div
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl"
+          style={{ background: 'var(--mochi-cream)', border: '1.5px solid var(--mochi-border)' }}
+        >
+          <Search size={12} style={{ color: 'var(--mochi-text-muted)', flexShrink: 0 }} />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search notes…"
+            className="flex-1 bg-transparent outline-none text-xs min-w-0"
+            style={{ color: 'var(--mochi-text)' }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              style={{ color: 'var(--mochi-text-muted)', flexShrink: 0 }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--mochi-text)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--mochi-text-muted)')}
+            >
+              <X size={11} />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Note list */}
       <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             <FileText size={32} className="mb-3" style={{ color: 'var(--mochi-border)' }} />
             <p className="text-sm font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>
-              {activeSection ? `No notes in ${activeSection.name}` : 'No notes yet'}
+              {searchQuery ? 'No results found' : activeSection ? `No notes in ${activeSection.name}` : 'No notes yet'}
             </p>
             <p className="text-xs" style={{ color: 'var(--mochi-text-muted)' }}>
-              Click "New" to create one
+              {searchQuery ? 'Try a different search term' : 'Click "New" to create one'}
             </p>
           </div>
         ) : (
