@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 const getModel = () => {
   const key = import.meta.env.VITE_GEMINI_KEY
   if (!key) throw new Error('Add VITE_GEMINI_KEY to your .env file')
-  return new GoogleGenerativeAI(key).getGenerativeModel({ model: 'gemini-2.0-flash' })
+  return new GoogleGenerativeAI(key).getGenerativeModel({ model: 'gemini-2.5-flash' })
 }
 
 const parseJSON = (raw) => {
@@ -16,11 +16,30 @@ const guardOnline = () => {
 }
 
 const wrapError = (e) => {
+  console.error('[Mochi Gemini error]', e)
+
   if (e.message === 'offline') throw new Error("You're offline. AI features need internet.")
-  if (e.status === 429) throw new Error('Too many requests. Wait a moment and try again.')
-  if (e.message?.includes('API_KEY') || e.message?.includes('API key'))
-    throw new Error('Invalid API key. Check your VITE_GEMINI_KEY in .env')
-  throw new Error('AI generation failed. Try again.')
+
+  const msg = e.message ?? ''
+  const status = e.status
+
+  const is429 =
+    status === 429 ||
+    msg.includes('429') ||
+    msg.toLowerCase().includes('quota') ||
+    msg.toLowerCase().includes('rate limit') ||
+    msg.toLowerCase().includes('resource_exhausted')
+  if (is429) throw new Error('Rate limit reached. Wait about a minute, then try again. (Free tier: 15 req/min)')
+
+  const isAuthError =
+    (msg.includes('API_KEY') || msg.includes('API key')) &&
+    !msg.toLowerCase().includes('payload')
+  if (isAuthError) throw new Error('Invalid API key. Check VITE_GEMINI_KEY in your .env file.')
+
+  // Surface Gemini's own message — it's usually descriptive enough
+  if (msg && msg !== 'Failed to fetch') throw new Error(msg)
+
+  throw new Error('AI generation failed. Check the browser console for details.')
 }
 
 // ── Note generation ───────────────────────────────────────────
@@ -69,6 +88,10 @@ export const generateNotes = async (text, mode = 'primer') => {
     const model = getModel()
     const prompt = (NOTE_PROMPTS[mode] ?? NOTE_PROMPTS.primer)(text)
     const result = await model.generateContent(prompt)
+    const candidate = result.response.candidates?.[0]
+    if (candidate?.finishReason === 'SAFETY' || candidate?.finishReason === 'RECITATION') {
+      throw new Error(`Response blocked (${candidate.finishReason}). Try reducing content or splitting into separate files.`)
+    }
     return result.response.text()
   } catch (e) {
     wrapError(e)

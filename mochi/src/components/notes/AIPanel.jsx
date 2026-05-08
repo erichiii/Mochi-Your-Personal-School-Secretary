@@ -7,6 +7,8 @@ import * as pdfjsLib from 'pdfjs-dist'
 import { marked } from 'marked'
 import { generateNotes } from '../../gemini'
 
+marked.use({ gfm: true, breaks: false })
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url
@@ -56,45 +58,55 @@ const extractPdfText = async (file) => {
 
 export default function AIPanel({ editor, noteId, onClose }) {
   const [mode, setMode] = useState('primer')
+  const [insertMode, setInsertMode] = useState('replace') // 'replace' | 'append'
   const [loading, setLoading] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [error, setError] = useState('')
-  const [docText, setDocText] = useState('')
-  const [fileName, setFileName] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [uploadedFiles, setUploadedFiles] = useState([]) // [{ name, text }]
   const fileRef = useRef()
 
   const getSourceText = () => {
-    if (docText) return docText
+    if (uploadedFiles.length > 0) return uploadedFiles.map((f) => f.text).join('\n\n---\n\n')
     if (editor) return editor.getText()
     return ''
   }
 
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-    setFileName(file.name)
-    setError('')
-
-    if (file.type === 'application/pdf') {
-      setPdfLoading(true)
-      try {
-        const text = await extractPdfText(file)
-        setDocText(text)
-      } catch {
-        setError('Could not read PDF. Try a text-based PDF (not scanned image).')
-        setFileName('')
-      } finally {
-        setPdfLoading(false)
-      }
-    } else {
+  const readTextFile = (file) =>
+    new Promise((resolve) => {
       const reader = new FileReader()
-      reader.onload = (ev) => setDocText(ev.target.result)
+      reader.onload = (ev) => resolve(ev.target.result)
       reader.readAsText(file)
+    })
+
+  const handleFile = async (e) => {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    e.target.value = ''
+    setError('')
+    setPdfLoading(true)
+
+    const results = []
+    for (const file of files) {
+      try {
+        const text = file.type === 'application/pdf'
+          ? await extractPdfText(file)
+          : await readTextFile(file)
+        results.push({ name: file.name, text })
+      } catch {
+        setError(`Could not read "${file.name}". PDFs must be text-based, not scanned images.`)
+      }
     }
+
+    setUploadedFiles((prev) => {
+      const names = new Set(prev.map((f) => f.name))
+      return [...prev, ...results.filter((r) => !names.has(r.name))]
+    })
+    setPdfLoading(false)
   }
 
-  const clearFile = () => { setDocText(''); setFileName('') }
+  const removeFile = (name) => setUploadedFiles((prev) => prev.filter((f) => f.name !== name))
+  const clearFiles = () => setUploadedFiles([])
 
   const handleGenerateNotes = async () => {
     const text = getSourceText()
@@ -104,10 +116,19 @@ export default function AIPanel({ editor, noteId, onClose }) {
     }
     setLoading(true)
     setError('')
+    setSuccess(false)
     try {
       const markdown = await generateNotes(text, mode)
       const html = marked.parse(markdown)
-      editor.commands.setContent(html)
+      const noteIsEmpty = !editor.getText().trim()
+      if (insertMode === 'replace' || noteIsEmpty) {
+        editor.commands.setContent(html)
+      } else {
+        editor.commands.focus('end')
+        editor.commands.insertContent(html)
+      }
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -134,28 +155,37 @@ export default function AIPanel({ editor, noteId, onClose }) {
             Source
           </p>
 
+          {/* Uploaded file list */}
+          {uploadedFiles.length > 0 && (
+            <div className="flex flex-col gap-1 mb-2">
+              {uploadedFiles.map((f) => (
+                <div
+                  key={f.name}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl"
+                  style={{ background: 'var(--mochi-lavender)', border: '1.5px solid var(--mochi-lavender-mid)' }}
+                >
+                  <FileUp size={11} style={{ color: 'var(--mochi-lavender-dark)', flexShrink: 0 }} />
+                  <span className="flex-1 text-xs font-semibold truncate" style={{ color: 'var(--mochi-lavender-dark)' }}>
+                    {f.name}
+                  </span>
+                  <button onClick={() => removeFile(f.name)} style={{ color: 'var(--mochi-lavender-dark)', flexShrink: 0 }} title="Remove">
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Loading / fallback */}
           {pdfLoading ? (
             <div
               className="flex items-center gap-2 px-2.5 py-2 rounded-xl"
               style={{ background: 'var(--mochi-cream)', border: '1.5px solid var(--mochi-border)' }}
             >
               <Loader2 size={12} className="animate-spin" style={{ color: 'var(--mochi-text-muted)', flexShrink: 0 }} />
-              <span className="text-xs" style={{ color: 'var(--mochi-text-muted)' }}>Reading PDF…</span>
+              <span className="text-xs" style={{ color: 'var(--mochi-text-muted)' }}>Reading files…</span>
             </div>
-          ) : fileName ? (
-            <div
-              className="flex items-center gap-2 px-2.5 py-2 rounded-xl"
-              style={{ background: 'var(--mochi-lavender)', border: '1.5px solid var(--mochi-lavender-mid)' }}
-            >
-              <FileUp size={12} style={{ color: 'var(--mochi-lavender-dark)', flexShrink: 0 }} />
-              <span className="flex-1 text-xs font-semibold truncate" style={{ color: 'var(--mochi-lavender-dark)' }}>
-                {fileName}
-              </span>
-              <button onClick={clearFile} style={{ color: 'var(--mochi-lavender-dark)', flexShrink: 0 }} title="Remove file">
-                <X size={11} />
-              </button>
-            </div>
-          ) : (
+          ) : uploadedFiles.length === 0 && (
             <p className="text-xs italic" style={{ color: 'var(--mochi-text-muted)' }}>
               Using your current note
             </p>
@@ -175,12 +205,13 @@ export default function AIPanel({ editor, noteId, onClose }) {
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             <Upload size={12} />
-            Upload file (.txt, .md, .csv, .pdf)
+            Upload files (.txt, .md, .csv, .pdf)
           </button>
           <input
             ref={fileRef}
             type="file"
             accept=".txt,.md,.csv,.pdf,application/pdf"
+            multiple
             className="hidden"
             onChange={handleFile}
           />
@@ -223,6 +254,51 @@ export default function AIPanel({ editor, noteId, onClose }) {
 
         {/* Divider */}
         <div style={{ height: '1px', background: 'var(--mochi-border)' }} />
+
+        {/* Insert mode toggle */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--mochi-text-muted)' }}>
+            Insert as
+          </p>
+          <div
+            className="flex rounded-xl overflow-hidden"
+            style={{ border: '1.5px solid var(--mochi-border)' }}
+          >
+            {[{ key: 'replace', label: 'Replace' }, { key: 'append', label: 'Append' }].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setInsertMode(key)}
+                className="flex-1 py-1.5 text-xs font-semibold transition-all"
+                style={
+                  insertMode === key
+                    ? { background: 'var(--mochi-lavender)', color: 'var(--mochi-lavender-dark)' }
+                    : { background: 'transparent', color: 'var(--mochi-text-muted)' }
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] mt-1.5" style={{ color: 'var(--mochi-text-muted)' }}>
+            {insertMode === 'replace'
+              ? 'Generated content will replace the current note.'
+              : 'Generated content will be added at the end.'}
+          </p>
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: '1px', background: 'var(--mochi-border)' }} />
+
+        {/* Success */}
+        {success && (
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-xl fade-in"
+            style={{ background: 'var(--mochi-mint)', border: '1.5px solid var(--mochi-mint-mid)' }}
+          >
+            <Sparkles size={13} style={{ color: 'var(--mochi-mint-dark)', flexShrink: 0 }} />
+            <p className="text-xs font-semibold" style={{ color: 'var(--mochi-mint-dark)' }}>Done! Notes inserted.</p>
+          </div>
+        )}
 
         {/* Error */}
         {error && (
