@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
 import {
   Sparkles, BookOpen, Brain, FileText, Upload, X,
-  AlertCircle, Loader2, FileUp,
+  AlertCircle, Loader2, FileUp, Layers,
 } from 'lucide-react'
 import * as pdfjsLib from 'pdfjs-dist'
 import { marked } from 'marked'
-import { generateNotes } from '../../gemini'
+import { generateNotes, generateFlashcards } from '../../gemini'
+import useStore from '../../store'
 
 marked.use({ gfm: true, breaks: false })
 
@@ -57,6 +58,8 @@ const extractPdfText = async (file) => {
 }
 
 export default function AIPanel({ editor, noteId, onClose }) {
+  const { createFlashcard, notes } = useStore()
+
   const [mode, setMode] = useState('primer')
   const [insertMode, setInsertMode] = useState('replace') // 'replace' | 'append'
   const [loading, setLoading] = useState(false)
@@ -64,6 +67,9 @@ export default function AIPanel({ editor, noteId, onClose }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState([]) // [{ name, text }]
+  const [fcCount, setFcCount] = useState(8)
+  const [fcLoading, setFcLoading] = useState(false)
+  const [fcSuccess, setFcSuccess] = useState(0) // number of cards generated
   const fileRef = useRef()
 
   const getSourceText = () => {
@@ -133,6 +139,35 @@ export default function AIPanel({ editor, noteId, onClose }) {
       setError(e.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGenerateFlashcards = async () => {
+    const text = getSourceText()
+    if (!text.trim()) {
+      setError('No content to generate from. Write a note or upload a file first.')
+      return
+    }
+    setFcLoading(true)
+    setError('')
+    setFcSuccess(0)
+    try {
+      const cards = await generateFlashcards(text, fcCount)
+      const activeNote = notes.find((n) => n.id === noteId)
+      for (const card of cards) {
+        await createFlashcard({
+          front: card.front,
+          back: card.back,
+          noteId: noteId ?? null,
+          subjectId: activeNote?.subjectId ?? null,
+        })
+      }
+      setFcSuccess(cards.length)
+      setTimeout(() => setFcSuccess(0), 4000)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setFcLoading(false)
     }
   }
 
@@ -336,7 +371,67 @@ export default function AIPanel({ editor, noteId, onClose }) {
           )}
         </button>
 
-        {/* Coming in next tasks */}
+        {/* Divider */}
+        <div style={{ height: '1px', background: 'var(--mochi-border)' }} />
+
+        {/* Generate Flashcards */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--mochi-text-muted)' }}>
+            Flashcards
+          </p>
+
+          {/* Count selector */}
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="text-xs flex-1" style={{ color: 'var(--mochi-text-soft)' }}>Count</span>
+            {[4, 8, 12, 16].map((n) => (
+              <button
+                key={n}
+                onClick={() => setFcCount(n)}
+                className="px-2 py-0.5 rounded-lg text-xs font-semibold transition-all"
+                style={
+                  fcCount === n
+                    ? { background: 'var(--mochi-mint)', color: 'var(--mochi-mint-dark)', border: '1.5px solid var(--mochi-mint-mid)' }
+                    : { color: 'var(--mochi-text-muted)', border: '1.5px solid var(--mochi-border)' }
+                }
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+
+          {/* Flashcard success */}
+          {fcSuccess > 0 && (
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded-xl fade-in mb-2"
+              style={{ background: 'var(--mochi-mint)', border: '1.5px solid var(--mochi-mint-mid)' }}
+            >
+              <Layers size={13} style={{ color: 'var(--mochi-mint-dark)', flexShrink: 0 }} />
+              <p className="text-xs font-semibold" style={{ color: 'var(--mochi-mint-dark)' }}>
+                {fcSuccess} flashcard{fcSuccess !== 1 ? 's' : ''} added!
+              </p>
+            </div>
+          )}
+
+          <button
+            onClick={handleGenerateFlashcards}
+            disabled={fcLoading || pdfLoading}
+            className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all"
+            style={{
+              background: (fcLoading || pdfLoading) ? 'var(--mochi-border)' : 'var(--mochi-mint)',
+              border: `1.5px solid ${(fcLoading || pdfLoading) ? 'transparent' : 'var(--mochi-mint-mid)'}`,
+              color: (fcLoading || pdfLoading) ? 'var(--mochi-text-muted)' : 'var(--mochi-mint-dark)',
+              cursor: (fcLoading || pdfLoading) ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {fcLoading ? (
+              <><Loader2 size={13} className="animate-spin" />Generating…</>
+            ) : (
+              <><Sparkles size={13} />Generate Flashcards</>
+            )}
+          </button>
+        </div>
+
+        {/* Coming soon: Quiz */}
         <div
           className="rounded-xl px-3 py-2.5 flex flex-col gap-1.5"
           style={{ background: 'var(--mochi-cream)', border: '1.5px solid var(--mochi-border)' }}
@@ -344,16 +439,13 @@ export default function AIPanel({ editor, noteId, onClose }) {
           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--mochi-text-muted)' }}>
             Coming soon
           </p>
-          {['Generate Flashcards', 'Generate Quiz'].map((label) => (
-            <div
-              key={label}
-              className="flex items-center gap-2 text-xs font-semibold"
-              style={{ color: 'var(--mochi-text-muted)', opacity: 0.5 }}
-            >
-              <Sparkles size={11} />
-              {label}
-            </div>
-          ))}
+          <div
+            className="flex items-center gap-2 text-xs font-semibold"
+            style={{ color: 'var(--mochi-text-muted)', opacity: 0.5 }}
+          >
+            <Sparkles size={11} />
+            Generate Quiz
+          </div>
         </div>
 
       </div>

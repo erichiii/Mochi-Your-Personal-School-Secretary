@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { BookOpen, CheckSquare, Calendar, Brain, ChevronLeft, ChevronRight } from 'lucide-react'
+import { BookOpen, CheckSquare, Calendar, Brain, Layers, ChevronLeft, ChevronRight } from 'lucide-react'
 import SubjectSection from './notes/SubjectSection'
 
 const NAV = [
@@ -11,6 +11,14 @@ const NAV = [
     bg: 'var(--mochi-lavender)',
     border: 'var(--mochi-lavender-mid)',
     color: 'var(--mochi-lavender-dark)',
+  },
+  {
+    to: '/flashcards',
+    label: 'Flashcards',
+    Icon: Layers,
+    bg: 'var(--mochi-pink)',
+    border: 'var(--mochi-pink-mid)',
+    color: 'var(--mochi-pink-dark)',
   },
   {
     to: '/todo',

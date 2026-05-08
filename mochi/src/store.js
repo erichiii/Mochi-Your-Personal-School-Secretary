@@ -73,6 +73,25 @@ const useStore = create((set, get) => ({
   },
   setActiveNote: (id) => set({ activeNoteId: id }),
 
+  // ── Flashcards ────────────────────────────────────────────
+  flashcards: [],
+  loadFlashcards: async () => {
+    const flashcards = await db.flashcards.orderBy('createdAt').toArray()
+    set({ flashcards })
+  },
+  createFlashcard: async (data) => {
+    await db.flashcards.add({ noteId: null, subjectId: null, ...data, createdAt: Date.now() })
+    await get().loadFlashcards()
+  },
+  updateFlashcard: async (id, data) => {
+    await db.flashcards.update(id, data)
+    await get().loadFlashcards()
+  },
+  deleteFlashcard: async (id) => {
+    await db.flashcards.delete(id)
+    await get().loadFlashcards()
+  },
+
   // ── Tasks ─────────────────────────────────────────────────
   tasks: [],
   loadTasks: async () => {

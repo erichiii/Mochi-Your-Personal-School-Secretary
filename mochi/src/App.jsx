@@ -4,6 +4,7 @@ import NotesPage from './pages/NotesPage'
 import TodoPage from './pages/TodoPage'
 import SchedulePage from './pages/SchedulePage'
 import StudyPlanPage from './pages/StudyPlanPage'
+import FlashcardsPage from './pages/FlashcardsPage'
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="/todo" element={<TodoPage />} />
             <Route path="/schedule" element={<SchedulePage />} />
             <Route path="/studyplan" element={<StudyPlanPage />} />
+            <Route path="/flashcards" element={<FlashcardsPage />} />
           </Routes>
         </div>
       </div>
