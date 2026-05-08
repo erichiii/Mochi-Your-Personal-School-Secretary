@@ -399,22 +399,32 @@ export default function AIPanel({ editor, noteId, onClose }) {
           </div>
 
           {/* Count selector */}
-          <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-xs flex-1" style={{ color: 'var(--mochi-text-soft)' }}>Count</span>
-            {[4, 8, 12, 16].map((n) => (
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs flex-1" style={{ color: 'var(--mochi-text-soft)' }}>Cards</span>
+            <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid var(--mochi-border)' }}>
               <button
-                key={n}
-                onClick={() => setFcCount(n)}
-                className="px-2 py-0.5 rounded-lg text-xs font-semibold transition-all"
-                style={
-                  fcCount === n
-                    ? { background: 'var(--mochi-mint)', color: 'var(--mochi-mint-dark)', border: '1.5px solid var(--mochi-mint-mid)' }
-                    : { color: 'var(--mochi-text-muted)', border: '1.5px solid var(--mochi-border)' }
-                }
-              >
-                {n}
-              </button>
-            ))}
+                onClick={() => setFcCount((v) => Math.max(1, v - 1))}
+                className="px-2 py-1 text-xs font-bold"
+                style={{ color: 'var(--mochi-text-muted)', background: 'var(--mochi-surface)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--mochi-cream)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--mochi-surface)')}
+              >−</button>
+              <input
+                type="number"
+                min="1"
+                value={fcCount}
+                onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1) setFcCount(v) }}
+                className="w-10 text-center text-xs outline-none py-1"
+                style={{ background: 'var(--mochi-cream)', color: 'var(--mochi-text)', border: 'none' }}
+              />
+              <button
+                onClick={() => setFcCount((v) => v + 1)}
+                className="px-2 py-1 text-xs font-bold"
+                style={{ color: 'var(--mochi-text-muted)', background: 'var(--mochi-surface)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--mochi-cream)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--mochi-surface)')}
+              >+</button>
+            </div>
           </div>
 
           {/* Flashcard success */}

@@ -245,7 +245,7 @@ export default function FlashcardsPage() {
   // ── Empty states ──────────────────────────────────────────
   if (activeDeckId === null && flashcards.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-8" style={{ background: 'var(--mochi-cream)' }}>
+      <div className="h-full flex flex-col items-center justify-center text-center px-8" style={{ background: 'var(--mochi-cream)' }}>
         <Layers size={48} className="mb-4" style={{ color: 'var(--mochi-border)' }} />
         <p className="text-base font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>No flashcards yet</p>
         <p className="text-xs" style={{ color: 'var(--mochi-text-muted)' }}>
@@ -257,7 +257,7 @@ export default function FlashcardsPage() {
 
   if (activeDeckId !== null && total === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-8" style={{ background: 'var(--mochi-cream)' }}>
+      <div className="h-full overflow-y-auto flex flex-col items-center justify-center text-center px-8" style={{ background: 'var(--mochi-cream)' }}>
         <Layers size={48} className="mb-4" style={{ color: 'var(--mochi-border)' }} />
         <p className="text-base font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>
           {deckLabel} is empty
@@ -311,7 +311,7 @@ export default function FlashcardsPage() {
 
   // ── Study area ────────────────────────────────────────────
   return (
-    <div className="flex-1 flex flex-col items-center overflow-y-auto px-8 py-8" style={{ background: 'var(--mochi-cream)' }}>
+    <div className="h-full flex flex-col items-center overflow-y-auto px-8 py-8" style={{ background: 'var(--mochi-cream)' }}>
 
       {/* Header */}
       <div className="w-full max-w-lg flex items-center justify-between mb-3">
@@ -526,16 +526,32 @@ function AiGeneratePanel({
       <input ref={aiFileRef} type="file" accept=".txt,.md,.csv,.pdf,application/pdf" className="hidden" onChange={handleAiFile} />
 
       {/* Count */}
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs flex-1" style={{ color: 'var(--mochi-text-soft)' }}>Count</span>
-        {[4, 8, 12, 16].map((n) => (
-          <button key={n} onClick={() => setAiCount(n)}
-            className="px-2 py-0.5 rounded-lg text-xs font-semibold"
-            style={aiCount === n
-              ? { background: 'var(--mochi-mint)', color: 'var(--mochi-mint-dark)', border: '1.5px solid var(--mochi-mint-mid)' }
-              : { color: 'var(--mochi-text-muted)', border: '1.5px solid var(--mochi-border)' }}
-          >{n}</button>
-        ))}
+      <div className="flex items-center gap-2">
+        <span className="text-xs flex-1" style={{ color: 'var(--mochi-text-soft)' }}>Cards to generate</span>
+        <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid var(--mochi-border)' }}>
+          <button
+            onClick={() => setAiCount((v) => Math.max(1, v - 1))}
+            className="px-2 py-1 text-xs font-bold transition-colors"
+            style={{ color: 'var(--mochi-text-muted)', background: 'var(--mochi-surface)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--mochi-cream)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--mochi-surface)')}
+          >−</button>
+          <input
+            type="number"
+            min="1"
+            value={aiCount}
+            onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1) setAiCount(v) }}
+            className="w-10 text-center text-xs outline-none py-1"
+            style={{ background: 'var(--mochi-cream)', color: 'var(--mochi-text)', border: 'none' }}
+          />
+          <button
+            onClick={() => setAiCount((v) => v + 1)}
+            className="px-2 py-1 text-xs font-bold transition-colors"
+            style={{ color: 'var(--mochi-text-muted)', background: 'var(--mochi-surface)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--mochi-cream)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--mochi-surface)')}
+          >+</button>
+        </div>
       </div>
 
       {/* Error / success */}
