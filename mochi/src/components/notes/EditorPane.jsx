@@ -14,6 +14,7 @@ import { FileText, Plus } from 'lucide-react'
 import useStore from '../../store'
 import EditorToolbar from './EditorToolbar'
 import SubjectPicker from './SubjectPicker'
+import ResourcesPanel from './ResourcesPanel'
 import { FontSize } from '../../extensions/FontSize'
 
 export default function EditorPane() {
@@ -121,7 +122,10 @@ export default function EditorPane() {
             className="w-full bg-transparent outline-none text-2xl font-bold placeholder:opacity-30 mb-2"
             style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-text)' }}
           />
-          <SubjectPicker noteId={activeNoteId} />
+          <div className="flex items-center gap-2 flex-wrap">
+            <SubjectPicker noteId={activeNoteId} />
+            <ResourcesPanel noteId={activeNoteId} resources={activeNote.resources ?? []} />
+          </div>
         </div>
       )}
 
