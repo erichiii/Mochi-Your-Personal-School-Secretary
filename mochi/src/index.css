@@ -111,12 +111,13 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--mochi-border); border-radius: 9999px; }
 
-/* ── Tiptap placeholder ────────────────────────────────────── */
+/* ── Tiptap base ───────────────────────────────────────────── */
 .tiptap {
   outline: none;
   font-family: 'Nunito', sans-serif;
   color: var(--mochi-text);
   line-height: 1.7;
+  min-height: 100%;
 }
 
 .tiptap p.is-editor-empty:first-child::before {
@@ -125,4 +126,156 @@ body {
   pointer-events: none;
   float: left;
   height: 0;
+}
+
+/* ── Tiptap headings ───────────────────────────────────────── */
+.tiptap h1 {
+  font-family: 'Fraunces', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--mochi-text);
+  margin: 1.4rem 0 0.5rem;
+  line-height: 1.25;
+}
+.tiptap h2 {
+  font-family: 'Fraunces', serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--mochi-text);
+  margin: 1.2rem 0 0.4rem;
+  line-height: 1.3;
+}
+.tiptap h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--mochi-text-soft);
+  margin: 1rem 0 0.3rem;
+}
+
+/* ── Tiptap paragraph + spacing ───────────────────────────── */
+.tiptap p { margin: 0.25rem 0; }
+.tiptap > * + * { margin-top: 0.5rem; }
+
+/* ── Tiptap inline formatting ─────────────────────────────── */
+.tiptap strong { font-weight: 700; }
+.tiptap em     { font-style: italic; }
+.tiptap u      { text-decoration: underline; }
+.tiptap s      { text-decoration: line-through; color: var(--mochi-text-muted); }
+
+.tiptap mark {
+  background: var(--mochi-peach);
+  color: var(--mochi-peach-dark);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+
+.tiptap code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.85em;
+  background: var(--mochi-lavender);
+  color: var(--mochi-lavender-dark);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+/* ── Tiptap code block ─────────────────────────────────────── */
+.tiptap pre {
+  background: var(--mochi-surface);
+  border: 1.5px solid var(--mochi-border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+.tiptap pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.875rem;
+  color: var(--mochi-text);
+  border-radius: 0;
+}
+
+/* ── Tiptap blockquote ─────────────────────────────────────── */
+.tiptap blockquote {
+  border-left: 3px solid var(--mochi-lavender-mid);
+  margin: 0.75rem 0;
+  padding: 0.25rem 0 0.25rem 1rem;
+  color: var(--mochi-text-soft);
+  font-style: italic;
+}
+
+/* ── Tiptap horizontal rule ────────────────────────────────── */
+.tiptap hr {
+  border: none;
+  border-top: 1.5px solid var(--mochi-border);
+  margin: 1.25rem 0;
+}
+
+/* ── Tiptap lists ──────────────────────────────────────────── */
+.tiptap ul,
+.tiptap ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+.tiptap li { margin: 0.2rem 0; }
+.tiptap ul { list-style: disc; }
+.tiptap ol { list-style: decimal; }
+
+/* ── Tiptap task list (checklist) ─────────────────────────── */
+.tiptap ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+.tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.tiptap ul[data-type="taskList"] li > label {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.tiptap ul[data-type="taskList"] li > label input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  accent-color: var(--mochi-lavender-dark);
+  cursor: pointer;
+}
+.tiptap ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--mochi-text-muted);
+  text-decoration: line-through;
+}
+
+/* ── Tiptap table ──────────────────────────────────────────── */
+.tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.tiptap th,
+.tiptap td {
+  border: 1.5px solid var(--mochi-border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+.tiptap th {
+  background: var(--mochi-lavender);
+  color: var(--mochi-lavender-dark);
+  font-weight: 700;
+}
+.tiptap td { background: var(--mochi-surface); }
+.tiptap .selectedCell { background: var(--mochi-lavender) !important; }
+
+/* ── Tiptap images ─────────────────────────────────────────── */
+.tiptap img {
+  max-width: 100%;
+  border-radius: 12px;
+  margin: 0.5rem 0;
+  display: block;
 }

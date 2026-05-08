@@ -1,11 +1,11 @@
 import NotesListPanel from '../components/notes/NotesListPanel'
-import NoteEditorPlaceholder from '../components/notes/NoteEditorPlaceholder'
+import EditorPane from '../components/notes/EditorPane'
 
 export default function NotesPage() {
   return (
     <div className="flex h-full">
       <NotesListPanel />
-      <NoteEditorPlaceholder />
+      <EditorPane />
     </div>
   )
 }
