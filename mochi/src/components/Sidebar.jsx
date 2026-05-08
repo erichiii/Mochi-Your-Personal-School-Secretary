@@ -1,5 +1,6 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { BookOpen, CheckSquare, Calendar, Brain } from 'lucide-react'
+import SubjectSection from './notes/SubjectSection'
 
 const NAV = [
   {
@@ -37,9 +38,12 @@ const NAV = [
 ]
 
 export default function Sidebar() {
+  const location = useLocation()
+  const onNotes = location.pathname === '/notes'
+
   return (
     <aside
-      className="w-[220px] flex-shrink-0 flex flex-col h-full py-5 px-3 gap-1"
+      className="w-[220px] flex-shrink-0 flex flex-col h-full py-5 px-3 overflow-y-auto"
       style={{ borderRight: '1.5px solid var(--mochi-border)', background: 'var(--mochi-surface)' }}
     >
       {/* Logo */}
@@ -58,17 +62,14 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="flex flex-col gap-1">
         {NAV.map(({ to, label, Icon, bg, border, color }) => (
-          <NavLink key={to} to={to} end={to === '/'}>
+          <NavLink key={to} to={to}>
             {({ isActive }) => (
               <div
                 className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer"
                 style={
                   isActive
                     ? { background: bg, border: `1.5px solid ${border}`, color }
-                    : {
-                        color: 'var(--mochi-text-soft)',
-                        border: '1.5px solid transparent',
-                      }
+                    : { color: 'var(--mochi-text-soft)', border: '1.5px solid transparent' }
                 }
               >
                 <Icon size={16} />
@@ -78,6 +79,17 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      {/* Subjects — only on /notes */}
+      {onNotes && (
+        <>
+          <div
+            className="my-3 mx-2"
+            style={{ borderTop: '1px solid var(--mochi-border)' }}
+          />
+          <SubjectSection />
+        </>
+      )}
     </aside>
   )
 }

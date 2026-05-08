@@ -12,6 +12,7 @@ import Highlight from '@tiptap/extension-highlight'
 import { FileText } from 'lucide-react'
 import useStore from '../../store'
 import EditorToolbar from './EditorToolbar'
+import SubjectPicker from './SubjectPicker'
 
 export default function EditorPane() {
   const { notes, activeNoteId, updateNote, createNote } = useStore()
@@ -123,15 +124,16 @@ export default function EditorPane() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Title */}
+      {/* Title + subject picker */}
       <div className="px-8 pt-6 pb-3" style={{ borderBottom: '1.5px solid var(--mochi-border)' }}>
         <input
           value={title}
           onChange={handleTitleChange}
           placeholder="Untitled"
-          className="w-full bg-transparent outline-none text-2xl font-bold placeholder:opacity-30"
+          className="w-full bg-transparent outline-none text-2xl font-bold placeholder:opacity-30 mb-2"
           style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-text)' }}
         />
+        <SubjectPicker noteId={activeNoteId} />
       </div>
 
       {/* Toolbar */}

@@ -25,6 +25,8 @@ const useStore = create((set, get) => ({
   // ── Notes ─────────────────────────────────────────────────
   notes: [],
   activeNoteId: null,
+  activeSubjectFilter: null,
+  setSubjectFilter: (id) => set({ activeSubjectFilter: id }),
   loadNotes: async () => {
     const notes = await db.notes.orderBy('updatedAt').reverse().toArray()
     set({ notes })
