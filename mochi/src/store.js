@@ -18,15 +18,17 @@ const useStore = create((set, get) => ({
     await get().loadSubjects()
   },
   deleteSubject: async (id) => {
-    // cascade: clear note assignments and delete all subsections first
     const subs = await db.subjects.where('parentId').equals(id).toArray()
     for (const sub of subs) {
       await db.notes.where('subjectId').equals(sub.id).modify({ subjectId: null })
+      await db.decks.where('subjectId').equals(sub.id).modify({ subjectId: null })
       await db.subjects.delete(sub.id)
     }
     await db.notes.where('subjectId').equals(id).modify({ subjectId: null })
+    await db.decks.where('subjectId').equals(id).modify({ subjectId: null })
     await db.subjects.delete(id)
     await get().loadSubjects()
+    await get().loadDecks()
   },
 
   // ── All Notes label (persisted to localStorage) ───────────

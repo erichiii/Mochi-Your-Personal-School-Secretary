@@ -13,6 +13,8 @@ export default function NotesListPanel() {
     loadNotes, loadSubjects, createNote, deleteNote, setActiveNote,
   } = useStore()
 
+  const [draggingNoteId, setDraggingNoteId] = useState(null)
+
   const [collapsed, setCollapsed] = useState(false)
   const [panelWidth, setPanelWidth] = useState(260)
   const [confirmModal, setConfirmModal] = useState(null)
@@ -216,12 +218,19 @@ export default function NotesListPanel() {
             return (
               <div
                 key={note.id}
+                draggable
+                onDragStart={(e) => {
+                  setDraggingNoteId(note.id)
+                  e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'note', id: note.id }))
+                  e.dataTransfer.effectAllowed = 'move'
+                }}
+                onDragEnd={() => setDraggingNoteId(null)}
                 onClick={() => setActiveNote(note.id)}
                 className="group relative rounded-2xl p-3 transition-all fade-in cursor-pointer"
                 style={
                   isActive
-                    ? { background: 'var(--mochi-lavender)', border: '1.5px solid var(--mochi-lavender-mid)' }
-                    : { background: 'var(--mochi-surface)', border: '1.5px solid var(--mochi-border)' }
+                    ? { background: 'var(--mochi-lavender)', border: '1.5px solid var(--mochi-lavender-mid)', opacity: draggingNoteId === note.id ? 0.5 : 1 }
+                    : { background: 'var(--mochi-surface)', border: '1.5px solid var(--mochi-border)', opacity: draggingNoteId === note.id ? 0.5 : 1 }
                 }
               >
                 <p

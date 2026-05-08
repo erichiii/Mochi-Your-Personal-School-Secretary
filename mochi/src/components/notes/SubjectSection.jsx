@@ -101,8 +101,11 @@ export default function SubjectSection() {
   const {
     subjects, notes, loadSubjects,
     createSubject, updateSubject, deleteSubject,
+    updateNote,
     activeSubjectFilter, setSubjectFilter,
   } = useStore()
+
+  const [dropTargetId, setDropTargetId] = useState(null)
 
   const [headerOpen, setHeaderOpen] = useState(true)
   const [expanded, setExpanded] = useState(new Set())
@@ -184,9 +187,24 @@ export default function SubjectSection() {
     const count = isSection ? countForSection(subject.id) : countForSub(subject.id)
     const menuOpen = menuId === subject.id
 
+    const isDropTarget = dropTargetId === subject.id
+
     return (
       <div key={subject.id}>
-        <div className="group flex items-center gap-0.5">
+        <div
+          className="group flex items-center gap-0.5 rounded-xl transition-all"
+          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropTargetId(subject.id) }}
+          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTargetId(null) }}
+          onDrop={(e) => {
+            e.preventDefault()
+            setDropTargetId(null)
+            try {
+              const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+              if (data.type === 'note') updateNote(data.id, { subjectId: subject.id })
+            } catch {}
+          }}
+          style={isDropTarget ? { background: (subject.color || '#C9B8F5') + '33', outline: `2px dashed ${subject.color || '#C9B8F5'}`, outlineOffset: '-1px' } : {}}
+        >
           {/* Expand chevron — sections only */}
           {isSection && (
             <button
