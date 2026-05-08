@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Plus, FileText, Trash2, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import useStore from '../../store'
+import ConfirmModal from '../ConfirmModal'
 
 const stripHtml = (html) =>
   (html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -14,6 +15,7 @@ export default function NotesListPanel() {
 
   const [collapsed, setCollapsed] = useState(false)
   const [panelWidth, setPanelWidth] = useState(260)
+  const [confirmModal, setConfirmModal] = useState(null)
   const drag = useRef({ active: false, startX: 0, startW: 0 })
 
   useEffect(() => { loadNotes(); loadSubjects() }, [])
@@ -39,7 +41,11 @@ export default function NotesListPanel() {
 
   const handleDelete = (e, id) => {
     e.stopPropagation()
-    deleteNote(id)
+    const note = notes.find((n) => n.id === id)
+    setConfirmModal({
+      title: `Delete "${note?.title || 'Untitled'}"?`,
+      onConfirm: () => { setConfirmModal(null); deleteNote(id) },
+    })
   }
 
   // ── Resize drag ───────────────────────────────────────────
@@ -62,36 +68,53 @@ export default function NotesListPanel() {
   // ── Collapsed strip ───────────────────────────────────────
   if (collapsed) {
     return (
-      <div
-        className="flex-shrink-0 flex flex-col items-center py-3 gap-3"
-        style={{
-          width: '40px',
-          borderRight: '1.5px solid var(--mochi-border)',
-          background: 'var(--mochi-surface)',
-        }}
-      >
-        <button
-          onClick={() => setCollapsed(false)}
-          title="Show notes list"
-          className="p-1.5 rounded-lg transition-colors"
-          style={{ color: 'var(--mochi-text-muted)' }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = 'var(--mochi-text)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-muted)' }}
-        >
-          <PanelLeftOpen size={14} />
-        </button>
+      <>
+        {confirmModal && (
+          <ConfirmModal
+            title={confirmModal.title}
+            onConfirm={confirmModal.onConfirm}
+            onCancel={() => setConfirmModal(null)}
+          />
+        )}
         <div
-          className="flex-1 flex items-center justify-center"
-          style={{ writingMode: 'vertical-rl', color: 'var(--mochi-text-muted)', fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', transform: 'rotate(180deg)' }}
+          className="flex-shrink-0 flex flex-col items-center py-3 gap-3"
+          style={{
+            width: '40px',
+            borderRight: '1.5px solid var(--mochi-border)',
+            background: 'var(--mochi-surface)',
+          }}
         >
-          {activeSection ? activeSection.name : 'All Notes'}
+          <button
+            onClick={() => setCollapsed(false)}
+            title="Show notes list"
+            className="p-1.5 rounded-lg transition-colors"
+            style={{ color: 'var(--mochi-text-muted)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = 'var(--mochi-text)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-muted)' }}
+          >
+            <PanelLeftOpen size={14} />
+          </button>
+          <div
+            className="flex-1 flex items-center justify-center"
+            style={{ writingMode: 'vertical-rl', color: 'var(--mochi-text-muted)', fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', transform: 'rotate(180deg)' }}
+          >
+            {activeSection ? activeSection.name : 'All Notes'}
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
   // ── Full panel ────────────────────────────────────────────
   return (
+    <>
+    {confirmModal && (
+      <ConfirmModal
+        title={confirmModal.title}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(null)}
+      />
+    )}
     <div
       className="relative flex-shrink-0 flex flex-col h-full"
       style={{ width: `${panelWidth}px`, borderRight: '1.5px solid var(--mochi-border)', background: 'var(--mochi-surface)' }}
@@ -214,5 +237,6 @@ export default function NotesListPanel() {
         style={{ zIndex: 10 }}
       />
     </div>
+    </>
   )
 }

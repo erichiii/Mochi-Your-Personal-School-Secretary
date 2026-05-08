@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { BookOpen, CheckSquare, Calendar, Brain } from 'lucide-react'
+import { BookOpen, CheckSquare, Calendar, Brain, ChevronLeft, ChevronRight } from 'lucide-react'
 import SubjectSection from './notes/SubjectSection'
 
 const NAV = [
@@ -40,48 +41,73 @@ const NAV = [
 export default function Sidebar() {
   const location = useLocation()
   const onNotes = location.pathname === '/notes'
+  const [collapsed, setCollapsed] = useState(false)
 
   return (
     <aside
-      className="w-[220px] flex-shrink-0 flex flex-col h-full py-5 px-3 overflow-y-auto"
-      style={{ borderRight: '1.5px solid var(--mochi-border)', background: 'var(--mochi-surface)' }}
+      className="flex-shrink-0 flex flex-col h-full overflow-y-auto"
+      style={{
+        width: collapsed ? '56px' : '220px',
+        borderRight: '1.5px solid var(--mochi-border)',
+        background: 'var(--mochi-surface)',
+        transition: 'width 0.2s ease',
+        overflow: 'hidden',
+      }}
     >
-      {/* Logo */}
-      <div className="px-3 mb-5">
-        <span
-          className="text-2xl font-bold tracking-tight"
-          style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-pink-dark)' }}
+      {/* Logo + collapse toggle */}
+      <div
+        className="flex items-center px-3 py-5"
+        style={{ gap: collapsed ? 0 : '8px', justifyContent: collapsed ? 'center' : 'flex-start' }}
+      >
+        {!collapsed && (
+          <div className="flex-1 min-w-0">
+            <span
+              className="text-2xl font-bold tracking-tight"
+              style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-pink-dark)' }}
+            >
+              mochi
+            </span>
+            <p className="text-[10px] mt-0.5" style={{ color: 'var(--mochi-text-muted)' }}>
+              your personal school secretary
+            </p>
+          </div>
+        )}
+        <button
+          onClick={() => setCollapsed((v) => !v)}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="p-1.5 rounded-lg transition-colors flex-shrink-0"
+          style={{ color: 'var(--mochi-text-muted)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = 'var(--mochi-text)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-muted)' }}
         >
-          mochi
-        </span>
-        <p className="text-[10px] mt-0.5" style={{ color: 'var(--mochi-text-muted)' }}>
-          your personal school secretary
-        </p>
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
       </div>
 
       {/* Nav */}
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-1 px-2">
         {NAV.map(({ to, label, Icon, bg, border, color }) => (
-          <NavLink key={to} to={to}>
+          <NavLink key={to} to={to} title={collapsed ? label : undefined}>
             {({ isActive }) => (
               <div
-                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer"
-                style={
-                  isActive
+                className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+                style={{
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  ...(isActive
                     ? { background: bg, border: `1.5px solid ${border}`, color }
-                    : { color: 'var(--mochi-text-soft)', border: '1.5px solid transparent' }
-                }
+                    : { color: 'var(--mochi-text-soft)', border: '1.5px solid transparent' }),
+                }}
               >
                 <Icon size={16} />
-                {label}
+                {!collapsed && label}
               </div>
             )}
           </NavLink>
         ))}
       </nav>
 
-      {/* Subjects — only on /notes */}
-      {onNotes && (
+      {/* Subjects — only on /notes and expanded */}
+      {onNotes && !collapsed && (
         <>
           <div
             className="my-3 mx-2"

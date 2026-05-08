@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronRight, Plus, X, Pencil, Check } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, X, Pencil, Check, MoreHorizontal } from 'lucide-react'
 import useStore from '../../store'
+import ConfirmModal from '../ConfirmModal'
 
 const PRESET_COLORS = [
   '#FFB3C6', '#C9B8F5', '#A8E6CF', '#FFCBA4', '#A8D4F5', '#FFE899',
   '#F4A9A8', '#B5EAD7', '#FFDAC1', '#E2F0CB', '#C7CEEA', '#F8C8D4',
 ]
 
-// ── Small reusable inline name input ─────────────────────────
 function NameInput({ value, onChange, onSave, onCancel, placeholder, style }) {
   return (
     <input
@@ -27,7 +27,6 @@ function NameInput({ value, onChange, onSave, onCancel, placeholder, style }) {
   )
 }
 
-// ── Color picker popover ──────────────────────────────────────
 function ColorPicker({ onSelect, onClose }) {
   const ref = useRef()
   useEffect(() => {
@@ -56,6 +55,48 @@ function ColorPicker({ onSelect, onClose }) {
   )
 }
 
+function MenuItem({ onClick, icon, danger, children }) {
+  return (
+    <button
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className="w-full text-left flex items-center gap-2 px-3 py-1.5 text-xs font-semibold transition-colors"
+      style={{ color: danger ? '#E05050' : 'var(--mochi-text)' }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--mochi-cream)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+    >
+      {icon}
+      {children}
+    </button>
+  )
+}
+
+function RowMenu({ isSection, onRename, onAddSub, onDelete, onClose }) {
+  const ref = useRef()
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onClose])
+
+  return (
+    <div
+      ref={ref}
+      className="absolute right-0 top-full mt-0.5 z-50 rounded-xl shadow-lg fade-in overflow-hidden py-1"
+      style={{
+        background: 'var(--mochi-surface)',
+        border: '1.5px solid var(--mochi-border)',
+        minWidth: '148px',
+      }}
+    >
+      <MenuItem onClick={onRename} icon={<Pencil size={11} />}>Rename</MenuItem>
+      {isSection && <MenuItem onClick={onAddSub} icon={<Plus size={11} />}>Add subsection</MenuItem>}
+      <div className="mx-2 my-1" style={{ height: '1px', background: 'var(--mochi-border)' }} />
+      <MenuItem onClick={onDelete} icon={<X size={11} />} danger>Delete</MenuItem>
+    </div>
+  )
+}
+
 export default function SubjectSection() {
   const {
     subjects, notes, loadSubjects,
@@ -66,17 +107,16 @@ export default function SubjectSection() {
   const [headerOpen, setHeaderOpen] = useState(true)
   const [expanded, setExpanded] = useState(new Set())
 
-  // editing: null | subjectId
   const [editingId, setEditingId] = useState(null)
   const [editingName, setEditingName] = useState('')
 
-  // adding: null | 'section' | <parentSectionId>
   const [adding, setAdding] = useState(null)
   const [newName, setNewName] = useState('')
   const [colorIdx, setColorIdx] = useState(0)
 
-  // color picker: null | subjectId
   const [colorPickerId, setColorPickerId] = useState(null)
+  const [menuId, setMenuId] = useState(null)
+  const [confirmModal, setConfirmModal] = useState(null) // { title, message, onConfirm }
 
   useEffect(() => { loadSubjects() }, [])
 
@@ -93,13 +133,11 @@ export default function SubjectSection() {
     setExpanded((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
 
   const startEdit = (id, name) => { setEditingId(id); setEditingName(name) }
-
   const saveEdit = async () => {
     if (!editingName.trim()) { cancelEdit(); return }
     await updateSubject(editingId, { name: editingName.trim() })
     setEditingId(null); setEditingName('')
   }
-
   const cancelEdit = () => { setEditingId(null); setEditingName('') }
 
   const handleAdd = async () => {
@@ -114,9 +152,16 @@ export default function SubjectSection() {
     setNewName(''); setAdding(null)
   }
 
-  const handleDelete = async (s) => {
-    if (activeSubjectFilter === s.id) setSubjectFilter(null)
-    await deleteSubject(s.id)
+  const handleDelete = (s) => {
+    setConfirmModal({
+      title: `Delete "${s.name}"?`,
+      message: s.parentId ? undefined : 'This will also remove all its subsections.',
+      onConfirm: async () => {
+        setConfirmModal(null)
+        if (activeSubjectFilter === s.id) setSubjectFilter(null)
+        await deleteSubject(s.id)
+      },
+    })
   }
 
   const startAddSub = (sectionId) => {
@@ -124,7 +169,6 @@ export default function SubjectSection() {
     setAdding(sectionId); setNewName('')
   }
 
-  // Shared styles
   const activeStyle = (color) => ({
     background: color + '44',
     border: `1.5px solid ${color}`,
@@ -132,13 +176,13 @@ export default function SubjectSection() {
   })
   const ghost = { color: 'var(--mochi-text-soft)', border: '1.5px solid transparent' }
 
-  // ── Render a section or subsection row ────────────────────
   const renderRow = ({ subject, isSection }) => {
     const isActive = activeSubjectFilter === subject.id
     const isEditing = editingId === subject.id
     const subs = isSection ? subsOf(subject.id) : []
     const isExpanded = isSection && expanded.has(subject.id)
     const count = isSection ? countForSection(subject.id) : countForSub(subject.id)
+    const menuOpen = menuId === subject.id
 
     return (
       <div key={subject.id}>
@@ -158,10 +202,9 @@ export default function SubjectSection() {
               />
             </button>
           )}
-          {/* Subsection indent */}
           {!isSection && <div className="w-4 flex-shrink-0" />}
 
-          {/* Color dot — clickable to open color picker */}
+          {/* Color dot */}
           <div className="relative flex-shrink-0">
             <button
               onMouseDown={(e) => e.stopPropagation()}
@@ -198,17 +241,38 @@ export default function SubjectSection() {
                 style={{ color: 'var(--mochi-text)' }}
               />
             ) : (
-              <span className="flex-1 truncate text-left">{subject.name}</span>
+              <span className="flex-1 text-left" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {subject.name}
+              </span>
             )}
-            {!isEditing && <span style={{ color: 'var(--mochi-text-muted)' }}>{count}</span>}
+            {!isEditing && <span className="flex-shrink-0" style={{ color: 'var(--mochi-text-muted)' }}>{count}</span>}
           </button>
 
-          {/* Hover actions */}
+          {/* "⋯" menu trigger + dropdown */}
           {!isEditing && (
-            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 flex-shrink-0 transition-opacity">
-              <HoverBtn onClick={() => startEdit(subject.id, subject.name)} title="Rename"><Pencil size={10} /></HoverBtn>
-              {isSection && <HoverBtn onClick={() => startAddSub(subject.id)} title="Add subsection"><Plus size={10} /></HoverBtn>}
-              <HoverBtn onClick={() => handleDelete(subject)} title="Delete" danger><X size={10} /></HoverBtn>
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuId(menuOpen ? null : subject.id) }}
+                title="Options"
+                className="p-1 rounded transition-colors"
+                style={{
+                  color: 'var(--mochi-text-muted)',
+                  opacity: menuOpen ? 1 : undefined,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = 'var(--mochi-text)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-muted)' }}
+              >
+                <MoreHorizontal size={12} />
+              </button>
+              {menuOpen && (
+                <RowMenu
+                  isSection={isSection}
+                  onRename={() => { startEdit(subject.id, subject.name); setMenuId(null) }}
+                  onAddSub={() => { startAddSub(subject.id); setMenuId(null) }}
+                  onDelete={() => { handleDelete(subject); setMenuId(null) }}
+                  onClose={() => setMenuId(null)}
+                />
+              )}
             </div>
           )}
           {isEditing && (
@@ -223,7 +287,6 @@ export default function SubjectSection() {
           <div className="ml-5 flex flex-col gap-0.5 mt-0.5 fade-in">
             {subs.map((sub) => renderRow({ subject: sub, isSection: false }))}
 
-            {/* Add subsection form */}
             {adding === subject.id && (
               <div
                 className="flex items-center gap-2 px-2 py-1.5 rounded-xl fade-in"
@@ -252,8 +315,16 @@ export default function SubjectSection() {
   }
 
   return (
+    <>
+    {confirmModal && (
+      <ConfirmModal
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(null)}
+      />
+    )}
     <div className="px-1">
-      {/* "Sections" collapsible header */}
       <button
         onClick={() => setHeaderOpen((v) => !v)}
         className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg mb-1 transition-colors"
@@ -268,10 +339,8 @@ export default function SubjectSection() {
 
       {headerOpen && (
         <div className="flex flex-col gap-0.5 fade-in">
-          {/* ── Section rows ─────────────────────────────── */}
           {sections.map((section) => renderRow({ subject: section, isSection: true }))}
 
-          {/* ── Add section ──────────────────────────────── */}
           {adding === 'section' ? (
             <div
               className="flex items-center gap-2 px-2 py-2 rounded-xl fade-in"
@@ -312,21 +381,6 @@ export default function SubjectSection() {
         </div>
       )}
     </div>
-  )
-}
-
-// ── Tiny hover-action button ──────────────────────────────────
-function HoverBtn({ onClick, title, danger, children }) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      className="p-1 rounded transition-colors"
-      style={{ color: 'var(--mochi-text-muted)' }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = danger ? '#E05050' : 'var(--mochi-text)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-muted)' }}
-    >
-      {children}
-    </button>
+    </>
   )
 }
