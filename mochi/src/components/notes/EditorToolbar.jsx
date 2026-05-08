@@ -4,7 +4,7 @@ import {
   List, ListOrdered, ListChecks,
   Quote, Minus, Table2, ImageIcon,
   Undo2, Redo2,
-  RowsIcon, Columns2, Trash2,
+  RowsIcon, Columns2, Trash2, Sparkles,
 } from 'lucide-react'
 
 function Btn({ onMouseDown, active, disabled, title, children }) {
@@ -40,7 +40,7 @@ function Sep() {
   )
 }
 
-export default function EditorToolbar({ editor, onImageUpload }) {
+export default function EditorToolbar({ editor, onImageUpload, aiOpen, onToggleAI }) {
   if (!editor) return null
 
   const inTable = editor.isActive('table')
@@ -232,6 +232,26 @@ export default function EditorToolbar({ editor, onImageUpload }) {
         <Btn title="Insert image" onMouseDown={onImageUpload}>
           <ImageIcon size={14} />
         </Btn>
+
+        {/* Let Mochi help — flush right */}
+        <div className="ml-auto flex items-center">
+          <Sep />
+          <button
+            onMouseDown={(e) => { e.preventDefault(); onToggleAI?.() }}
+            title="Let Mochi help"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex-shrink-0"
+            style={{
+              background: aiOpen ? 'var(--mochi-lavender)' : 'transparent',
+              color: aiOpen ? 'var(--mochi-lavender-dark)' : 'var(--mochi-text-soft)',
+              border: aiOpen ? '1.5px solid var(--mochi-lavender-mid)' : '1.5px solid transparent',
+            }}
+            onMouseEnter={(e) => { if (!aiOpen) { e.currentTarget.style.background = 'var(--mochi-lavender)'; e.currentTarget.style.color = 'var(--mochi-lavender-dark)' } }}
+            onMouseLeave={(e) => { if (!aiOpen) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-soft)' } }}
+          >
+            <Sparkles size={13} />
+            Let Mochi help
+          </button>
+        </div>
       </div>
 
       {/* Table controls row — only when cursor is inside a table */}

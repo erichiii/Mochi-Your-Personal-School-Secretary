@@ -15,6 +15,7 @@ import useStore from '../../store'
 import EditorToolbar from './EditorToolbar'
 import SubjectPicker from './SubjectPicker'
 import ResourcesPanel from './ResourcesPanel'
+import AIPanel from './AIPanel'
 import { FontSize } from '../../extensions/FontSize'
 
 export default function EditorPane() {
@@ -22,6 +23,7 @@ export default function EditorPane() {
   const activeNote = notes.find((n) => n.id === activeNoteId) ?? null
 
   const [title, setTitle] = useState('')
+  const [aiOpen, setAiOpen] = useState(false)
   const saveTimer = useRef(null)
   const titleTimer = useRef(null)
   const lastLoadedId = useRef(null)
@@ -131,39 +133,52 @@ export default function EditorPane() {
 
       {/* ── Toolbar ────────────────────────────────────────── */}
       {activeNote && (
-        <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
+        <EditorToolbar
+          editor={editor}
+          onImageUpload={handleImageUpload}
+          aiOpen={aiOpen}
+          onToggleAI={() => setAiOpen((v) => !v)}
+        />
       )}
 
-      {/* ── Editor content — ALWAYS mounted so Tiptap keeps its DOM node ── */}
-      <div className="flex-1 overflow-y-auto px-8 py-6" style={{ display: activeNote ? 'block' : 'none' }}>
-        <EditorContent editor={editor} />
-      </div>
-
-      {/* ── Empty state overlay ────────────────────────────── */}
-      {!activeNote && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <FileText size={48} className="mx-auto mb-4" style={{ color: 'var(--mochi-border)' }} />
-            <p className="text-base font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>
-              Select a note to open it
-            </p>
-            <p className="text-xs mb-4" style={{ color: 'var(--mochi-text-muted)' }}>
-              or create a new one
-            </p>
-            <button
-              onClick={() => createNote()}
-              className="px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-80"
-              style={{
-                background: 'var(--mochi-lavender)',
-                color: 'var(--mochi-lavender-dark)',
-                border: '1.5px solid var(--mochi-lavender-mid)',
-              }}
-            >
-              New note
-            </button>
-          </div>
+      {/* ── Editor + AI panel row ─────────────────────────── */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Editor content — ALWAYS mounted so Tiptap keeps its DOM node */}
+        <div className="flex-1 overflow-y-auto px-8 py-6" style={{ display: activeNote ? 'block' : 'none' }}>
+          <EditorContent editor={editor} />
         </div>
-      )}
+
+        {/* Empty state — shown when no note selected */}
+        {!activeNote && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <FileText size={48} className="mx-auto mb-4" style={{ color: 'var(--mochi-border)' }} />
+              <p className="text-base font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>
+                Select a note to open it
+              </p>
+              <p className="text-xs mb-4" style={{ color: 'var(--mochi-text-muted)' }}>
+                or create a new one
+              </p>
+              <button
+                onClick={() => createNote()}
+                className="px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-80"
+                style={{
+                  background: 'var(--mochi-lavender)',
+                  color: 'var(--mochi-lavender-dark)',
+                  border: '1.5px solid var(--mochi-lavender-mid)',
+                }}
+              >
+                New note
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* AI panel */}
+        {activeNote && aiOpen && (
+          <AIPanel editor={editor} noteId={activeNoteId} onClose={() => setAiOpen(false)} />
+        )}
+      </div>
     </div>
   )
 }
