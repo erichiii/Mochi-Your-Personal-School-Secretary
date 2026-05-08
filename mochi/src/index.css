@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+@import "tailwindcss";
+
+/* ── CSS Variables ─────────────────────────────────────────── */
+:root {
+  /* Neutrals */
+  --mochi-cream:   #FFF8F0;
+  --mochi-surface: #FFFBF8;
+  --mochi-border:  #F0E4EC;
+
+  /* Text */
+  --mochi-text:       #3D2C35;
+  --mochi-text-soft:  #7A5F6A;
+  --mochi-text-muted: #B8A0A8;
+
+  /* Pink — global accents, active states */
+  --mochi-pink:      #FFD6E0;
+  --mochi-pink-mid:  #FFB3C6;
+  --mochi-pink-dark: #E8789A;
+
+  /* Lavender — notes section */
+  --mochi-lavender:      #E8DEFF;
+  --mochi-lavender-mid:  #C9B8F5;
+  --mochi-lavender-dark: #9B7FD4;
+
+  /* Mint — to-do section */
+  --mochi-mint:      #D4F5E9;
+  --mochi-mint-mid:  #A8E6CF;
+  --mochi-mint-dark: #5BB98B;
+
+  /* Peach — schedule section */
+  --mochi-peach:      #FFE5CC;
+  --mochi-peach-mid:  #FFCBA4;
+  --mochi-peach-dark: #E8935A;
+
+  /* Sky — study plan section */
+  --mochi-sky:      #D6EEFF;
+  --mochi-sky-mid:  #A8D4F5;
+  --mochi-sky-dark: #5B9FD4;
+}
+
+/* ── Dark mode (default) ───────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mochi-cream:   #0C0C0C;
+    --mochi-surface: #111111;
+    --mochi-border:  #242424;
+
+    --mochi-text:       #F5E6EE;
+    --mochi-text-soft:  #C4A8B8;
+    --mochi-text-muted: #7A5F6A;
+
+    --mochi-pink:      #3D1A28;
+    --mochi-pink-mid:  #5C2840;
+    --mochi-pink-dark: #F098B8;
+
+    --mochi-lavender:      #201840;
+    --mochi-lavender-mid:  #342860;
+    --mochi-lavender-dark: #C4AAFF;
+
+    --mochi-mint:      #0E2820;
+    --mochi-mint-mid:  #1A3D2E;
+    --mochi-mint-dark: #72E0AA;
+
+    --mochi-peach:      #2E1A0A;
+    --mochi-peach-mid:  #4A2810;
+    --mochi-peach-dark: #FFB07A;
+
+    --mochi-sky:      #0A1C2E;
+    --mochi-sky-mid:  #122840;
+    --mochi-sky-dark: #80C8FF;
+  }
+}
+
+/* ── Base ──────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  background: var(--mochi-cream);
+  color: var(--mochi-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Animations ────────────────────────────────────────────── */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0%   { opacity: 0.6; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.fade-in { animation: fadeSlideIn 0.2s ease forwards; }
+.spin    { animation: spin 0.8s linear infinite; }
+.shimmer { animation: shimmer 1.5s ease infinite; }
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--mochi-border); border-radius: 9999px; }
+
+/* ── Tiptap placeholder ────────────────────────────────────── */
+.tiptap {
+  outline: none;
+  font-family: 'Nunito', sans-serif;
+  color: var(--mochi-text);
+  line-height: 1.7;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--mochi-text-muted);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
