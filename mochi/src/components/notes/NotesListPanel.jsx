@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, FileText, Trash2, PanelLeftClose, PanelLeftOpen, Search, X } from 'lucide-react'
+import { Plus, FileText, Trash2, PanelLeftClose, PanelLeftOpen, Search, X, Pin, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import useStore from '../../store'
 import ConfirmModal from '../ConfirmModal'
@@ -10,10 +10,11 @@ const stripHtml = (html) =>
 export default function NotesListPanel() {
   const {
     notes, subjects, activeNoteId, activeSubjectFilter,
-    loadNotes, loadSubjects, createNote, deleteNote, setActiveNote,
+    loadNotes, loadSubjects, createNote, deleteNote, setActiveNote, updateNote,
   } = useStore()
 
   const [draggingNoteId, setDraggingNoteId] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   const [collapsed, setCollapsed] = useState(false)
   const [panelWidth, setPanelWidth] = useState(260)
@@ -21,7 +22,9 @@ export default function NotesListPanel() {
   const [searchQuery, setSearchQuery] = useState('')
   const drag = useRef({ active: false, startX: 0, startW: 0 })
 
-  useEffect(() => { loadNotes(); loadSubjects() }, [])
+  useEffect(() => {
+    Promise.all([loadNotes(), loadSubjects()]).finally(() => setLoading(false))
+  }, [])
 
   // ── Hierarchy-aware filter ────────────────────────────────
   const getFiltered = () => {
@@ -37,7 +40,7 @@ export default function NotesListPanel() {
   }
 
   const bySubject = getFiltered()
-  const filtered = searchQuery.trim()
+  const searched = searchQuery.trim()
     ? bySubject.filter((n) => {
         const q = searchQuery.toLowerCase()
         return (
@@ -46,6 +49,8 @@ export default function NotesListPanel() {
         )
       })
     : bySubject
+  // Pinned notes always appear first
+  const filtered = [...searched].sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))
   const activeSection = subjects.find((s) => s.id === activeSubjectFilter) ?? null
 
   const handleNew = () =>
@@ -199,7 +204,11 @@ export default function NotesListPanel() {
 
       {/* Note list */}
       <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2">
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 size={20} className="animate-spin" style={{ color: 'var(--mochi-text-muted)' }} />
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             <FileText size={32} className="mb-3" style={{ color: 'var(--mochi-border)' }} />
             <p className="text-sm font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>
@@ -214,6 +223,7 @@ export default function NotesListPanel() {
             const isActive = note.id === activeNoteId
             const noteSub = subjects.find((s) => s.id === note.subjectId)
             const preview = stripHtml(note.content).slice(0, 100)
+            const isDragging = draggingNoteId === note.id
 
             return (
               <div
@@ -226,19 +236,26 @@ export default function NotesListPanel() {
                 }}
                 onDragEnd={() => setDraggingNoteId(null)}
                 onClick={() => setActiveNote(note.id)}
-                className="group relative rounded-2xl p-3 transition-all fade-in cursor-pointer"
-                style={
-                  isActive
-                    ? { background: 'var(--mochi-lavender)', border: '1.5px solid var(--mochi-lavender-mid)', opacity: draggingNoteId === note.id ? 0.5 : 1 }
-                    : { background: 'var(--mochi-surface)', border: '1.5px solid var(--mochi-border)', opacity: draggingNoteId === note.id ? 0.5 : 1 }
-                }
+                className="group relative rounded-2xl p-3 transition-all fade-in"
+                style={{
+                  cursor: isDragging ? 'grabbing' : 'grab',
+                  opacity: isDragging ? 0.45 : 1,
+                  ...(isActive
+                    ? { background: 'var(--mochi-lavender)', border: '1.5px solid var(--mochi-lavender-mid)' }
+                    : { background: 'var(--mochi-surface)', border: '1.5px solid var(--mochi-border)' }),
+                }}
               >
-                <p
-                  className="text-sm font-semibold truncate pr-6"
-                  style={{ color: isActive ? 'var(--mochi-lavender-dark)' : 'var(--mochi-text)' }}
-                >
-                  {note.title || 'Untitled'}
-                </p>
+                <div className="flex items-start gap-1.5 pr-6">
+                  {note.isPinned && (
+                    <Pin size={10} className="flex-shrink-0 mt-0.5" style={{ color: isActive ? 'var(--mochi-lavender-dark)' : 'var(--mochi-text-muted)', transform: 'rotate(45deg)' }} />
+                  )}
+                  <p
+                    className="text-sm font-semibold truncate flex-1"
+                    style={{ color: isActive ? 'var(--mochi-lavender-dark)' : 'var(--mochi-text)' }}
+                  >
+                    {note.title || 'Untitled'}
+                  </p>
+                </div>
 
                 {preview && (
                   <p className="text-xs mt-1 line-clamp-2 leading-relaxed" style={{ color: 'var(--mochi-text-muted)' }}>
@@ -261,15 +278,28 @@ export default function NotesListPanel() {
                   </span>
                 </div>
 
-                <button
-                  onClick={(e) => handleDelete(e, note.id)}
-                  className="absolute top-2.5 right-2.5 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                  style={{ color: 'var(--mochi-text-muted)' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = '#E05050' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-muted)' }}
-                >
-                  <Trash2 size={11} />
-                </button>
+                {/* Hover actions: pin + delete */}
+                <div className="absolute top-2.5 right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); updateNote(note.id, { isPinned: !note.isPinned }) }}
+                    title={note.isPinned ? 'Unpin' : 'Pin'}
+                    className="p-1 rounded-lg"
+                    style={{ color: note.isPinned ? 'var(--mochi-lavender-dark)' : 'var(--mochi-text-muted)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                  >
+                    <Pin size={11} style={{ transform: 'rotate(45deg)' }} />
+                  </button>
+                  <button
+                    onClick={(e) => handleDelete(e, note.id)}
+                    className="p-1 rounded-lg"
+                    style={{ color: 'var(--mochi-text-muted)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = '#E05050' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-muted)' }}
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                </div>
               </div>
             )
           })

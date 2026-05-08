@@ -10,7 +10,7 @@ import TaskItem from '@tiptap/extension-task-item'
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 import Highlight from '@tiptap/extension-highlight'
 import { TextStyle } from '@tiptap/extension-text-style'
-import { FileText, Plus } from 'lucide-react'
+import { FileText, Plus, CheckCheck, AlertCircle, Loader2 } from 'lucide-react'
 import useStore from '../../store'
 import EditorToolbar from './EditorToolbar'
 import SubjectPicker from './SubjectPicker'
@@ -24,8 +24,10 @@ export default function EditorPane() {
 
   const [title, setTitle] = useState('')
   const [aiOpen, setAiOpen] = useState(false)
+  const [saveStatus, setSaveStatus] = useState('idle') // 'idle' | 'saving' | 'saved' | 'error'
   const saveTimer = useRef(null)
   const titleTimer = useRef(null)
+  const savedTimer = useRef(null)
   const lastLoadedId = useRef(null)
 
   // Ensure data is fresh on remount (tab switch back to Notes)
@@ -51,9 +53,17 @@ export default function EditorPane() {
     content: '',
     onUpdate: ({ editor }) => {
       if (!activeNoteId) return
+      setSaveStatus('saving')
       clearTimeout(saveTimer.current)
-      saveTimer.current = setTimeout(() => {
-        updateNote(activeNoteId, { content: editor.getHTML() })
+      saveTimer.current = setTimeout(async () => {
+        try {
+          await updateNote(activeNoteId, { content: editor.getHTML() })
+          setSaveStatus('saved')
+          clearTimeout(savedTimer.current)
+          savedTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
+        } catch {
+          setSaveStatus('error')
+        }
       }, 600)
     },
   })
@@ -83,15 +93,24 @@ export default function EditorPane() {
   useEffect(() => () => {
     clearTimeout(saveTimer.current)
     clearTimeout(titleTimer.current)
+    clearTimeout(savedTimer.current)
   }, [])
 
   const handleTitleChange = (e) => {
     const val = e.target.value
     setTitle(val)
     if (!activeNoteId) return
+    setSaveStatus('saving')
     clearTimeout(titleTimer.current)
-    titleTimer.current = setTimeout(() => {
-      updateNote(activeNoteId, { title: val })
+    titleTimer.current = setTimeout(async () => {
+      try {
+        await updateNote(activeNoteId, { title: val })
+        setSaveStatus('saved')
+        clearTimeout(savedTimer.current)
+        savedTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
+      } catch {
+        setSaveStatus('error')
+      }
     }, 600)
   }
 
@@ -127,6 +146,11 @@ export default function EditorPane() {
           <div className="flex items-center gap-2 flex-wrap">
             <SubjectPicker noteId={activeNoteId} />
             <ResourcesPanel noteId={activeNoteId} resources={activeNote.resources ?? []} />
+            <span className="ml-auto flex items-center gap-1 text-[10px]" style={{ color: 'var(--mochi-text-muted)' }}>
+              {saveStatus === 'saving' && <><Loader2 size={10} className="animate-spin" />Saving…</>}
+              {saveStatus === 'saved' && <><CheckCheck size={10} style={{ color: 'var(--mochi-mint-dark)' }} /><span style={{ color: 'var(--mochi-mint-dark)' }}>Saved</span></>}
+              {saveStatus === 'error' && <><AlertCircle size={10} style={{ color: '#E05050' }} /><span style={{ color: '#E05050' }}>Save failed</span></>}
+            </span>
           </div>
         </div>
       )}
