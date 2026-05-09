@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { format, addMonths } from 'date-fns'
 import {
   X, Download, FileDown, Loader2, CalendarDays, ImageIcon, AlertCircle,
+  Monitor, Smartphone,
 } from 'lucide-react'
 import WallpaperCanvas from './WallpaperCanvas'
 
@@ -71,6 +72,7 @@ export default function ExportModal({ items = [], section, onClose }) {
 
   // PNG state
   const canvasRef = useRef(null)
+  const [wallpaperVariant, setWallpaperVariant] = useState('desktop') // 'desktop' | 'mobile'
   const [pngExporting, setPngExporting] = useState(false)
   const [pngError, setPngError] = useState('')
 
@@ -295,17 +297,52 @@ export default function ExportModal({ items = [], section, onClose }) {
                 Exports your schedule as a clean image — save it as a wallpaper or share with classmates.
               </p>
 
-              {/* Preview (zoom: 0.5 shrinks layout footprint from 900px → 450px) */}
-              <div style={{
-                width: '450px',
-                overflow: 'hidden',
-                borderRadius: '14px',
-                border: '1.5px solid var(--mochi-border)',
-              }}>
-                <div style={{ zoom: 0.5, pointerEvents: 'none' }}>
-                  <WallpaperCanvas ref={canvasRef} items={items} section={section} />
-                </div>
+              {/* Variant toggle */}
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {[
+                  { key: 'desktop', icon: <Monitor size={12} />, label: 'Desktop' },
+                  { key: 'mobile',  icon: <Smartphone size={12} />, label: 'Mobile' },
+                ].map(({ key, icon, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => { setWallpaperVariant(key); setPngError('') }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '5px',
+                      padding: '5px 14px',
+                      borderRadius: '10px',
+                      fontSize: '11px', fontWeight: '700',
+                      background: wallpaperVariant === key ? 'var(--mochi-lavender)' : 'transparent',
+                      border: `1.5px solid ${wallpaperVariant === key ? 'var(--mochi-lavender-mid)' : 'var(--mochi-border)'}`,
+                      color: wallpaperVariant === key ? 'var(--mochi-lavender-dark)' : 'var(--mochi-text-muted)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {icon}{label}
+                  </button>
+                ))}
               </div>
+
+              {/* Preview */}
+              {wallpaperVariant === 'desktop' ? (
+                /* Desktop: 900px canvas zoomed to 0.5 → 450px wide */
+                <div style={{ width: '450px', height: '220px', overflow: 'hidden', borderRadius: '14px', border: '1.5px solid var(--mochi-border)' }}>
+                  <div style={{ zoom: 0.5, pointerEvents: 'none' }}>
+                    <WallpaperCanvas ref={canvasRef} items={items} section={section} variant="desktop" />
+                  </div>
+                </div>
+              ) : (
+                /* Mobile: 390px canvas fits in modal; clip height for preview */
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <div style={{ width: '195px', height: '340px', overflow: 'hidden', borderRadius: '20px', border: '1.5px solid var(--mochi-border)', flexShrink: 0 }}>
+                    <div style={{ zoom: 0.5, pointerEvents: 'none' }}>
+                      <WallpaperCanvas ref={canvasRef} items={items} section={section} variant="mobile" />
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '11px', lineHeight: 1.6, color: 'var(--mochi-text-muted)', margin: 0, paddingTop: '4px' }}>
+                    Portrait layout optimised for phone wallpapers. Exported at 2× resolution (780 × auto px).
+                  </p>
+                </div>
+              )}
 
               {/* Error */}
               {pngError && (
@@ -331,7 +368,7 @@ export default function ExportModal({ items = [], section, onClose }) {
               >
                 {pngExporting
                   ? <><Loader2 size={13} className="animate-spin" />Exporting…</>
-                  : <><Download size={13} />Download PNG</>}
+                  : <><Download size={13} />Download {wallpaperVariant === 'mobile' ? 'Mobile' : 'Desktop'} PNG</>}
               </button>
             </div>
           )}
