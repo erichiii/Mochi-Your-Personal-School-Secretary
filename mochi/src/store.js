@@ -18,12 +18,23 @@ const useStore = create((set, get) => ({
     await get().loadSubjects()
   },
   deleteSubject: async (id) => {
-    const subs = await db.subjects.where('parentId').equals(id).toArray()
-    for (const sub of subs) {
-      await db.notes.where('subjectId').equals(sub.id).modify({ subjectId: null })
-      await db.decks.where('subjectId').equals(sub.id).modify({ subjectId: null })
-      await db.subjects.delete(sub.id)
+    const allSubjects = await db.subjects.toArray()
+    const descendants = []
+    const collect = (parentId) => {
+      const children = allSubjects.filter((s) => s.parentId === parentId)
+      for (const child of children) {
+        descendants.push(child.id)
+        collect(child.id)
+      }
     }
+    collect(id)
+
+    for (const subId of descendants) {
+      await db.notes.where('subjectId').equals(subId).modify({ subjectId: null })
+      await db.decks.where('subjectId').equals(subId).modify({ subjectId: null })
+      await db.subjects.delete(subId)
+    }
+
     await db.notes.where('subjectId').equals(id).modify({ subjectId: null })
     await db.decks.where('subjectId').equals(id).modify({ subjectId: null })
     await db.subjects.delete(id)

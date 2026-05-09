@@ -46,8 +46,40 @@ export default function SubjectPicker({ noteId }) {
 
   if (!noteId) return null
 
-  const sections = subjects.filter((s) => !s.parentId)
-  const subsOf = (id) => subjects.filter((s) => s.parentId === id)
+  const subjectsByParent = subjects.reduce((map, subject) => {
+    const key = subject.parentId ?? 'root'
+    if (!map[key]) map[key] = []
+    map[key].push(subject)
+    return map
+  }, {})
+  const topLevel = subjectsByParent.root || []
+
+  const renderOption = (subject, depth = 0) => {
+    const children = subjectsByParent[subject.id] || []
+    const paddingLeft = 12 + depth * 12
+    const isTopLevel = depth === 0
+    return (
+      <div key={subject.id}>
+        <button
+          onClick={() => assign(subject.id)}
+          className={isTopLevel
+            ? 'w-full text-left px-3 py-2 text-xs font-semibold flex items-center gap-2 transition-colors'
+            : 'w-full text-left pr-3 py-1.5 text-xs font-medium flex items-center gap-2 transition-colors'
+          }
+          style={{ color: isTopLevel ? 'var(--mochi-text)' : 'var(--mochi-text-soft)', paddingLeft: `${paddingLeft}px` }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = subject.color + (isTopLevel ? '33' : '22'))}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          <div
+            className={isTopLevel ? 'w-2.5 h-2.5 rounded-full flex-shrink-0' : 'w-1.5 h-1.5 rounded-full flex-shrink-0'}
+            style={{ background: subject.color }}
+          />
+          {subject.name}
+        </button>
+        {children.map((child) => renderOption(child, depth + 1))}
+      </div>
+    )
+  }
 
   return (
     <div className="relative" ref={ref}>
@@ -90,37 +122,7 @@ export default function SubjectPicker({ noteId }) {
             No section
           </button>
 
-          {sections.map((section) => {
-            const subs = subsOf(section.id)
-            return (
-              <div key={section.id}>
-                <button
-                  onClick={() => assign(section.id)}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold flex items-center gap-2 transition-colors"
-                  style={{ color: 'var(--mochi-text)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = section.color + '33')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: section.color }} />
-                  {section.name}
-                </button>
-
-                {subs.map((sub) => (
-                  <button
-                    key={sub.id}
-                    onClick={() => assign(sub.id)}
-                    className="w-full text-left pl-7 pr-3 py-1.5 text-xs font-medium flex items-center gap-2 transition-colors"
-                    style={{ color: 'var(--mochi-text-soft)' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = sub.color + '22')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: sub.color }} />
-                    {sub.name}
-                  </button>
-                ))}
-              </div>
-            )
-          })}
+          {topLevel.map((section) => renderOption(section, 0))}
 
           {/* Divider */}
           <div className="mx-3 my-1" style={{ height: '1px', background: 'var(--mochi-border)' }} />

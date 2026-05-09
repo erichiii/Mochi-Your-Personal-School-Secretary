@@ -27,16 +27,30 @@ export default function NotesListPanel() {
   }, [])
 
   // ── Hierarchy-aware filter ────────────────────────────────
+  const getDescendantIds = (id) => {
+    const ids = []
+    const stack = [id]
+    while (stack.length > 0) {
+      const parentId = stack.pop()
+      const children = subjects.filter((s) => s.parentId === parentId)
+      for (const child of children) {
+        ids.push(child.id)
+        stack.push(child.id)
+      }
+    }
+    return ids
+  }
+
   const getFiltered = () => {
     if (activeSubjectFilter == null) return notes
     const match = subjects.find((s) => s.id === activeSubjectFilter)
     if (!match) return notes
-    if (!match.parentId) {
-      // section selected → include notes from all its subsections too
-      const subIds = subjects.filter((s) => s.parentId === activeSubjectFilter).map((s) => s.id)
-      return notes.filter((n) => n.subjectId === activeSubjectFilter || subIds.includes(n.subjectId))
+    const descendantIds = getDescendantIds(activeSubjectFilter)
+    if (descendantIds.length === 0) {
+      return notes.filter((n) => n.subjectId === activeSubjectFilter)
     }
-    return notes.filter((n) => n.subjectId === activeSubjectFilter)
+    const descendantSet = new Set(descendantIds)
+    return notes.filter((n) => n.subjectId === activeSubjectFilter || descendantSet.has(n.subjectId))
   }
 
   const bySubject = getFiltered()
