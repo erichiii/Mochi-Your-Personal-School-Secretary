@@ -16,11 +16,20 @@ export default function TodoPage() {
     return { total: tasks.length, done }
   }, [tasks])
 
+  const categories = useMemo(() => {
+    const set = new Set()
+    tasks.forEach((t) => {
+      if (t.category) set.add(t.category)
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [tasks])
+
   const handleCreate = async (payload) => {
     await createTask({
       title: payload.title,
       category: payload.category || '',
       deadline: payload.deadline ?? null,
+      additionalNotes: payload.additionalNotes || '',
       effort: 3,
       priority: 0,
       userPriority: null,
@@ -42,7 +51,7 @@ export default function TodoPage() {
 
   return (
     <div className="h-full overflow-y-auto px-6 py-6">
-      <div className="max-w-3xl mx-auto flex flex-col gap-6">
+      <div className="max-w-5xl mx-auto flex flex-col gap-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p style={{ fontFamily: 'Fraunces, serif', fontSize: '22px', margin: 0, color: 'var(--mochi-mint-dark)' }}>
@@ -58,11 +67,12 @@ export default function TodoPage() {
         </div>
 
         <div className="rounded-3xl p-5" style={{ background: 'var(--mochi-surface)', border: '1.5px solid var(--mochi-border)' }}>
-          <TaskForm onCreate={handleCreate} />
+          <TaskForm onCreate={handleCreate} categories={categories} />
         </div>
 
         <TaskList
           tasks={tasks}
+          categories={categories}
           onToggleDone={handleToggleDone}
           onUpdate={handleUpdate}
           onDelete={handleDelete}

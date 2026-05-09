@@ -141,6 +141,7 @@ const useStore = create((set, get) => ({
       title: '',
       category: '',
       deadline: null,
+      additionalNotes: '',
       effort: 3,
       priority: 0,
       userPriority: null,
