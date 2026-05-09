@@ -137,7 +137,19 @@ const useStore = create((set, get) => ({
     set({ tasks })
   },
   createTask: async (data) => {
-    await db.tasks.add({ isDone: false, ...data, createdAt: Date.now(), updatedAt: Date.now() })
+    await db.tasks.add({
+      title: '',
+      category: '',
+      deadline: null,
+      effort: 3,
+      priority: 0,
+      userPriority: null,
+      pomodoroCount: 0,
+      isDone: false,
+      ...data,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
     await get().loadTasks()
   },
   updateTask: async (id, data) => {
