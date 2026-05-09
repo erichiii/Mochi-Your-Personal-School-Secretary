@@ -249,8 +249,8 @@ export default function NotesListPanel() {
                     <Pin size={10} className="flex-shrink-0 mt-0.5" style={{ color: isActive ? 'var(--mochi-lavender-dark)' : 'var(--mochi-text-muted)', transform: 'rotate(45deg)' }} />
                   )}
                   <p
-                    className="text-sm font-semibold truncate flex-1"
-                    style={{ color: isActive ? 'var(--mochi-lavender-dark)' : 'var(--mochi-text)' }}
+                    className="text-sm font-semibold break-words flex-1"
+                    style={{ color: isActive ? 'var(--mochi-lavender-dark)' : 'var(--mochi-text)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                   >
                     {note.title || 'Untitled'}
                   </p>
