@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Calendar, Plus, Upload, X, Sparkles, Loader2, AlertCircle,
-  Pencil, Trash2, Check, ImageIcon, Save,
+  Calendar, Plus, X, Sparkles, Loader2, AlertCircle,
+  Pencil, Trash2, Check, ImageIcon, Save, Download,
 } from 'lucide-react'
 import useStore from '../store'
 import { generateSchedule } from '../gemini'
+import ExportModal from '../components/schedule/ExportModal'
 
 // ── Constants ──────────────────────────────────────────────────
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -19,6 +20,16 @@ const DAY_COLORS = {
   Sunday:    { bg: 'var(--mochi-pink)',      border: 'var(--mochi-pink-mid)',      text: 'var(--mochi-pink-dark)' },
 }
 
+const SECTION_COLOR_CYCLE = ['lavender', 'mint', 'sky', 'pink', 'peach']
+
+const SECTION_COLOR_MAP = {
+  lavender: { bg: 'var(--mochi-lavender)', border: 'var(--mochi-lavender-mid)', text: 'var(--mochi-lavender-dark)' },
+  mint:     { bg: 'var(--mochi-mint)',     border: 'var(--mochi-mint-mid)',     text: 'var(--mochi-mint-dark)'     },
+  sky:      { bg: 'var(--mochi-sky)',      border: 'var(--mochi-sky-mid)',      text: 'var(--mochi-sky-dark)'      },
+  pink:     { bg: 'var(--mochi-pink)',     border: 'var(--mochi-pink-mid)',     text: 'var(--mochi-pink-dark)'     },
+  peach:    { bg: 'var(--mochi-peach)',    border: 'var(--mochi-peach-mid)',    text: 'var(--mochi-peach-dark)'    },
+}
+
 const parseTimeForSort = (t) => {
   if (!t) return 0
   const m = t.match(/(\d+)(?::(\d+))?\s*(AM|PM)/i)
@@ -31,7 +42,6 @@ const parseTimeForSort = (t) => {
   return h * 60 + min
 }
 
-// ── Shared field styles ────────────────────────────────────────
 const fieldStyle = {
   background: 'var(--mochi-cream)',
   border: '1.5px solid var(--mochi-border)',
@@ -50,22 +60,50 @@ function DaySelect({ value, onChange, style }) {
   )
 }
 
+function ColorPicker({ value, onChange }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {SECTION_COLOR_CYCLE.map((c) => {
+        const col = SECTION_COLOR_MAP[c]
+        return (
+          <button
+            key={c}
+            onClick={() => onChange(c)}
+            className="w-4 h-4 rounded-full transition-all"
+            style={{
+              background: col.text,
+              outline: value === c ? `2px solid ${col.text}` : '2px solid transparent',
+              outlineOffset: '2px',
+            }}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Main page ──────────────────────────────────────────────────
 export default function SchedulePage() {
   const {
     scheduleItems, loadSchedule,
     createScheduleItem, updateScheduleItem, deleteScheduleItem,
+    scheduleSections, loadScheduleSections,
+    createScheduleSection, updateScheduleSection, deleteScheduleSection,
   } = useStore()
 
+  // Active section (null = "All")
+  const [activeSectionId, setActiveSectionId] = useState(null)
+  const [showExport, setShowExport] = useState(false)
+
   // Image upload
-  const [image, setImage] = useState(null)   // { name, mimeType, base64, url }
+  const [image, setImage] = useState(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [parsing, setParsing] = useState(false)
   const [parseError, setParseError] = useState('')
   const imageRef = useRef()
 
   // Pending items (parsed, not yet saved)
-  const [pendingItems, setPendingItems] = useState([])  // [{tempId, day, time, subject, room}]
+  const [pendingItems, setPendingItems] = useState([])
   const [editingPendingId, setEditingPendingId] = useState(null)
   const [pendingEditForm, setPendingEditForm] = useState({ day: 'Monday', time: '', subject: '', room: '' })
 
@@ -77,7 +115,25 @@ export default function SchedulePage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [addForm, setAddForm] = useState({ day: 'Monday', time: '', subject: '', room: '' })
 
-  useEffect(() => { loadSchedule() }, [])
+  // Sections management
+  const [showNewSection, setShowNewSection] = useState(false)
+  const [newSectionName, setNewSectionName] = useState('')
+  const [newSectionColor, setNewSectionColor] = useState('lavender')
+  const [editingSectionId, setEditingSectionId] = useState(null)
+  const [sectionEditName, setSectionEditName] = useState('')
+  const [sectionEditColor, setSectionEditColor] = useState('lavender')
+
+  useEffect(() => {
+    loadSchedule()
+    loadScheduleSections()
+  }, [])
+
+  // Auto-select first section once sections load (activeSectionId resets to null on each mount)
+  useEffect(() => {
+    if (activeSectionId === null && scheduleSections.length > 0) {
+      setActiveSectionId(scheduleSections[0].id)
+    }
+  }, [scheduleSections])
 
   // ── Image handlers ─────────────────────────────────────────
   const processFile = (file) => {
@@ -93,6 +149,19 @@ export default function SchedulePage() {
     }
     reader.readAsDataURL(file)
   }
+
+  // Paste image from clipboard (Ctrl+V anywhere on the page)
+  useEffect(() => {
+    const onPaste = (e) => {
+      const items = Array.from(e.clipboardData?.items ?? [])
+      const imgItem = items.find((it) => it.type.startsWith('image/'))
+      if (!imgItem) return
+      const file = imgItem.getAsFile()
+      if (file) processFile(file)
+    }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+  }, []) // processFile only calls stable setters — stale closure intentional
 
   const handleDrop = (e) => {
     e.preventDefault()
@@ -134,7 +203,10 @@ export default function SchedulePage() {
   // ── Pending handlers ───────────────────────────────────────
   const saveAllPending = async () => {
     for (const item of pendingItems) {
-      await createScheduleItem({ day: item.day, time: item.time, subject: item.subject, room: item.room ?? '' })
+      await createScheduleItem({
+        day: item.day, time: item.time, subject: item.subject,
+        room: item.room ?? '', sectionId: activeSectionId ?? null,
+      })
     }
     setPendingItems([])
     setImage(null)
@@ -173,15 +245,51 @@ export default function SchedulePage() {
   // ── Add row ────────────────────────────────────────────────
   const handleAddRow = async () => {
     if (!addForm.subject.trim()) return
-    await createScheduleItem(addForm)
+    await createScheduleItem({ ...addForm, sectionId: activeSectionId ?? null })
     setAddForm({ day: 'Monday', time: '', subject: '', room: '' })
     setShowAddForm(false)
   }
 
-  // ── Group by day ───────────────────────────────────────────
+  // ── Section handlers ───────────────────────────────────────
+  const handleCreateSection = async () => {
+    const name = newSectionName.trim()
+    if (!name) return
+    const id = await createScheduleSection(name, newSectionColor)
+    setActiveSectionId(id)
+    setNewSectionName('')
+    setNewSectionColor(SECTION_COLOR_CYCLE[(scheduleSections.length + 1) % SECTION_COLOR_CYCLE.length])
+    setShowNewSection(false)
+  }
+
+  const startEditSection = (section) => {
+    setEditingSectionId(section.id)
+    setSectionEditName(section.name)
+    setSectionEditColor(section.color)
+  }
+
+  const saveSectionEdit = async () => {
+    const name = sectionEditName.trim()
+    if (!name) return
+    await updateScheduleSection(editingSectionId, { name, color: sectionEditColor })
+    setEditingSectionId(null)
+  }
+
+  const handleDeleteSection = async (id) => {
+    await deleteScheduleSection(id)
+    if (activeSectionId === id) setActiveSectionId(null)
+  }
+
+  // ── Filtered items ─────────────────────────────────────────
+  const visibleItems = activeSectionId === null
+    ? scheduleItems
+    : scheduleItems.filter((i) => i.sectionId === activeSectionId)
+
+  const activeSection = scheduleSections.find((s) => s.id === activeSectionId) ?? null
+
+  // Group by day
   const itemsByDay = {}
   for (const day of DAYS) {
-    const saved = scheduleItems
+    const saved = visibleItems
       .filter((i) => i.day === day)
       .sort((a, b) => parseTimeForSort(a.time) - parseTimeForSort(b.time))
     const pending = pendingItems
@@ -194,18 +302,143 @@ export default function SchedulePage() {
 
   // ── Render ─────────────────────────────────────────────────
   return (
+    <>
     <div className="h-full flex overflow-hidden" style={{ background: 'var(--mochi-cream)' }}>
 
-      {/* ── Left: Image upload panel ── */}
+      {/* ── Left panel ── */}
       <div
         className="flex-shrink-0 flex flex-col overflow-y-auto py-6 px-4 gap-4"
         style={{ width: '256px', borderRight: '1.5px solid var(--mochi-border)', background: 'var(--mochi-surface)' }}
       >
+        {/* ── Sections ── */}
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--mochi-text-muted)' }}>
+            Sections
+          </p>
+          <button
+            onClick={() => {
+              setShowNewSection(true)
+              setNewSectionColor(SECTION_COLOR_CYCLE[scheduleSections.length % SECTION_COLOR_CYCLE.length])
+            }}
+            className="p-1 rounded-lg transition-all"
+            style={{ color: 'var(--mochi-text-muted)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--mochi-text)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--mochi-text-muted)')}
+          >
+            <Plus size={13} />
+          </button>
+        </div>
+
+        {/* Section list */}
+        <div className="flex flex-col gap-1 -mt-2">
+          {scheduleSections.map((section) => {
+            const colors = SECTION_COLOR_MAP[section.color] ?? SECTION_COLOR_MAP.lavender
+            const isActive = activeSectionId === section.id
+            return editingSectionId === section.id ? (
+              <div key={section.id} className="flex flex-col gap-2 px-2 py-2 rounded-xl"
+                style={{ background: 'var(--mochi-cream)', border: '1.5px solid var(--mochi-border)' }}>
+                <input
+                  autoFocus
+                  value={sectionEditName}
+                  onChange={(e) => setSectionEditName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveSectionEdit(); if (e.key === 'Escape') setEditingSectionId(null) }}
+                  style={{ ...fieldStyle, fontSize: '11px', padding: '3px 8px' }}
+                />
+                <div className="flex items-center justify-between">
+                  <ColorPicker value={sectionEditColor} onChange={setSectionEditColor} />
+                  <div className="flex items-center gap-1">
+                    <button onClick={saveSectionEdit} className="p-1 rounded-lg"
+                      style={{ color: 'var(--mochi-mint-dark)', background: 'var(--mochi-mint)' }}>
+                      <Check size={11} />
+                    </button>
+                    <button onClick={() => setEditingSectionId(null)} className="p-1 rounded-lg"
+                      style={{ color: 'var(--mochi-text-muted)' }}>
+                      <X size={11} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                key={section.id}
+                className="group flex items-center gap-2 w-full px-3 py-2 rounded-xl transition-all cursor-pointer"
+                style={isActive
+                  ? { background: colors.bg, border: `1.5px solid ${colors.border}` }
+                  : { background: 'transparent', border: '1.5px solid transparent' }}
+                onClick={() => setActiveSectionId(section.id)}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--mochi-cream)' }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+              >
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: colors.text }} />
+                <span className="flex-1 text-xs font-semibold truncate" style={{ color: isActive ? colors.text : 'var(--mochi-text)' }}>
+                  {section.name}
+                </span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); startEditSection(section) }}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded transition-all"
+                  style={{ color: isActive ? colors.text : 'var(--mochi-text-muted)' }}
+                >
+                  <Pencil size={10} />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDeleteSection(section.id) }}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded transition-all"
+                  style={{ color: isActive ? colors.text : 'var(--mochi-text-muted)' }}
+                  onMouseEnter={(ev) => (ev.currentTarget.style.color = '#E05050')}
+                  onMouseLeave={(ev) => (ev.currentTarget.style.color = isActive ? colors.text : 'var(--mochi-text-muted)')}
+                >
+                  <Trash2 size={10} />
+                </button>
+              </div>
+            )
+          })}
+
+          {/* New section form */}
+          {showNewSection && (
+            <div className="flex flex-col gap-2 px-2 py-2 rounded-xl"
+              style={{ background: 'var(--mochi-cream)', border: '1.5px solid var(--mochi-border)' }}>
+              <input
+                autoFocus
+                value={newSectionName}
+                onChange={(e) => setNewSectionName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCreateSection(); if (e.key === 'Escape') setShowNewSection(false) }}
+                placeholder="Section name (e.g. 1st Semester)"
+                style={{ ...fieldStyle, fontSize: '11px', padding: '3px 8px' }}
+              />
+              <div className="flex items-center justify-between">
+                <ColorPicker value={newSectionColor} onChange={setNewSectionColor} />
+                <div className="flex items-center gap-1">
+                  <button onClick={handleCreateSection} disabled={!newSectionName.trim()} className="p-1 rounded-lg"
+                    style={{
+                      color: newSectionName.trim() ? 'var(--mochi-mint-dark)' : 'var(--mochi-text-muted)',
+                      background: newSectionName.trim() ? 'var(--mochi-mint)' : 'transparent',
+                    }}>
+                    <Check size={11} />
+                  </button>
+                  <button onClick={() => { setShowNewSection(false); setNewSectionName('') }} className="p-1 rounded-lg"
+                    style={{ color: 'var(--mochi-text-muted)' }}>
+                    <X size={11} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {scheduleSections.length === 0 && !showNewSection && (
+            <p className="text-[10px] text-center py-1 leading-relaxed px-2" style={{ color: 'var(--mochi-text-muted)' }}>
+              Create sections to organize schedules by semester or term
+            </p>
+          )}
+        </div>
+
+        {/* ── Divider ── */}
+        <div style={{ height: '1px', background: 'var(--mochi-border)', flexShrink: 0 }} />
+
+        {/* ── Parse from image ── */}
         <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--mochi-text-muted)' }}>
           Parse from image
         </p>
 
-        {/* Drop zone / preview */}
         {image ? (
           <div className="relative rounded-2xl overflow-hidden" style={{ border: '1.5px solid var(--mochi-border)' }}>
             <img src={image.url} alt={image.name} className="w-full object-cover" style={{ maxHeight: '180px' }} />
@@ -226,21 +459,20 @@ export default function SchedulePage() {
             onDrop={handleDrop}
             className="flex flex-col items-center justify-center gap-2 rounded-2xl cursor-pointer transition-all"
             style={{
-              minHeight: '140px',
+              minHeight: '130px',
               border: `2px dashed ${isDragOver ? 'var(--mochi-peach-mid)' : 'var(--mochi-border)'}`,
               background: isDragOver ? 'var(--mochi-peach)' : 'var(--mochi-cream)',
             }}
           >
-            <ImageIcon size={28} style={{ color: isDragOver ? 'var(--mochi-peach-dark)' : 'var(--mochi-border)' }} />
+            <ImageIcon size={26} style={{ color: isDragOver ? 'var(--mochi-peach-dark)' : 'var(--mochi-border)' }} />
             <p className="text-xs font-semibold text-center px-4" style={{ color: isDragOver ? 'var(--mochi-peach-dark)' : 'var(--mochi-text-muted)' }}>
               Drop image here<br />or click to upload
             </p>
-            <p className="text-[10px]" style={{ color: 'var(--mochi-text-muted)' }}>JPG, PNG, WEBP</p>
+            <p className="text-[10px]" style={{ color: 'var(--mochi-text-muted)' }}>JPG, PNG · or paste (Ctrl+V)</p>
           </div>
         )}
         <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleFileInput} />
 
-        {/* Parse error */}
         {parseError && (
           <div className="flex items-start gap-2 px-3 py-2 rounded-xl" style={{ background: 'var(--mochi-pink)', border: '1.5px solid var(--mochi-pink-mid)' }}>
             <AlertCircle size={13} style={{ color: 'var(--mochi-pink-dark)', flexShrink: 0, marginTop: 1 }} />
@@ -248,7 +480,6 @@ export default function SchedulePage() {
           </div>
         )}
 
-        {/* Parse button */}
         <button
           onClick={handleParse}
           disabled={!image || parsing}
@@ -265,9 +496,11 @@ export default function SchedulePage() {
             : <><Sparkles size={13} />Parse with AI</>}
         </button>
 
-        <p className="text-[10px] text-center leading-relaxed" style={{ color: 'var(--mochi-text-muted)' }}>
-          Upload a photo of your class schedule and Gemini will read the days, times, and subjects for you.
-        </p>
+        {activeSectionId && (
+          <p className="text-[10px] text-center leading-relaxed" style={{ color: 'var(--mochi-text-muted)' }}>
+            Parsed items will be saved to <strong>{activeSection?.name}</strong>
+          </p>
+        )}
       </div>
 
       {/* ── Right: Schedule table ── */}
@@ -281,7 +514,8 @@ export default function SchedulePage() {
           >
             <Sparkles size={14} style={{ color: 'var(--mochi-peach-dark)', flexShrink: 0 }} />
             <p className="text-sm font-semibold flex-1" style={{ color: 'var(--mochi-peach-dark)' }}>
-              {pendingItems.length} item{pendingItems.length !== 1 ? 's' : ''} parsed — review and save
+              {pendingItems.length} item{pendingItems.length !== 1 ? 's' : ''} parsed
+              {activeSection ? ` — will save to "${activeSection.name}"` : ' — review and save'}
             </p>
             <button
               onClick={saveAllPending}
@@ -305,16 +539,36 @@ export default function SchedulePage() {
           className="flex items-center justify-between px-6 py-4 flex-shrink-0"
           style={{ borderBottom: '1.5px solid var(--mochi-border)' }}
         >
-          <p className="text-lg font-bold" style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-text)' }}>
-            Weekly Schedule
-          </p>
-          <button
-            onClick={() => { setShowAddForm(true); setAddForm({ day: 'Monday', time: '', subject: '', room: '' }) }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
-            style={{ background: 'var(--mochi-peach)', color: 'var(--mochi-peach-dark)', border: '1.5px solid var(--mochi-peach-mid)' }}
-          >
-            <Plus size={12} />Add Row
-          </button>
+          <div className="flex items-center gap-3">
+            <p className="text-lg font-bold" style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-text)' }}>
+              {activeSection ? activeSection.name : 'Weekly Schedule'}
+            </p>
+            {activeSection && (() => {
+              const colors = SECTION_COLOR_MAP[activeSection.color] ?? SECTION_COLOR_MAP.lavender
+              return (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: colors.bg, border: `1px solid ${colors.border}`, color: colors.text }}>
+                  {scheduleItems.filter((i) => i.sectionId === activeSectionId).length} classes
+                </span>
+              )
+            })()}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowExport(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
+              style={{ background: 'var(--mochi-lavender)', color: 'var(--mochi-lavender-dark)', border: '1.5px solid var(--mochi-lavender-mid)' }}
+            >
+              <Download size={12} />Export
+            </button>
+            <button
+              onClick={() => { setShowAddForm(true); setAddForm({ day: 'Monday', time: '', subject: '', room: '' }) }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
+              style={{ background: 'var(--mochi-peach)', color: 'var(--mochi-peach-dark)', border: '1.5px solid var(--mochi-peach-mid)' }}
+            >
+              <Plus size={12} />Add Row
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -365,7 +619,6 @@ export default function SchedulePage() {
             const colors = DAY_COLORS[day]
             return (
               <div key={day}>
-                {/* Day header */}
                 <div className="flex items-center gap-2 mb-2">
                   <span
                     className="text-xs font-bold px-2.5 py-1 rounded-full"
@@ -376,13 +629,11 @@ export default function SchedulePage() {
                   <div className="flex-1" style={{ height: '1px', background: 'var(--mochi-border)' }} />
                 </div>
 
-                {/* Rows */}
                 <div className="flex flex-col gap-1.5">
                   {/* Saved rows */}
                   {saved.map((item) => (
                     <div key={item.id}>
                       {editingId === item.id ? (
-                        // Inline edit form
                         <div
                           className="flex items-center gap-2 px-4 py-2.5 rounded-xl"
                           style={{ background: 'var(--mochi-surface)', border: `1.5px solid ${colors.border}` }}
@@ -417,9 +668,8 @@ export default function SchedulePage() {
                           </button>
                         </div>
                       ) : (
-                        // Display row
                         <div
-                          className="group flex items-center gap-4 px-4 py-2.5 rounded-xl transition-all"
+                          className="group flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all"
                           style={{ background: 'var(--mochi-surface)', border: '1.5px solid var(--mochi-border)' }}
                           onMouseEnter={(e) => (e.currentTarget.style.borderColor = colors.border)}
                           onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--mochi-border)')}
@@ -494,7 +744,7 @@ export default function SchedulePage() {
                         </div>
                       ) : (
                         <div
-                          className="group flex items-center gap-4 px-4 py-2.5 rounded-xl transition-all"
+                          className="group flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all"
                           style={{ background: 'var(--mochi-peach)', border: `1.5px solid ${colors.border}` }}
                         >
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
@@ -538,12 +788,16 @@ export default function SchedulePage() {
             !showAddForm && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <Calendar size={48} className="mb-4" style={{ color: 'var(--mochi-border)' }} />
-                <p className="text-base font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>No schedule yet</p>
+                <p className="text-base font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>
+                  {activeSection ? `No classes in "${activeSection.name}" yet` : 'No schedule yet'}
+                </p>
                 <p className="text-xs mb-6" style={{ color: 'var(--mochi-text-muted)' }}>
-                  Upload a photo of your class schedule, or add rows manually
+                  {activeSection
+                    ? 'Add rows manually or parse a schedule image — they\'ll be saved to this section'
+                    : 'Upload a photo of your class schedule, or add rows manually'}
                 </p>
                 <button
-                  onClick={() => { setShowAddForm(true) }}
+                  onClick={() => setShowAddForm(true)}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold"
                   style={{ background: 'var(--mochi-peach)', color: 'var(--mochi-peach-dark)', border: '1.5px solid var(--mochi-peach-mid)' }}
                 >
@@ -555,5 +809,14 @@ export default function SchedulePage() {
         </div>
       </div>
     </div>
+
+    {showExport && (
+      <ExportModal
+        items={visibleItems}
+        section={activeSection}
+        onClose={() => setShowExport(false)}
+      />
+    )}
+    </>
   )
 }

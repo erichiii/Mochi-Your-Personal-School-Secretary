@@ -157,6 +157,28 @@ const useStore = create((set, get) => ({
     await get().loadSchedule()
   },
 
+  // ── Schedule Sections ─────────────────────────────────────
+  scheduleSections: [],
+  loadScheduleSections: async () => {
+    const scheduleSections = await db.scheduleSections.orderBy('createdAt').toArray()
+    set({ scheduleSections })
+  },
+  createScheduleSection: async (name, color) => {
+    const id = await db.scheduleSections.add({ name, color, createdAt: Date.now() })
+    await get().loadScheduleSections()
+    return id
+  },
+  updateScheduleSection: async (id, data) => {
+    await db.scheduleSections.update(id, data)
+    await get().loadScheduleSections()
+  },
+  deleteScheduleSection: async (id) => {
+    await db.schedule.where('sectionId').equals(id).modify({ sectionId: null })
+    await db.scheduleSections.delete(id)
+    await get().loadScheduleSections()
+    await get().loadSchedule()
+  },
+
   // ── Study Plans ───────────────────────────────────────────
   studyPlans: [],
   loadStudyPlans: async () => {

@@ -29,6 +29,8 @@
     "@tiptap/starter-kit": "^3.23.1",
     "date-fns": "^4.1.0",
     "dexie": "^4.4.2",
+    "html-to-image": "^1.11.13",
+    "ics": "^3.12.0",
     "lucide-react": "^1.14.0",
     "marked": "^18.0.3",
     "pdfjs-dist": "^5.7.284",

@@ -58,3 +58,16 @@ db.version(5).stores({
   studyPlan:  '++id, title, content, examDate, createdAt',
   aiCache:    'id, createdAt',
 })
+
+// v6: add scheduleSections table; add sectionId index to schedule
+db.version(6).stores({
+  subjects:         '++id, parentId, name, color, createdAt',
+  notes:            '++id, subjectId, title, content, createdAt, updatedAt, isPinned',
+  decks:            '++id, subjectId, name, createdAt',
+  flashcards:       '++id, deckId, noteId, subjectId, front, back, createdAt',
+  tasks:            '++id, title, category, deadline, effort, priority, isDone, createdAt, updatedAt',
+  schedule:         '++id, day, time, subject, room, sectionId, createdAt',
+  scheduleSections: '++id, name, color, createdAt',
+  studyPlan:        '++id, title, content, examDate, createdAt',
+  aiCache:          'id, createdAt',
+})
