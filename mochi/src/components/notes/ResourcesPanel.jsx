@@ -85,6 +85,16 @@ export default function ResourcesPanel({ noteId, resources = [] }) {
   const openResource = (r) => {
     if (r.type === 'url') { window.open(r.url, '_blank', 'noopener,noreferrer'); return }
     if (r.type === 'file') {
+      const canPreview = r.mimeType?.startsWith('image/') || r.mimeType === 'application/pdf' || r.mimeType?.startsWith('text/')
+      if (canPreview && r.dataUrl) {
+        const [header, b64] = r.dataUrl.split(',')
+        const bytes = Uint8Array.from(atob(b64 ?? ''), (c) => c.charCodeAt(0))
+        const blob = new Blob([bytes], { type: r.mimeType })
+        const blobUrl = URL.createObjectURL(blob)
+        const win = window.open(blobUrl, '_blank')
+        if (win) setTimeout(() => URL.revokeObjectURL(blobUrl), 30000)
+        return
+      }
       const a = document.createElement('a')
       a.href = r.dataUrl; a.download = r.name; a.click()
       return
