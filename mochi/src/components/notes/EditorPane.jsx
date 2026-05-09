@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Extension } from '@tiptap/core'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import UnderlineExt from '@tiptap/extension-underline'
@@ -17,6 +18,24 @@ import SubjectPicker from './SubjectPicker'
 import ResourcesPanel from './ResourcesPanel'
 import AIPanel from './AIPanel'
 import { FontSize } from '../../extensions/FontSize'
+
+const TabIndent = Extension.create({
+  name: 'tabIndent',
+  addKeyboardShortcuts() {
+    return {
+      Tab: () => {
+        if (this.editor.can().sinkListItem('listItem')) return this.editor.commands.sinkListItem('listItem')
+        if (this.editor.can().sinkListItem('taskItem')) return this.editor.commands.sinkListItem('taskItem')
+        return this.editor.commands.insertContent('\t')
+      },
+      'Shift-Tab': () => {
+        if (this.editor.can().liftListItem('listItem')) return this.editor.commands.liftListItem('listItem')
+        if (this.editor.can().liftListItem('taskItem')) return this.editor.commands.liftListItem('taskItem')
+        return false
+      },
+    }
+  },
+})
 
 export default function EditorPane() {
   const { notes, activeNoteId, updateNote, createNote, loadNotes } = useStore()
@@ -49,6 +68,7 @@ export default function EditorPane() {
       Highlight,
       TextStyle,
       FontSize,
+      TabIndent,
     ],
     content: '',
     onUpdate: ({ editor }) => {
