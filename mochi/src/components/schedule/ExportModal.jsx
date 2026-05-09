@@ -39,7 +39,7 @@ function firstOccurrence(dayName, startDate) {
 
 function toUntilString(dateStr) {
   const d = new Date(dateStr + 'T00:00:00')
-  d.setUTCHours(23, 59, 59, 0)
+  d.setHours(23, 59, 59, 0)
   return d.toISOString().replace(/[-:]/g, '').replace('.000', '')
 }
 
@@ -111,6 +111,13 @@ export default function ExportModal({ items = [], section, onClose }) {
           title: item.subject,
           ...(item.room ? { location: item.room } : {}),
           recurrenceRule: `FREQ=WEEKLY;BYDAY=${DAY_BYDAY[item.day]};UNTIL=${untilStr}`,
+          alarms: [
+            {
+              action: 'display',
+              description: 'Class reminder',
+              trigger: { hours: 1, minutes: 0, before: true },
+            },
+          ],
         })
       }
 
