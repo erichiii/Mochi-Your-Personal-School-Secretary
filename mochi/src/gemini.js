@@ -122,6 +122,41 @@ ${text}`
   }
 }
 
+// ── Schedule parsing (vision) ─────────────────────────────────
+export const generateSchedule = async (imageBase64, mimeType) => {
+  guardOnline()
+  try {
+    const model = getModel()
+    const result = await model.generateContent([
+      { inlineData: { mimeType, data: imageBase64 } },
+      `You are Mochi, a student schedule assistant.
+Analyze this class/school schedule image and extract every schedule entry.
+Respond ONLY with a valid JSON array. No markdown fences. No explanation.
+
+Format: [{"day":"Monday","time":"9:00 AM - 10:50 AM","subject":"Mathematics","room":"Room 101"}, ...]
+
+Day abbreviation map:
+M=Monday, T=Tuesday, W=Wednesday, TH=Thursday, F=Friday, S=Saturday, SU=Sunday
+
+IMPORTANT — multi-day rows: When a row has multiple days (e.g. "T / W" or "M / TH"), the time and room columns often contain slash-separated values in the same order (e.g. time "09:00-10:50 / 09:00-10:50", room "ONLINE / F608"). Split these into one entry PER day, matching each day to its corresponding time and room by position. If time or room has only one value, reuse it for all days.
+
+Example: subject "NUMBER THEORY", days "T / W", time "09:00-10:50 / 09:00-10:50", room "ONLINE / F608"
+→ [{"day":"Tuesday","time":"9:00 AM - 10:50 AM","subject":"NUMBER THEORY","room":"ONLINE"}, {"day":"Wednesday","time":"9:00 AM - 10:50 AM","subject":"NUMBER THEORY","room":"F608"}]
+
+Other rules:
+- day: full English day name
+- time: convert 24h to "H:MM AM - H:MM AM" format. If only start time is visible, use just "H:MM AM"
+- subject: preserve casing from the image
+- room: room number or location if visible, otherwise use ""
+- If the image is not a schedule, return []
+- Include every distinct entry you can read`,
+    ])
+    return parseJSON(result.response.text())
+  } catch (e) {
+    wrapError(e)
+  }
+}
+
 // ── Quiz generation ───────────────────────────────────────────
 export const generateQuiz = async (text, count = 5) => {
   guardOnline()

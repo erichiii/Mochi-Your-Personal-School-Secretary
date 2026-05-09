@@ -148,6 +148,10 @@ const useStore = create((set, get) => ({
     await db.schedule.add({ ...data, createdAt: Date.now() })
     await get().loadSchedule()
   },
+  updateScheduleItem: async (id, data) => {
+    await db.schedule.update(id, data)
+    await get().loadSchedule()
+  },
   deleteScheduleItem: async (id) => {
     await db.schedule.delete(id)
     await get().loadSchedule()
