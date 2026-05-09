@@ -222,7 +222,6 @@ export default function NotesListPanel() {
           filtered.map((note) => {
             const isActive = note.id === activeNoteId
             const noteSub = subjects.find((s) => s.id === note.subjectId)
-            const preview = stripHtml(note.content).slice(0, 100)
             const isDragging = draggingNoteId === note.id
 
             return (
@@ -256,12 +255,6 @@ export default function NotesListPanel() {
                     {note.title || 'Untitled'}
                   </p>
                 </div>
-
-                {preview && (
-                  <p className="text-xs mt-1 line-clamp-2 leading-relaxed" style={{ color: 'var(--mochi-text-muted)' }}>
-                    {preview}
-                  </p>
-                )}
 
                 <div className="flex items-center gap-2 mt-2">
                   {noteSub && (
