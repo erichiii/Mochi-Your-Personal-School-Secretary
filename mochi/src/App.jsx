@@ -7,6 +7,7 @@ import SchedulePage from './pages/SchedulePage'
 import StudyPlanPage from './pages/StudyPlanPage'
 import FlashcardsPage from './pages/FlashcardsPage'
 import useStore from './store'
+import StickyNotesLayer from './components/StickyNotesLayer'
 
 export default function App() {
   const theme = useStore((s) => s.theme)
@@ -17,6 +18,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <StickyNotesLayer />
       <div
         className="flex h-screen overflow-hidden"
         style={{ background: 'var(--mochi-cream)' }}

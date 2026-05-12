@@ -11,6 +11,35 @@ const useStore = create((set, get) => ({
     set({ theme: next })
   },
 
+
+  // ── Sticky Notes (scratchpad widgets) ────────────────────
+  stickyNotes: JSON.parse(localStorage.getItem('mochi_sticky_notes') || '[]'),
+  createStickyNote: () => {
+    const COLORS = ['peach', 'mint', 'lavender', 'pink', 'sky']
+    const existing = get().stickyNotes
+    const color = COLORS[existing.length % COLORS.length]
+    const note = {
+      id: crypto.randomUUID(),
+      content: '',
+      color,
+      x: 80 + (existing.length % 5) * 24,
+      y: 80 + (existing.length % 5) * 24,
+    }
+    const next = [...existing, note]
+    localStorage.setItem('mochi_sticky_notes', JSON.stringify(next))
+    set({ stickyNotes: next })
+  },
+  updateStickyNote: (id, data) => {
+    const next = get().stickyNotes.map((n) => n.id === id ? { ...n, ...data } : n)
+    localStorage.setItem('mochi_sticky_notes', JSON.stringify(next))
+    set({ stickyNotes: next })
+  },
+  deleteStickyNote: (id) => {
+    const next = get().stickyNotes.filter((n) => n.id !== id)
+    localStorage.setItem('mochi_sticky_notes', JSON.stringify(next))
+    set({ stickyNotes: next })
+  },
+
   // ── Subjects ──────────────────────────────────────────────
   subjects: [],
   loadSubjects: async () => {

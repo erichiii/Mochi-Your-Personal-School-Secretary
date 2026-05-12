@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { BookOpen, CheckSquare, Calendar, Brain, Layers, ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react'
+import { BookOpen, CheckSquare, Calendar, Brain, Layers, ChevronLeft, ChevronRight, Sun, Moon, StickyNote } from 'lucide-react'
 import SubjectSection from './notes/SubjectSection'
 import DeckSection from './DeckSection'
 import useStore from '../store'
@@ -55,6 +55,7 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const theme = useStore((s) => s.theme)
   const toggleTheme = useStore((s) => s.toggleTheme)
+  const createStickyNote = useStore((s) => s.createStickyNote)
 
   return (
     <aside
@@ -135,8 +136,23 @@ export default function Sidebar() {
         </>
       )}
 
-      {/* Theme toggle */}
+      {/* Sticky note + theme toggle */}
       <div className="mt-auto px-2 pb-4">
+        <button
+          onClick={createStickyNote}
+          title="New sticky note"
+          className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-sm font-semibold transition-all"
+          style={{
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            color: 'var(--mochi-text-soft)',
+            border: '1.5px solid transparent',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = 'var(--mochi-text)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-soft)' }}
+        >
+          <StickyNote size={16} />
+          {!collapsed && 'Sticky note'}
+        </button>
         <button
           onClick={toggleTheme}
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
