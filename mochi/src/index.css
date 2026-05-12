@@ -270,6 +270,20 @@ body {
 .tiptap td { background: var(--mochi-surface); }
 .tiptap .selectedCell { background: var(--mochi-lavender) !important; }
 
+/* ── Tiptap inside sticky notes ───────────────────────────── */
+.tiptap-sticky .tiptap {
+  min-height: 100%;
+  line-height: 1.6;
+}
+.tiptap-sticky .tiptap p { margin: 0 0 0.25rem; }
+.tiptap-sticky .tiptap > * + * { margin-top: 0.25rem; }
+.tiptap-sticky .tiptap p.is-editor-empty:first-child::before {
+  color: currentColor;
+  opacity: 0.35;
+}
+.tiptap-sticky .tiptap ul,
+.tiptap-sticky .tiptap ol { padding-left: 1.25rem; margin: 0.25rem 0; }
+
 /* ── Tiptap images ─────────────────────────────────────────── */
 .tiptap img {
   max-width: 100%;
