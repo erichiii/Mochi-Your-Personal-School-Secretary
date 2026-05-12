@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import NotesPage from './pages/NotesPage'
@@ -5,8 +6,15 @@ import TodoPage from './pages/TodoPage'
 import SchedulePage from './pages/SchedulePage'
 import StudyPlanPage from './pages/StudyPlanPage'
 import FlashcardsPage from './pages/FlashcardsPage'
+import useStore from './store'
 
 export default function App() {
+  const theme = useStore((s) => s.theme)
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
+
   return (
     <BrowserRouter>
       <div

@@ -2,6 +2,15 @@ import { create } from 'zustand'
 import { db } from './db'
 
 const useStore = create((set, get) => ({
+  // ── Theme ─────────────────────────────────────────────────
+  theme: localStorage.getItem('mochi_theme') || 'dark',
+  toggleTheme: () => {
+    const next = get().theme === 'dark' ? 'light' : 'dark'
+    localStorage.setItem('mochi_theme', next)
+    document.documentElement.setAttribute('data-theme', next)
+    set({ theme: next })
+  },
+
   // ── Subjects ──────────────────────────────────────────────
   subjects: [],
   loadSubjects: async () => {

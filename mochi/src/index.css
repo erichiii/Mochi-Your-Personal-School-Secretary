@@ -7,42 +7,41 @@
   /* Neutrals */
   --mochi-cream:   #FFF8F0;
   --mochi-surface: #FFFBF8;
-  --mochi-border:  #F0E4EC;
+  --mochi-border:  #D8C0CC;
 
   /* Text */
-  --mochi-text:       #3D2C35;
-  --mochi-text-soft:  #7A5F6A;
-  --mochi-text-muted: #B8A0A8;
+  --mochi-text:       #2A1A22;
+  --mochi-text-soft:  #52333F;
+  --mochi-text-muted: #7A5566;
 
   /* Pink — global accents, active states */
   --mochi-pink:      #FFD6E0;
   --mochi-pink-mid:  #FFB3C6;
-  --mochi-pink-dark: #E8789A;
+  --mochi-pink-dark: #B03060;
 
   /* Lavender — notes section */
   --mochi-lavender:      #E8DEFF;
   --mochi-lavender-mid:  #C9B8F5;
-  --mochi-lavender-dark: #9B7FD4;
+  --mochi-lavender-dark: #5C38B0;
 
   /* Mint — to-do section */
   --mochi-mint:      #D4F5E9;
   --mochi-mint-mid:  #A8E6CF;
-  --mochi-mint-dark: #5BB98B;
+  --mochi-mint-dark: #207A50;
 
   /* Peach — schedule section */
   --mochi-peach:      #FFE5CC;
   --mochi-peach-mid:  #FFCBA4;
-  --mochi-peach-dark: #E8935A;
+  --mochi-peach-dark: #B05010;
 
   /* Sky — study plan section */
   --mochi-sky:      #D6EEFF;
   --mochi-sky-mid:  #A8D4F5;
-  --mochi-sky-dark: #5B9FD4;
+  --mochi-sky-dark: #1860A8;
 }
 
-/* ── Dark mode (default) ───────────────────────────────────── */
-@media (prefers-color-scheme: dark) {
-  :root {
+/* ── Dark mode ─────────────────────────────────────────────── */
+[data-theme="dark"] {
     --mochi-cream:   #0C0C0C;
     --mochi-surface: #111111;
     --mochi-border:  #242424;
@@ -70,7 +69,6 @@
     --mochi-sky:      #0A1C2E;
     --mochi-sky-mid:  #122840;
     --mochi-sky-dark: #80C8FF;
-  }
 }
 
 /* ── Base ──────────────────────────────────────────────────── */

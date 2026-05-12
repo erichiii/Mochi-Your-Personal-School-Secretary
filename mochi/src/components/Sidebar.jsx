@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { BookOpen, CheckSquare, Calendar, Brain, Layers, ChevronLeft, ChevronRight } from 'lucide-react'
+import { BookOpen, CheckSquare, Calendar, Brain, Layers, ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react'
 import SubjectSection from './notes/SubjectSection'
 import DeckSection from './DeckSection'
+import useStore from '../store'
 
 const NAV = [
   {
@@ -52,6 +53,8 @@ export default function Sidebar() {
   const onNotes = location.pathname === '/notes'
   const onFlashcards = location.pathname === '/flashcards'
   const [collapsed, setCollapsed] = useState(false)
+  const theme = useStore((s) => s.theme)
+  const toggleTheme = useStore((s) => s.toggleTheme)
 
   return (
     <aside
@@ -131,6 +134,25 @@ export default function Sidebar() {
           <DeckSection />
         </>
       )}
+
+      {/* Theme toggle */}
+      <div className="mt-auto px-2 pb-4">
+        <button
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="flex items-center gap-2.5 w-full px-2.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          style={{
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            color: 'var(--mochi-text-soft)',
+            border: '1.5px solid transparent',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = 'var(--mochi-text)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mochi-text-soft)' }}
+        >
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          {!collapsed && (theme === 'dark' ? 'Light mode' : 'Dark mode')}
+        </button>
+      </div>
     </aside>
   )
 }
