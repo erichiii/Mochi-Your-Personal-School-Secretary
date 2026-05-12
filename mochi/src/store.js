@@ -24,6 +24,8 @@ const useStore = create((set, get) => ({
       color,
       x: 80 + (existing.length % 5) * 24,
       y: 80 + (existing.length % 5) * 24,
+      width: 216,
+      height: 180,
     }
     const next = [...existing, note]
     localStorage.setItem('mochi_sticky_notes', JSON.stringify(next))

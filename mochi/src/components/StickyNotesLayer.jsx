@@ -1,52 +1,66 @@
 import { useRef, useCallback } from 'react'
-import { X, RotateCcw } from 'lucide-react'
+import { X } from 'lucide-react'
 import useStore from '../store'
 
 const PALETTE = {
-  peach:    { bg: '#FFE5CC', border: '#FFCBA4', text: '#7A3A10', placeholder: '#C09070' },
-  mint:     { bg: '#D4F5E9', border: '#A8E6CF', text: '#0F5535', placeholder: '#60A882' },
-  lavender: { bg: '#E8DEFF', border: '#C9B8F5', text: '#3A2080', placeholder: '#8870C0' },
-  pink:     { bg: '#FFD6E0', border: '#FFB3C6', text: '#8A1840', placeholder: '#C07090' },
-  sky:      { bg: '#D6EEFF', border: '#A8D4F5', text: '#0A4080', placeholder: '#5090C0' },
+  peach:    { bg: '#FFE5CC', border: '#FFCBA4', text: '#7A3A10' },
+  mint:     { bg: '#D4F5E9', border: '#A8E6CF', text: '#0F5535' },
+  lavender: { bg: '#E8DEFF', border: '#C9B8F5', text: '#3A2080' },
+  pink:     { bg: '#FFD6E0', border: '#FFB3C6', text: '#8A1840' },
+  sky:      { bg: '#D6EEFF', border: '#A8D4F5', text: '#0A4080' },
 }
 
 const COLOR_ORDER = ['peach', 'mint', 'lavender', 'pink', 'sky']
+const MIN_W = 160
+const MIN_H = 120
 
 function StickyNote({ note }) {
   const { updateStickyNote, deleteStickyNote } = useStore()
-  const dragging = useRef(false)
-  const offset = useRef({ x: 0, y: 0 })
   const colors = PALETTE[note.color] ?? PALETTE.peach
+  const w = note.width ?? 216
+  const h = note.height ?? 180
 
   const onDragStart = useCallback((e) => {
-    dragging.current = true
-    offset.current = { x: e.clientX - note.x, y: e.clientY - note.y }
+    e.preventDefault()
+    const startX = e.clientX - note.x
+    const startY = e.clientY - note.y
 
-    const onMove = (e) => {
-      if (!dragging.current) return
-      updateStickyNote(note.id, {
-        x: Math.max(0, Math.min(window.innerWidth - 220, e.clientX - offset.current.x)),
-        y: Math.max(0, Math.min(window.innerHeight - 120, e.clientY - offset.current.y)),
-      })
-    }
+    const onMove = (e) => updateStickyNote(note.id, {
+      x: Math.max(0, Math.min(window.innerWidth - w, e.clientX - startX)),
+      y: Math.max(0, Math.min(window.innerHeight - 40, e.clientY - startY)),
+    })
     const onUp = () => {
-      dragging.current = false
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [note.id, note.x, note.y, updateStickyNote])
+  }, [note.id, note.x, note.y, w, updateStickyNote])
+
+  const onResizeStart = useCallback((e) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const startX = e.clientX
+    const startY = e.clientY
+    const startW = w
+    const startH = h
+
+    const onMove = (e) => updateStickyNote(note.id, {
+      width:  Math.max(MIN_W, startW + e.clientX - startX),
+      height: Math.max(MIN_H, startH + e.clientY - startY),
+    })
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [note.id, w, h, updateStickyNote])
 
   const cycleColor = (e) => {
     e.stopPropagation()
     const idx = COLOR_ORDER.indexOf(note.color)
     updateStickyNote(note.id, { color: COLOR_ORDER[(idx + 1) % COLOR_ORDER.length] })
-  }
-
-  const autoResize = (e) => {
-    e.target.style.height = 'auto'
-    e.target.style.height = `${e.target.scrollHeight}px`
   }
 
   return (
@@ -55,9 +69,11 @@ function StickyNote({ note }) {
       style={{
         left: note.x,
         top: note.y,
-        width: '216px',
+        width: w,
+        height: h,
         background: colors.bg,
         border: `1.5px solid ${colors.border}`,
+        overflow: 'hidden',
       }}
     >
       {/* Drag handle */}
@@ -66,7 +82,6 @@ function StickyNote({ note }) {
         className="flex items-center gap-1.5 px-2.5 pt-2.5 pb-1.5 select-none flex-shrink-0"
         style={{ cursor: 'grab' }}
       >
-        {/* Color dot — cycles color on click */}
         <button
           onMouseDown={(e) => e.stopPropagation()}
           onClick={cycleColor}
@@ -89,21 +104,38 @@ function StickyNote({ note }) {
       {/* Editable body */}
       <textarea
         value={note.content}
-        onChange={(e) => {
-          updateStickyNote(note.id, { content: e.target.value })
-          autoResize(e)
-        }}
-        onFocus={(e) => autoResize(e)}
+        onChange={(e) => updateStickyNote(note.id, { content: e.target.value })}
         placeholder="Write something…"
-        className="w-full bg-transparent outline-none resize-none px-3 pb-3 text-sm leading-relaxed"
+        className="flex-1 w-full bg-transparent outline-none resize-none px-3 pb-3 text-sm leading-relaxed"
         style={{
           color: colors.text,
-          minHeight: '100px',
           fontFamily: 'Nunito, sans-serif',
           caretColor: colors.text,
+          minHeight: 0,
         }}
         onMouseDown={(e) => e.stopPropagation()}
       />
+
+      {/* Resize handle */}
+      <div
+        onMouseDown={onResizeStart}
+        title="Resize"
+        className="absolute bottom-0 right-0 flex items-end justify-end"
+        style={{
+          width: 18,
+          height: 18,
+          cursor: 'nwse-resize',
+          paddingBottom: 3,
+          paddingRight: 3,
+        }}
+      >
+        {/* Three dots gripper */}
+        <svg width="8" height="8" viewBox="0 0 8 8" style={{ opacity: 0.35 }}>
+          <circle cx="6" cy="6" r="1.2" fill={colors.text} />
+          <circle cx="3" cy="6" r="1.2" fill={colors.text} />
+          <circle cx="6" cy="3" r="1.2" fill={colors.text} />
+        </svg>
+      </div>
     </div>
   )
 }
