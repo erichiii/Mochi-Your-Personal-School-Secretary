@@ -450,7 +450,7 @@ export default function SubjectSection() {
         </div>
 
         {/* Subsections */}
-        {isExpanded && (
+        {(isExpanded || adding === subject.id) && (
           <div className="flex flex-col gap-0.5 mt-0.5 fade-in">
             {children.map((child) => renderRow({ subject: child, depth: depth + 1 }))}
 
