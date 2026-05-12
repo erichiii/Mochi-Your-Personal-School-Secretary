@@ -82,11 +82,14 @@ Document:
 ${text}`,
 }
 
-export const generateNotes = async (text, mode = 'primer') => {
+export const generateNotes = async (text, mode = 'primer', customInstructions = '') => {
   guardOnline()
   try {
     const model = getModel()
-    const prompt = (NOTE_PROMPTS[mode] ?? NOTE_PROMPTS.primer)(text)
+    let prompt = (NOTE_PROMPTS[mode] ?? NOTE_PROMPTS.primer)(text)
+    if (customInstructions.trim()) {
+      prompt += `\n\nAdditional instructions from the user:\n${customInstructions.trim()}`
+    }
     const result = await model.generateContent(prompt)
     const candidate = result.response.candidates?.[0]
     if (candidate?.finishReason === 'SAFETY' || candidate?.finishReason === 'RECITATION') {
@@ -99,10 +102,13 @@ export const generateNotes = async (text, mode = 'primer') => {
 }
 
 // ── Flashcard generation ──────────────────────────────────────
-export const generateFlashcards = async (text, count = 8) => {
+export const generateFlashcards = async (text, count = 8, customInstructions = '') => {
   guardOnline()
   try {
     const model = getModel()
+    const extra = customInstructions.trim()
+      ? `\n\nAdditional instructions from the user:\n${customInstructions.trim()}`
+      : ''
     const result = await model.generateContent(
       `You are Mochi. Respond ONLY with a valid JSON array.
 No markdown fences. No preamble. No explanation. Just the raw JSON array.
@@ -114,7 +120,7 @@ Vary question types: definitions, comparisons, applications, examples.
 Format: [{"front": "question text", "back": "answer text"}, ...]
 
 Content:
-${text}`
+${text}${extra}`
     )
     return parseJSON(result.response.text())
   } catch (e) {

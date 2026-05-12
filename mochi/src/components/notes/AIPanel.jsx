@@ -61,6 +61,7 @@ export default function AIPanel({ editor, noteId, onClose }) {
   const { createFlashcard, notes, decks, loadDecks } = useStore()
 
   const [mode, setMode] = useState('primer')
+  const [customInstructions, setCustomInstructions] = useState('')
   const [insertMode, setInsertMode] = useState('replace') // 'replace' | 'append'
   const [loading, setLoading] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
@@ -127,7 +128,7 @@ export default function AIPanel({ editor, noteId, onClose }) {
     setError('')
     setSuccess(false)
     try {
-      const markdown = await generateNotes(text, mode)
+      const markdown = await generateNotes(text, mode, customInstructions)
       const html = marked.parse(markdown)
       const noteIsEmpty = !editor.getText().trim()
       if (insertMode === 'replace' || noteIsEmpty) {
@@ -155,7 +156,7 @@ export default function AIPanel({ editor, noteId, onClose }) {
     setError('')
     setFcSuccess(0)
     try {
-      const cards = await generateFlashcards(text, fcCount)
+      const cards = await generateFlashcards(text, fcCount, customInstructions)
       const activeNote = notes.find((n) => n.id === noteId)
       for (const card of cards) {
         await createFlashcard({
@@ -289,6 +290,31 @@ export default function AIPanel({ editor, noteId, onClose }) {
               )
             })}
           </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: '1px', background: 'var(--mochi-border)' }} />
+
+        {/* Custom instructions */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--mochi-text-muted)' }}>
+            Custom instructions
+          </p>
+          <textarea
+            value={customInstructions}
+            onChange={(e) => setCustomInstructions(e.target.value)}
+            placeholder="e.g. Focus on formulas only. Use Filipino. Keep it under 300 words."
+            rows={3}
+            className="w-full px-2.5 py-2 rounded-xl text-xs outline-none resize-none"
+            style={{
+              background: 'var(--mochi-cream)',
+              border: '1.5px solid var(--mochi-border)',
+              color: 'var(--mochi-text)',
+              lineHeight: '1.5',
+            }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--mochi-lavender-mid)')}
+            onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--mochi-border)')}
+          />
         </div>
 
         {/* Divider */}
