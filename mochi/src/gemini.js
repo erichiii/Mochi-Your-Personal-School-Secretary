@@ -31,6 +31,14 @@ const wrapError = (e) => {
     msg.toLowerCase().includes('resource_exhausted')
   if (is429) throw new Error('Rate limit reached. Wait about a minute, then try again. (Free tier: 15 req/min)')
 
+  const is503 =
+    status === 503 ||
+    msg.includes('503') ||
+    msg.toLowerCase().includes('high demand') ||
+    msg.toLowerCase().includes('overloaded') ||
+    msg.toLowerCase().includes('service unavailable')
+  if (is503) throw new Error('Gemini is under high demand right now. Wait a moment and try again.')
+
   const isAuthError =
     (msg.includes('API_KEY') || msg.includes('API key')) &&
     !msg.toLowerCase().includes('payload')
