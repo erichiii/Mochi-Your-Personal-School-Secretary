@@ -52,9 +52,9 @@ const wrapError = (e) => {
 
 // ── Note generation ───────────────────────────────────────────
 const NOTE_PROMPTS = {
-  primer: (text) => `You are Mochi, a warm and helpful student secretary.
-Respond in clean Markdown. No preamble. No "Here is your primer:". Start directly with the content.
-
+  primer: (text, extra) => `You are Mochi, a warm and helpful student secretary.
+Respond in clean Markdown. No preamble. No greeting. No "Here is your primer:". Start directly with the content.
+${extra}
 Create a comprehensive PRIMER from the following document.
 A primer is a structured overview containing:
 - The main topic and its summary
@@ -62,11 +62,13 @@ A primer is a structured overview containing:
 - Related topics
 
 Document:
-${text}`,
+${text}
 
-  reviewer: (text) => `You are Mochi, a warm and helpful student secretary.
-Respond in clean Markdown. No preamble. Start directly with content.
+IMPORTANT: Output clean Markdown only. Start with your first heading — no greeting, no preamble. In markdown tables, escape any pipe character used as mathematical notation with a backslash (write d\|n, not d|n).`,
 
+  reviewer: (text, extra) => `You are Mochi, a warm and helpful student secretary.
+Respond in clean Markdown. No preamble. No greeting. Start directly with content.
+${extra}
 Create a REVIEWER from the following document for exam preparation.
 Include:
 1. **Key Facts & Definitions** — a table with Term | Definition | Notes
@@ -76,28 +78,32 @@ Include:
 5. **Quick Summary** — 3 sentences max
 
 Document:
-${text}`,
+${text}
 
-  general: (text) => `You are Mochi, a warm and helpful student secretary.
-Respond in clean Markdown. No preamble. Start directly with content.
+IMPORTANT: Output clean Markdown only. Start with your first heading — no greeting, no preamble. In markdown tables, escape any pipe character used as mathematical notation with a backslash (write d\|n, not d|n).`,
 
+  general: (text, extra) => `You are Mochi, a warm and helpful student secretary.
+Respond in clean Markdown. No preamble. No greeting. Start directly with content.
+${extra}
 Create well-organized GENERAL NOTES from the following document.
 Use clear H2 headings for major sections, bullet points for details,
 and bold for key terms. Include all important information.
 Do not skip or summarize — capture everything relevant.
 
 Document:
-${text}`,
+${text}
+
+IMPORTANT: Output clean Markdown only. Start with your first heading — no greeting, no preamble. In markdown tables, escape any pipe character used as mathematical notation with a backslash (write d\|n, not d|n).`,
 }
 
 export const generateNotes = async (text, mode = 'primer', customInstructions = '') => {
   guardOnline()
   try {
     const model = getModel()
-    let prompt = (NOTE_PROMPTS[mode] ?? NOTE_PROMPTS.primer)(text)
-    if (customInstructions.trim()) {
-      prompt += `\n\nAdditional instructions from the user:\n${customInstructions.trim()}`
-    }
+    const extra = customInstructions.trim()
+      ? `Additional instructions: ${customInstructions.trim()}\n`
+      : ''
+    const prompt = (NOTE_PROMPTS[mode] ?? NOTE_PROMPTS.primer)(text, extra)
     const result = await model.generateContent(prompt)
     const candidate = result.response.candidates?.[0]
     if (candidate?.finishReason === 'SAFETY' || candidate?.finishReason === 'RECITATION') {
@@ -115,12 +121,12 @@ export const generateFlashcards = async (text, count = 8, customInstructions = '
   try {
     const model = getModel()
     const extra = customInstructions.trim()
-      ? `\n\nAdditional instructions from the user:\n${customInstructions.trim()}`
+      ? `Additional instructions: ${customInstructions.trim()}\n`
       : ''
     const result = await model.generateContent(
       `You are Mochi. Respond ONLY with a valid JSON array.
 No markdown fences. No preamble. No explanation. Just the raw JSON array.
-
+${extra}
 Create exactly ${count} flashcards from this content.
 Make questions specific and testable. Answers should be 1-2 sentences max.
 Vary question types: definitions, comparisons, applications, examples.
@@ -128,7 +134,7 @@ Vary question types: definitions, comparisons, applications, examples.
 Format: [{"front": "question text", "back": "answer text"}, ...]
 
 Content:
-${text}${extra}`
+${text}`
     )
     return parseJSON(result.response.text())
   } catch (e) {

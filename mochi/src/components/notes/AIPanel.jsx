@@ -5,10 +5,43 @@ import {
 } from 'lucide-react'
 import * as pdfjsLib from 'pdfjs-dist'
 import { marked } from 'marked'
+import katex from 'katex'
 import { generateNotes, generateFlashcards } from '../../gemini'
 import useStore from '../../store'
 
 marked.use({ gfm: true, breaks: false })
+
+// Escape bare | inside table cells so markdown doesn't split them as column separators.
+// Targets | that appear within $...$ math or **...** bold spans on table rows.
+const fixTablePipes = (markdown) =>
+  markdown.split('\n').map((line) => {
+    // Only process lines that look like table data rows (start/end with |, not separator lines)
+    if (!line.trim().startsWith('|') || /^\|[\s|:-]+\|$/.test(line.trim())) return line
+    // Within each cell segment, escape | that sit inside $...$ or **...**
+    return line.replace(/(\$[^$\n]*?\$|\*\*[^*\n]*?\*\*)/g, (match) =>
+      match.replace(/(?<!\\)\|/g, '\\|')
+    )
+  }).join('\n')
+
+const parseMarkdownWithMath = (markdown) => {
+  const slots = []
+  const reserve = (tex, display) => {
+    const idx = slots.length
+    try {
+      slots.push(katex.renderToString(tex.trim(), { displayMode: display, throwOnError: false }))
+    } catch {
+      slots.push(display ? `$$${tex}$$` : `$${tex}$`)
+    }
+    return `\x02MATH${idx}\x03`
+  }
+
+  let result = fixTablePipes(markdown)
+    .replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => reserve(tex, true))
+    .replace(/\$([^$\n]+?)\$/g, (_, tex) => reserve(tex, false))
+
+  let html = marked.parse(result)
+  return html.replace(/\x02MATH(\d+)\x03/g, (_, i) => slots[+i])
+}
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -129,7 +162,7 @@ export default function AIPanel({ editor, noteId, onClose }) {
     setSuccess(false)
     try {
       const markdown = await generateNotes(text, mode, customInstructions)
-      const html = marked.parse(markdown)
+      const html = parseMarkdownWithMath(markdown)
       const noteIsEmpty = !editor.getText().trim()
       if (insertMode === 'replace' || noteIsEmpty) {
         editor.commands.setContent(html)
