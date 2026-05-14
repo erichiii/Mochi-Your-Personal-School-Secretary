@@ -30,7 +30,7 @@ export default function TodoPage() {
       category: payload.category || '',
       deadline: payload.deadline ?? null,
       additionalNotes: payload.additionalNotes || '',
-      effort: 3,
+      effort: payload.effort ?? 3,
       priority: 0,
       userPriority: null,
       pomodoroCount: 0,

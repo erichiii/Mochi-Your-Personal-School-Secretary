@@ -13,30 +13,32 @@ const fieldStyle = {
   boxSizing: 'border-box',
 }
 
+const EFFORT_LABELS = ['', 'Very easy', 'Easy', 'Medium', 'Hard', 'Very hard']
+
 export default function TaskForm({ onCreate, categories = [] }) {
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
   const [deadline, setDeadline] = useState('')
   const [additionalNotes, setAdditionalNotes] = useState('')
   const [categoryMode, setCategoryMode] = useState('select')
+  const [effort, setEffort] = useState(3)
   const deadlineRef = useRef(null)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!title.trim()) return
-    const trimmed = title.trim()
-    const finalCategory = category.trim()
-    const payload = {
-      title: trimmed,
-      category: finalCategory,
+    onCreate({
+      title: title.trim(),
+      category: category.trim(),
       deadline: deadline ? new Date(deadline + 'T00:00:00').getTime() : null,
       additionalNotes: additionalNotes.trim(),
-    }
-    onCreate(payload)
+      effort,
+    })
     setTitle('')
     setCategory('')
     setDeadline('')
     setAdditionalNotes('')
+    setEffort(3)
     setCategoryMode('select')
   }
 
@@ -88,6 +90,7 @@ export default function TaskForm({ onCreate, categories = [] }) {
             />
           )}
         </div>
+
         <div className="flex flex-col gap-2">
           <label style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--mochi-text-muted)' }}>
             Deadline
@@ -103,11 +106,8 @@ export default function TaskForm({ onCreate, categories = [] }) {
             <button
               type="button"
               onClick={() => {
-                if (deadlineRef.current?.showPicker) {
-                  deadlineRef.current.showPicker()
-                } else {
-                  deadlineRef.current?.focus()
-                }
+                if (deadlineRef.current?.showPicker) deadlineRef.current.showPicker()
+                else deadlineRef.current?.focus()
               }}
               className="p-2 rounded-lg"
               style={{ border: '1.5px solid var(--mochi-border)', color: 'var(--mochi-text-muted)' }}
@@ -116,6 +116,37 @@ export default function TaskForm({ onCreate, categories = [] }) {
               <Calendar size={14} />
             </button>
           </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--mochi-text-muted)' }}>
+          Effort{' '}
+          <span style={{ textTransform: 'none', fontWeight: 400, fontSize: '10px' }}>
+            — {EFFORT_LABELS[effort]}
+          </span>
+        </label>
+        <div className="flex gap-2">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setEffort(n)}
+              className="flex-1 py-1.5 rounded-full text-xs font-semibold transition-all"
+              style={{
+                border: '1.5px solid',
+                borderColor: effort === n ? 'var(--mochi-mint-mid)' : 'var(--mochi-border)',
+                background: effort === n ? 'var(--mochi-mint)' : 'transparent',
+                color: effort === n ? 'var(--mochi-mint-dark)' : 'var(--mochi-text-muted)',
+              }}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+        <div className="flex justify-between" style={{ fontSize: '9px', color: 'var(--mochi-text-muted)', padding: '0 2px' }}>
+          <span>Easy</span>
+          <span>Hard</span>
         </div>
       </div>
 
