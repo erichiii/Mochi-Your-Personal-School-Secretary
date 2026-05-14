@@ -92,7 +92,7 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
   }
 
   return (
-    <tr style={{ borderTop: '1px solid var(--mochi-border)', opacity: task.isDone ? 0.5 : 1 }}>
+    <tr style={{ borderTop: '1px solid var(--mochi-border)', opacity: task.isDone ? 0.22 : 1 }}>
       {/* Task */}
       <td style={{ padding: '10px 12px', width: '26%' }}>
         <div className="flex items-center gap-3">
