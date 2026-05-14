@@ -1,11 +1,12 @@
-import { useEffect, useMemo } from 'react'
-import { Sparkles } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Plus, Sparkles, X } from 'lucide-react'
 import useStore from '../store'
 import TaskForm from '../components/todo/TaskForm'
 import TaskList from '../components/todo/TaskList'
 
 export default function TodoPage() {
   const { tasks, loadTasks, createTask, updateTask, deleteTask } = useStore()
+  const [formOpen, setFormOpen] = useState(false)
 
   useEffect(() => {
     loadTasks()
@@ -35,6 +36,7 @@ export default function TodoPage() {
       userPriority: null,
       pomodoroCount: 0,
     })
+    setFormOpen(false)
   }
 
   const handleToggleDone = async (task) => {
@@ -61,14 +63,32 @@ export default function TodoPage() {
               {stats.done} of {stats.total} tasks done
             </p>
           </div>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-full" style={{ background: 'var(--mochi-mint)', color: 'var(--mochi-mint-dark)', fontSize: '11px', fontWeight: 700 }}>
-            <Sparkles size={12} /> Focus on what matters
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFormOpen((v) => !v)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all"
+              style={formOpen
+                ? { background: 'var(--mochi-pink)', color: 'var(--mochi-pink-dark)', border: '1.5px solid var(--mochi-pink-mid)' }
+                : { background: 'var(--mochi-mint)', color: 'var(--mochi-mint-dark)', border: '1.5px solid var(--mochi-mint-mid)' }}
+            >
+              {formOpen ? <><X size={12} /> Cancel</> : <><Plus size={12} /> Add task</>}
+            </button>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-full" style={{ background: 'var(--mochi-mint)', color: 'var(--mochi-mint-dark)', fontSize: '11px', fontWeight: 700 }}>
+              <Sparkles size={12} /> Focus on what matters
+            </div>
           </div>
         </div>
 
-        <div className="rounded-3xl p-5" style={{ background: 'var(--mochi-surface)', border: '1.5px solid var(--mochi-border)' }}>
-          <TaskForm onCreate={handleCreate} categories={categories} />
-        </div>
+        {formOpen && (
+          <div className="rounded-3xl p-5" style={{ background: 'var(--mochi-surface)', border: '1.5px solid var(--mochi-border)' }}>
+            <TaskForm
+              onCreate={handleCreate}
+              categories={categories}
+              onCancel={() => setFormOpen(false)}
+            />
+          </div>
+        )}
 
         <TaskList
           tasks={tasks}

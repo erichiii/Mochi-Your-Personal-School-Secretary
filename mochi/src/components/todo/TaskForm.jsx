@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Calendar, Plus } from 'lucide-react'
+import { Calendar, Plus, X } from 'lucide-react'
 
 const fieldStyle = {
   background: 'var(--mochi-cream)',
@@ -15,7 +15,7 @@ const fieldStyle = {
 
 const EFFORT_LABELS = ['', 'Very easy', 'Easy', 'Medium', 'Hard', 'Very hard']
 
-export default function TaskForm({ onCreate, categories = [] }) {
+export default function TaskForm({ onCreate, onCancel, categories = [] }) {
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
   const [deadline, setDeadline] = useState('')
@@ -23,6 +23,15 @@ export default function TaskForm({ onCreate, categories = [] }) {
   const [categoryMode, setCategoryMode] = useState('select')
   const [effort, setEffort] = useState(3)
   const deadlineRef = useRef(null)
+
+  const reset = () => {
+    setTitle('')
+    setCategory('')
+    setDeadline('')
+    setAdditionalNotes('')
+    setEffort(3)
+    setCategoryMode('select')
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -34,12 +43,12 @@ export default function TaskForm({ onCreate, categories = [] }) {
       additionalNotes: additionalNotes.trim(),
       effort,
     })
-    setTitle('')
-    setCategory('')
-    setDeadline('')
-    setAdditionalNotes('')
-    setEffort(3)
-    setCategoryMode('select')
+    reset()
+  }
+
+  const handleCancel = () => {
+    reset()
+    onCancel?.()
   }
 
   return (
@@ -49,6 +58,7 @@ export default function TaskForm({ onCreate, categories = [] }) {
           Task
         </label>
         <input
+          autoFocus
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Read Chapter 5"
@@ -56,7 +66,7 @@ export default function TaskForm({ onCreate, categories = [] }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="flex flex-col gap-2">
           <label style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--mochi-text-muted)' }}>
             Category
@@ -117,36 +127,36 @@ export default function TaskForm({ onCreate, categories = [] }) {
             </button>
           </div>
         </div>
-      </div>
 
-      <div className="flex flex-col gap-2">
-        <label style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--mochi-text-muted)' }}>
-          Effort{' '}
-          <span style={{ textTransform: 'none', fontWeight: 400, fontSize: '10px' }}>
-            — {EFFORT_LABELS[effort]}
-          </span>
-        </label>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setEffort(n)}
-              className="flex-1 py-1.5 rounded-full text-xs font-semibold transition-all"
-              style={{
-                border: '1.5px solid',
-                borderColor: effort === n ? 'var(--mochi-mint-mid)' : 'var(--mochi-border)',
-                background: effort === n ? 'var(--mochi-mint)' : 'transparent',
-                color: effort === n ? 'var(--mochi-mint-dark)' : 'var(--mochi-text-muted)',
-              }}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        <div className="flex justify-between" style={{ fontSize: '9px', color: 'var(--mochi-text-muted)', padding: '0 2px' }}>
-          <span>Easy</span>
-          <span>Hard</span>
+        <div className="flex flex-col gap-2">
+          <label style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--mochi-text-muted)' }}>
+            Effort{' '}
+            <span style={{ textTransform: 'none', fontWeight: 400, fontSize: '10px' }}>
+              — {EFFORT_LABELS[effort]}
+            </span>
+          </label>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setEffort(n)}
+                className="flex-1 py-1.5 rounded-full text-xs font-semibold transition-all"
+                style={{
+                  border: '1.5px solid',
+                  borderColor: effort === n ? 'var(--mochi-mint-mid)' : 'var(--mochi-border)',
+                  background: effort === n ? 'var(--mochi-mint)' : 'transparent',
+                  color: effort === n ? 'var(--mochi-mint-dark)' : 'var(--mochi-text-muted)',
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-between" style={{ fontSize: '9px', color: 'var(--mochi-text-muted)', padding: '0 2px' }}>
+            <span>Easy</span>
+            <span>Hard</span>
+          </div>
         </div>
       </div>
 
@@ -162,13 +172,23 @@ export default function TaskForm({ onCreate, categories = [] }) {
         />
       </div>
 
-      <button
-        type="submit"
-        className="inline-flex items-center gap-2 self-start px-4 py-2 rounded-full text-xs font-semibold transition-all"
-        style={{ background: 'var(--mochi-mint)', color: 'var(--mochi-mint-dark)', border: '1.5px solid var(--mochi-mint-mid)' }}
-      >
-        <Plus size={12} /> Add task
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="submit"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all"
+          style={{ background: 'var(--mochi-mint)', color: 'var(--mochi-mint-dark)', border: '1.5px solid var(--mochi-mint-mid)' }}
+        >
+          <Plus size={12} /> Add task
+        </button>
+        <button
+          type="button"
+          onClick={handleCancel}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all"
+          style={{ color: 'var(--mochi-text-muted)', border: '1.5px solid var(--mochi-border)' }}
+        >
+          <X size={12} /> Cancel
+        </button>
+      </div>
     </form>
   )
 }
