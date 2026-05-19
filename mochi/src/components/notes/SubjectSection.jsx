@@ -1,11 +1,22 @@
+import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Plus, X, Pencil, Check, MoreHorizontal, ArrowRight } from 'lucide-react'
 import useStore from '../../store'
 import ConfirmModal from '../ConfirmModal'
 
 const PRESET_COLORS = [
-  '#FFB3C6', '#C9B8F5', '#A8E6CF', '#FFCBA4', '#A8D4F5', '#FFE899',
-  '#F4A9A8', '#B5EAD7', '#FFDAC1', '#E2F0CB', '#C7CEEA', '#F8C8D4',
+  // Pinks & Reds
+  '#FFB3C6', '#FF8FAB', '#F7A8A8', '#FFD1D1', '#E8A0A0', '#FABDB0',
+  // Oranges & Peaches
+  '#FFCBA4', '#FF9B7A', '#FFDAC1', '#FFB085', '#FFA07A', '#F4A460',
+  // Yellows & Golds
+  '#FFE899', '#FFD580', '#FFF0A0', '#F7DC6F', '#FFEAA7', '#FAD65A',
+  // Greens
+  '#A8E6CF', '#85C1A8', '#C1E1C1', '#6DB88B', '#D4F5E9', '#8CC8A0',
+  // Blues & Teals
+  '#A8D4F5', '#7EC8E3', '#C4E4FF', '#86B5FF', '#AEC6CF', '#B0E0E6',
+  // Purples & Lavender
+  '#C9B8F5', '#D8B4FE', '#CDB4DB', '#B8A9E0', '#C7CEEA', '#E2BFD9',
 ]
 
 function NameInput({ value, onChange, onSave, onCancel, placeholder, style }) {
@@ -27,7 +38,7 @@ function NameInput({ value, onChange, onSave, onCancel, placeholder, style }) {
   )
 }
 
-function ColorPicker({ onSelect, onClose }) {
+function ColorPicker({ position, onSelect, onClose }) {
   const ref = useRef()
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
@@ -35,23 +46,37 @@ function ColorPicker({ onSelect, onClose }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [onClose])
 
-  return (
+  const left = Math.min(position.left, window.innerWidth - 228)
+
+  return createPortal(
     <div
       ref={ref}
-      className="absolute left-0 top-full mt-1 z-50 p-2 rounded-xl shadow-lg fade-in"
-      style={{ background: 'var(--mochi-surface)', border: '1.5px solid var(--mochi-border)' }}
+      className="p-3 rounded-xl shadow-xl fade-in"
+      style={{
+        position: 'fixed',
+        top: position.top,
+        left,
+        zIndex: 9999,
+        width: '220px',
+        background: 'var(--mochi-surface)',
+        border: '1.5px solid var(--mochi-border)',
+        boxShadow: '0 8px 32px -8px rgba(0,0,0,0.18)',
+      }}
     >
-      <div className="grid grid-cols-6 gap-1.5">
+      <div className="grid grid-cols-6 gap-2">
         {PRESET_COLORS.map((c) => (
           <button
             key={c}
             onMouseDown={(e) => { e.preventDefault(); onSelect(c) }}
-            className="w-5 h-5 rounded-full transition-transform hover:scale-110 hover:ring-2 ring-offset-1"
-            style={{ background: c, ringColor: c }}
+            className="w-7 h-7 rounded-full transition-transform hover:scale-110"
+            style={{ background: c, outline: '2px solid transparent', outlineOffset: '2px' }}
+            onMouseEnter={(e) => { e.currentTarget.style.outline = `2px solid ${c}` }}
+            onMouseLeave={(e) => { e.currentTarget.style.outline = '2px solid transparent' }}
           />
         ))}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -168,6 +193,7 @@ export default function SubjectSection() {
   const [colorIdx, setColorIdx] = useState(0)
 
   const [colorPickerId, setColorPickerId] = useState(null)
+  const [colorPickerPos, setColorPickerPos] = useState({ top: 0, left: 0 })
   const [menuId, setMenuId] = useState(null)
   const [confirmModal, setConfirmModal] = useState(null) // { title, message, onConfirm }
 
@@ -369,10 +395,16 @@ export default function SubjectSection() {
           {!hasChildren && <div className="w-4 flex-shrink-0" />}
 
           {/* Color dot */}
-          <div className="relative flex-shrink-0">
+          <div className="flex-shrink-0">
             <button
               onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); setColorPickerId(colorPickerId === subject.id ? null : subject.id) }}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (colorPickerId === subject.id) { setColorPickerId(null); return }
+                const rect = e.currentTarget.getBoundingClientRect()
+                setColorPickerPos({ top: rect.bottom + 6, left: rect.left })
+                setColorPickerId(subject.id)
+              }}
               className="transition-transform hover:scale-125"
               style={{
                 width: depth === 0 ? '10px' : '8px',
@@ -382,12 +414,6 @@ export default function SubjectSection() {
                 display: 'block',
               }}
             />
-            {colorPickerId === subject.id && (
-              <ColorPicker
-                onSelect={async (color) => { await updateSubject(subject.id, { color }); setColorPickerId(null) }}
-                onClose={() => setColorPickerId(null)}
-              />
-            )}
           </div>
 
           {/* Name + filter button */}
@@ -481,8 +507,17 @@ export default function SubjectSection() {
     )
   }
 
+  const activeColorSubject = colorPickerId ? subjects.find((s) => s.id === colorPickerId) : null
+
   return (
     <>
+    {activeColorSubject && (
+      <ColorPicker
+        position={colorPickerPos}
+        onSelect={async (color) => { await updateSubject(activeColorSubject.id, { color }); setColorPickerId(null) }}
+        onClose={() => setColorPickerId(null)}
+      />
+    )}
     {confirmModal && (
       <ConfirmModal
         title={confirmModal.title}

@@ -42,7 +42,7 @@ export default function NotesListPanel() {
   }
 
   const getFiltered = () => {
-    if (activeSubjectFilter == null) return notes
+    if (activeSubjectFilter == null) return []
     const match = subjects.find((s) => s.id === activeSubjectFilter)
     if (!match) return notes
     const descendantIds = getDescendantIds(activeSubjectFilter)
@@ -129,7 +129,7 @@ export default function NotesListPanel() {
             className="flex-1 flex items-center justify-center"
             style={{ writingMode: 'vertical-rl', color: 'var(--mochi-text-muted)', fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', transform: 'rotate(180deg)' }}
           >
-            {activeSection ? activeSection.name : 'All Notes'}
+            {activeSection ? activeSection.name : 'Notes'}
           </div>
         </div>
       </>
@@ -171,7 +171,7 @@ export default function NotesListPanel() {
             <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: activeSection.color }} />
           )}
           <span className="text-sm font-bold truncate" style={{ color: 'var(--mochi-lavender-dark)' }}>
-            {activeSection ? activeSection.name : 'All Notes'}
+            {activeSection ? activeSection.name : 'Notes'}
           </span>
         </div>
 
@@ -226,10 +226,10 @@ export default function NotesListPanel() {
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             <FileText size={32} className="mb-3" style={{ color: 'var(--mochi-border)' }} />
             <p className="text-sm font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>
-              {searchQuery ? 'No results found' : activeSection ? `No notes in ${activeSection.name}` : 'No notes yet'}
+              {searchQuery ? 'No results found' : activeSection ? `No notes in ${activeSection.name}` : 'No section selected'}
             </p>
             <p className="text-xs" style={{ color: 'var(--mochi-text-muted)' }}>
-              {searchQuery ? 'Try a different search term' : 'Click "New" to create one'}
+              {searchQuery ? 'Try a different search term' : activeSection ? 'Click "New" to create one' : 'Select a section from the sidebar to view notes'}
             </p>
           </div>
         ) : (
