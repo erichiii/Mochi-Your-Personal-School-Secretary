@@ -7,6 +7,7 @@
   /* Neutrals */
   --mochi-cream:   #FFF8F0;
   --mochi-surface: #FFFBF8;
+  --mochi-hover:   #FFE8D4;
   --mochi-border:  #D8C0CC;
 
   /* Text */
@@ -44,6 +45,7 @@
 [data-theme="dark"] {
     --mochi-cream:   #0C0C0C;
     --mochi-surface: #111111;
+    --mochi-hover:   #1E1E1E;
     --mochi-border:  #242424;
 
     --mochi-text:       #F5E6EE;
@@ -144,7 +146,7 @@ body {
 .task-row {
   transition: background var(--dur-fast) ease;
 }
-.task-row:hover td { background: var(--mochi-cream) !important; }
+.task-row:hover td { background: var(--mochi-hover) !important; }
 
 /* ── Pressable buttons (tactile feedback) ──────────────────── */
 .pressable {

@@ -1,10 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Sparkles, X } from 'lucide-react'
 import useStore from '../store'
 import TaskForm from '../components/todo/TaskForm'
 import TaskList from '../components/todo/TaskList'
 import TasksToday from '../components/todo/TasksToday'
 import TaskProgress from '../components/todo/TaskProgress'
+
+const fmtReminderOffset = (minutes) => {
+  if (minutes < 60)   return `${minutes} min`
+  if (minutes < 1440) return `${minutes / 60} hour${minutes / 60 === 1 ? '' : 's'}`
+  const d = minutes / 1440
+  return `${d} day${d === 1 ? '' : 's'}`
+}
 
 const sectionLabelStyle = {
   fontSize: '10px',
@@ -43,9 +50,47 @@ export default function TodoPage() {
       priority: 0,
       userPriority: null,
       pomodoroCount: 0,
+      reminder: null,
     })
     setFormOpen(false)
   }
+
+  // ── Reminder notifications ──────────────────────────────────────────────
+  const timerRefs = useRef([])
+
+  useEffect(() => {
+    timerRefs.current.forEach(clearTimeout)
+    timerRefs.current = []
+
+    const withReminders = tasks.filter((t) => !t.isDone && t.deadline && t.reminder != null)
+    if (!withReminders.length || !('Notification' in window)) return
+
+    const schedule = async () => {
+      let perm = Notification.permission
+      if (perm === 'default') perm = await Notification.requestPermission()
+      if (perm !== 'granted') return
+
+      const now      = Date.now()
+      const ONE_WEEK = 7 * 24 * 60 * 60_000
+
+      for (const task of withReminders) {
+        const fireAt = task.deadline - task.reminder * 60_000
+        const delay  = fireAt - now
+        if (delay < 0 || delay > ONE_WEEK) continue
+
+        const body = task.reminder === 0
+          ? 'This task is due today!'
+          : `Due in ${fmtReminderOffset(task.reminder)}.`
+
+        timerRefs.current.push(
+          setTimeout(() => new Notification(`Mochi: ${task.title}`, { body, icon: '/favicon.ico' }), delay)
+        )
+      }
+    }
+
+    schedule()
+    return () => timerRefs.current.forEach(clearTimeout)
+  }, [tasks])
 
   const handleToggleDone  = async (task) => updateTask(task.id, { isDone: !task.isDone })
   const handleUpdate      = async (id, data) => updateTask(id, data)

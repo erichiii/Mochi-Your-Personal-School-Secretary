@@ -186,6 +186,7 @@ const useStore = create((set, get) => ({
       priority: 0,
       userPriority: null,
       pomodoroCount: 0,
+      reminder: null,
       isDone: false,
       ...data,
       createdAt: Date.now(),
