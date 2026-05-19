@@ -126,14 +126,36 @@ const useStore = create((set, get) => ({
   },
   setActiveNote: (id) => set({ activeNoteId: id }),
 
+  // ── Deck Groups (independent from notes subjects) ─────────
+  deckGroups: [],
+  loadDeckGroups: async () => {
+    const deckGroups = await db.deckGroups.orderBy('createdAt').toArray()
+    set({ deckGroups })
+  },
+  createDeckGroup: async (name) => {
+    const id = await db.deckGroups.add({ name, createdAt: Date.now() })
+    await get().loadDeckGroups()
+    return id
+  },
+  updateDeckGroup: async (id, data) => {
+    await db.deckGroups.update(id, data)
+    await get().loadDeckGroups()
+  },
+  deleteDeckGroup: async (id) => {
+    await db.decks.where('groupId').equals(id).modify({ groupId: null })
+    await db.deckGroups.delete(id)
+    await get().loadDeckGroups()
+    await get().loadDecks()
+  },
+
   // ── Decks ─────────────────────────────────────────────────
   decks: [],
   loadDecks: async () => {
     const decks = await db.decks.orderBy('createdAt').toArray()
     set({ decks })
   },
-  createDeck: async (name, subjectId = null) => {
-    const id = await db.decks.add({ name, subjectId, createdAt: Date.now() })
+  createDeck: async (name, groupId = null) => {
+    const id = await db.decks.add({ name, groupId, subjectId: null, createdAt: Date.now() })
     await get().loadDecks()
     return id
   },

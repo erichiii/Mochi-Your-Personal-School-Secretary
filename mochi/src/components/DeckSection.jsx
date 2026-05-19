@@ -5,86 +5,76 @@ import ConfirmModal from './ConfirmModal'
 
 export default function DeckSection() {
   const {
-    subjects, loadSubjects, createSubject, updateSubject, deleteSubject,
+    deckGroups, loadDeckGroups, createDeckGroup, updateDeckGroup, deleteDeckGroup,
     decks, loadDecks, createDeck, updateDeck, deleteDeck,
     flashcards, loadFlashcards,
     activeDeckId, setActiveDeck,
   } = useStore()
 
-  // Section (subject) state
-  const [creatingSection, setCreatingSection] = useState(false)
-  const [newSectionName, setNewSectionName] = useState('')
-  const [renamingSectionId, setRenamingSectionId] = useState(null)
-  const [renameSectionValue, setRenameSectionValue] = useState('')
-  const [hoveredSectionId, setHoveredSectionId] = useState(null)
+  // Group state
+  const [creatingGroup,    setCreatingGroup]    = useState(false)
+  const [newGroupName,     setNewGroupName]      = useState('')
+  const [renamingGroupId,  setRenamingGroupId]   = useState(null)
+  const [renameGroupValue, setRenameGroupValue]  = useState('')
+  const [hoveredGroupId,   setHoveredGroupId]    = useState(null)
+  const [collapsedGroups,  setCollapsedGroups]   = useState({})
+  const [confirmDeleteGroup, setConfirmDeleteGroup] = useState(null)
 
   // Deck state
-  const [creatingForSubject, setCreatingForSubject] = useState(null) // subjectId | 'none' | null
-  const [newDeckName, setNewDeckName] = useState('')
-  const [renamingDeckId, setRenamingDeckId] = useState(null)
-  const [renameDeckValue, setRenameDeckValue] = useState('')
-  const [hoveredDeckId, setHoveredDeckId] = useState(null)
+  const [creatingForGroup, setCreatingForGroup] = useState(null) // groupId | 'none' | null
+  const [newDeckName,      setNewDeckName]       = useState('')
+  const [renamingDeckId,   setRenamingDeckId]    = useState(null)
+  const [renameDeckValue,  setRenameDeckValue]   = useState('')
+  const [hoveredDeckId,    setHoveredDeckId]     = useState(null)
   const [confirmDeleteDeck, setConfirmDeleteDeck] = useState(null)
-  const [confirmDeleteSection, setConfirmDeleteSection] = useState(null)
-
-  const [collapsedGroups, setCollapsedGroups] = useState({})
-  const [dropTargetSectionId, setDropTargetSectionId] = useState(null)
+  const [dropTargetGroupId, setDropTargetGroupId] = useState(null)
 
   useEffect(() => {
-    loadSubjects()
+    loadDeckGroups()
     loadDecks()
     loadFlashcards()
   }, [])
 
-  const countFor = (deckId) => flashcards.filter((c) => c.deckId === deckId).length
+  const countFor    = (deckId) => flashcards.filter((c) => c.deckId === deckId).length
   const generalCount = flashcards.filter((c) => !c.deckId).length
+  const decksFor    = (groupId) => decks.filter((d) => d.groupId === groupId)
+  const ungrouped   = decks.filter((d) => !d.groupId)
 
-  const topLevel = subjects.filter((s) => !s.parentId)
-  const subsOf = (id) => subjects.filter((s) => s.parentId === id)
-  const decksFor = (subjectId) => decks.filter((d) => d.subjectId === subjectId)
-  const unsectionedDecks = decks.filter((d) => !d.subjectId)
+  const toggleGroup = (id) =>
+    setCollapsedGroups((prev) => ({ ...prev, [id]: !prev[id] }))
 
-  const toggleGroup = (key) => setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }))
-
-  // ── Section handlers ────────────────────────────────────────
-  const handleCreateSection = async () => {
-    const name = newSectionName.trim()
-    setCreatingSection(false)
-    setNewSectionName('')
+  // ── Group handlers ──────────────────────────────────────────
+  const handleCreateGroup = async () => {
+    const name = newGroupName.trim()
+    setCreatingGroup(false); setNewGroupName('')
     if (!name) return
-    await createSubject({ name, color: null })
+    await createDeckGroup(name)
   }
 
-  const handleRenameSectionSubmit = async () => {
-    const trimmed = renameSectionValue.trim()
-    if (trimmed) await updateSubject(renamingSectionId, { name: trimmed })
-    setRenamingSectionId(null)
+  const handleRenameGroup = async () => {
+    const trimmed = renameGroupValue.trim()
+    if (trimmed) await updateDeckGroup(renamingGroupId, { name: trimmed })
+    setRenamingGroupId(null)
   }
 
   // ── Deck handlers ───────────────────────────────────────────
-  const handleCreateDeck = async (subjectId) => {
+  const handleCreateDeck = async (groupId) => {
     const name = newDeckName.trim()
-    setCreatingForSubject(null)
-    setNewDeckName('')
+    setCreatingForGroup(null); setNewDeckName('')
     if (!name) return
-    const sid = subjectId === 'none' ? null : subjectId
-    const id = await createDeck(name, sid)
+    const gid = groupId === 'none' ? null : groupId
+    const id = await createDeck(name, gid)
     setActiveDeck(id)
   }
 
-  const handleRenameDeckSubmit = async () => {
+  const handleRenameDeck = async () => {
     const trimmed = renameDeckValue.trim()
     if (trimmed) await updateDeck(renamingDeckId, { name: trimmed })
     setRenamingDeckId(null)
   }
 
-  const handleDeleteDeckConfirmed = async () => {
-    await deleteDeck(confirmDeleteDeck.id)
-    setConfirmDeleteDeck(null)
-  }
-
-  // ── Render helpers ──────────────────────────────────────────
-  const renderNewDeckInput = (subjectId) => (
+  // ── Render: new deck inline input ───────────────────────────
+  const renderNewDeckInput = (groupId) => (
     <div
       className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl mb-0.5"
       style={{ background: 'var(--mochi-cream)', border: '1.5px solid var(--mochi-border)' }}
@@ -94,35 +84,31 @@ export default function DeckSection() {
         autoFocus
         value={newDeckName}
         onChange={(e) => setNewDeckName(e.target.value)}
-        onBlur={() => handleCreateDeck(subjectId)}
+        onBlur={() => handleCreateDeck(groupId)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') handleCreateDeck(subjectId)
-          if (e.key === 'Escape') { setCreatingForSubject(null); setNewDeckName('') }
+          if (e.key === 'Enter')  handleCreateDeck(groupId)
+          if (e.key === 'Escape') { setCreatingForGroup(null); setNewDeckName('') }
         }}
         placeholder="Deck name…"
         className="flex-1 min-w-0 bg-transparent outline-none text-xs font-semibold"
         style={{ color: 'var(--mochi-text)' }}
       />
-      <button
-        onMouseDown={() => { setCreatingForSubject(null); setNewDeckName('') }}
-        style={{ color: 'var(--mochi-text-muted)', flexShrink: 0 }}
-      >
+      <button onMouseDown={() => { setCreatingForGroup(null); setNewDeckName('') }} style={{ color: 'var(--mochi-text-muted)', flexShrink: 0 }}>
         <X size={11} />
       </button>
     </div>
   )
 
-  const renderDeckItem = (deck, indent = false) => {
-    const isActive = activeDeckId === deck.id
+  // ── Render: deck row ────────────────────────────────────────
+  const renderDeck = (deck) => {
+    const isActive   = activeDeckId === deck.id
     const isRenaming = renamingDeckId === deck.id
-    const isHovered = hoveredDeckId === deck.id
-    const count = countFor(deck.id)
+    const isHovered  = hoveredDeckId === deck.id
+    const count      = countFor(deck.id)
 
     return (
       <div
         key={deck.id}
-        className="relative"
-        style={indent ? { paddingLeft: '10px' } : {}}
         draggable
         onDragStart={(e) => {
           e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'deck', id: deck.id }))
@@ -135,10 +121,9 @@ export default function DeckSection() {
         <div
           onClick={() => { if (!isRenaming) setActiveDeck(deck.id) }}
           className="flex items-center gap-2 px-2.5 py-2 rounded-xl font-semibold transition-all cursor-pointer"
-          style={
-            isActive
-              ? { background: 'var(--mochi-pink)', border: '1.5px solid var(--mochi-pink-mid)', color: 'var(--mochi-pink-dark)' }
-              : { color: 'var(--mochi-text-soft)', border: '1.5px solid transparent' }
+          style={isActive
+            ? { background: 'var(--mochi-pink)', border: '1.5px solid var(--mochi-pink-mid)', color: 'var(--mochi-pink-dark)' }
+            : { color: 'var(--mochi-text-soft)', border: '1.5px solid transparent' }
           }
           onMouseEnter={(e) => { if (!isActive && !isRenaming) e.currentTarget.style.background = 'var(--mochi-cream)' }}
           onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
@@ -150,9 +135,9 @@ export default function DeckSection() {
               autoFocus
               value={renameDeckValue}
               onChange={(e) => setRenameDeckValue(e.target.value)}
-              onBlur={handleRenameDeckSubmit}
+              onBlur={handleRenameDeck}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleRenameDeckSubmit()
+                if (e.key === 'Enter')  handleRenameDeck()
                 if (e.key === 'Escape') setRenamingDeckId(null)
                 e.stopPropagation()
               }}
@@ -165,11 +150,13 @@ export default function DeckSection() {
           )}
 
           {!isRenaming && !isHovered && (
-            <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+            <span
+              className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
               style={{
                 background: isActive ? 'var(--mochi-pink-mid)' : 'var(--mochi-border)',
-                color: isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)',
-              }}>
+                color:      isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)',
+              }}
+            >
               {count}
             </span>
           )}
@@ -203,45 +190,44 @@ export default function DeckSection() {
     )
   }
 
-  const renderSectionHeader = (subject, indent = false) => {
-    const key = `s-${subject.id}`
-    const isCollapsed = collapsedGroups[key]
-    const isRenamingSection = renamingSectionId === subject.id
-    const isHovered = hoveredSectionId === subject.id
-    const groupDecks = decksFor(subject.id)
-    const subs = subsOf(subject.id)
+  // ── Render: group section ────────────────────────────────────
+  const renderGroup = (group) => {
+    const isCollapsed  = collapsedGroups[group.id]
+    const isRenaming   = renamingGroupId === group.id
+    const isHovered    = hoveredGroupId === group.id
+    const isDropTarget = dropTargetGroupId === group.id
+    const groupDecks   = decksFor(group.id)
 
     return (
-      <div key={subject.id} style={indent ? { paddingLeft: '8px' } : {}}>
+      <div key={group.id}>
         <div
           className="flex items-center px-1 mb-0.5 mt-2 rounded-lg transition-all"
-          onMouseEnter={() => setHoveredSectionId(subject.id)}
-          onMouseLeave={() => setHoveredSectionId(null)}
-          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropTargetSectionId(subject.id) }}
-          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTargetSectionId(null) }}
+          onMouseEnter={() => setHoveredGroupId(group.id)}
+          onMouseLeave={() => setHoveredGroupId(null)}
+          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropTargetGroupId(group.id) }}
+          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTargetGroupId(null) }}
           onDrop={(e) => {
-            e.preventDefault()
-            setDropTargetSectionId(null)
+            e.preventDefault(); setDropTargetGroupId(null)
             try {
               const data = JSON.parse(e.dataTransfer.getData('text/plain'))
-              if (data.type === 'deck') updateDeck(data.id, { subjectId: subject.id })
+              if (data.type === 'deck') updateDeck(data.id, { groupId: group.id })
             } catch {}
           }}
-          style={dropTargetSectionId === subject.id ? { background: 'var(--mochi-pink)', outline: '2px dashed var(--mochi-pink-mid)', outlineOffset: '-1px' } : {}}
+          style={isDropTarget ? { background: 'var(--mochi-pink)', outline: '2px dashed var(--mochi-pink-mid)', outlineOffset: '-1px', borderRadius: '8px' } : {}}
         >
-          <button onClick={() => toggleGroup(key)} className="flex-shrink-0 mr-0.5" style={{ color: 'var(--mochi-text-muted)' }}>
+          <button onClick={() => toggleGroup(group.id)} className="flex-shrink-0 mr-0.5" style={{ color: 'var(--mochi-text-muted)' }}>
             {isCollapsed ? <ChevronRight size={10} /> : <ChevronDown size={10} />}
           </button>
 
-          {isRenamingSection ? (
+          {isRenaming ? (
             <input
               autoFocus
-              value={renameSectionValue}
-              onChange={(e) => setRenameSectionValue(e.target.value)}
-              onBlur={handleRenameSectionSubmit}
+              value={renameGroupValue}
+              onChange={(e) => setRenameGroupValue(e.target.value)}
+              onBlur={handleRenameGroup}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleRenameSectionSubmit()
-                if (e.key === 'Escape') setRenamingSectionId(null)
+                if (e.key === 'Enter')  handleRenameGroup()
+                if (e.key === 'Escape') setRenamingGroupId(null)
               }}
               className="flex-1 min-w-0 bg-transparent outline-none text-[10px] font-bold uppercase tracking-wider"
               style={{ color: 'var(--mochi-text-muted)' }}
@@ -250,18 +236,18 @@ export default function DeckSection() {
             <span
               className="flex-1 min-w-0 truncate text-[10px] font-bold uppercase tracking-wider cursor-pointer"
               style={{ color: 'var(--mochi-text-muted)' }}
-              onClick={() => toggleGroup(key)}
+              onClick={() => toggleGroup(group.id)}
             >
-              {subject.name}
+              {group.name}
             </span>
           )}
 
           <div className="flex items-center gap-0.5 flex-shrink-0">
-            {isHovered && !isRenamingSection && (
+            {isHovered && !isRenaming && (
               <>
                 <button
-                  title="Rename section"
-                  onClick={() => { setRenamingSectionId(subject.id); setRenameSectionValue(subject.name) }}
+                  title="Rename group"
+                  onClick={() => { setRenamingGroupId(group.id); setRenameGroupValue(group.name) }}
                   className="p-0.5 rounded"
                   style={{ color: 'var(--mochi-text-muted)' }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--mochi-text)')}
@@ -270,8 +256,8 @@ export default function DeckSection() {
                   <Pencil size={10} />
                 </button>
                 <button
-                  title="Delete section"
-                  onClick={() => setConfirmDeleteSection({ id: subject.id, name: subject.name })}
+                  title="Delete group"
+                  onClick={() => setConfirmDeleteGroup({ id: group.id, name: group.name })}
                   className="p-0.5 rounded"
                   style={{ color: 'var(--mochi-text-muted)' }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = '#E05050')}
@@ -282,8 +268,8 @@ export default function DeckSection() {
               </>
             )}
             <button
-              onClick={() => { setCreatingForSubject(subject.id); setNewDeckName('') }}
-              title="New deck in this section"
+              onClick={() => { setCreatingForGroup(group.id); setNewDeckName('') }}
+              title="New deck in this group"
               className="p-0.5 rounded transition-colors"
               style={{ color: 'var(--mochi-text-muted)' }}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = 'var(--mochi-text)' }}
@@ -296,10 +282,9 @@ export default function DeckSection() {
 
         {!isCollapsed && (
           <div>
-            {creatingForSubject === subject.id && renderNewDeckInput(subject.id)}
-            {groupDecks.map((d) => renderDeckItem(d))}
-            {subs.map((sub) => renderSectionHeader(sub, true))}
-            {groupDecks.length === 0 && subs.length === 0 && creatingForSubject !== subject.id && (
+            {creatingForGroup === group.id && renderNewDeckInput(group.id)}
+            {groupDecks.map(renderDeck)}
+            {groupDecks.length === 0 && creatingForGroup !== group.id && (
               <p className="text-[10px] px-5 py-1 italic" style={{ color: 'var(--mochi-text-muted)' }}>No decks yet</p>
             )}
           </div>
@@ -308,7 +293,7 @@ export default function DeckSection() {
     )
   }
 
-  const hasSections = topLevel.length > 0
+  const hasGroups = deckGroups.length > 0
 
   return (
     <div className="flex flex-col gap-0.5 px-2">
@@ -318,8 +303,8 @@ export default function DeckSection() {
           Decks
         </p>
         <button
-          onClick={() => { setCreatingSection(true); setNewSectionName('') }}
-          title="New section"
+          onClick={() => { setCreatingGroup(true); setNewGroupName('') }}
+          title="New group"
           className="p-1 rounded-lg transition-colors"
           style={{ color: 'var(--mochi-text-muted)' }}
           onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = 'var(--mochi-text)' }}
@@ -329,48 +314,43 @@ export default function DeckSection() {
         </button>
       </div>
 
-      {/* New section inline input */}
-      {creatingSection && (
+      {/* New group input */}
+      {creatingGroup && (
         <div
           className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl mb-0.5"
           style={{ background: 'var(--mochi-cream)', border: '1.5px solid var(--mochi-border)' }}
         >
           <input
             autoFocus
-            value={newSectionName}
-            onChange={(e) => setNewSectionName(e.target.value)}
-            onBlur={handleCreateSection}
+            value={newGroupName}
+            onChange={(e) => setNewGroupName(e.target.value)}
+            onBlur={handleCreateGroup}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreateSection()
-              if (e.key === 'Escape') { setCreatingSection(false); setNewSectionName('') }
+              if (e.key === 'Enter')  handleCreateGroup()
+              if (e.key === 'Escape') { setCreatingGroup(false); setNewGroupName('') }
             }}
-            placeholder="Section name…"
+            placeholder="Group name…"
             className="flex-1 min-w-0 bg-transparent outline-none text-xs font-semibold"
             style={{ color: 'var(--mochi-text)' }}
           />
-          <button
-            onMouseDown={() => { setCreatingSection(false); setNewSectionName('') }}
-            style={{ color: 'var(--mochi-text-muted)', flexShrink: 0 }}
-          >
+          <button onMouseDown={() => { setCreatingGroup(false); setNewGroupName('') }} style={{ color: 'var(--mochi-text-muted)', flexShrink: 0 }}>
             <X size={11} />
           </button>
         </div>
       )}
 
-      {/* All sections */}
-      {topLevel.map((s) => renderSectionHeader(s))}
+      {/* Groups */}
+      {deckGroups.map(renderGroup)}
 
-      {/* Decks not in any section */}
-      {unsectionedDecks.length > 0 && (
+      {/* Ungrouped decks */}
+      {ungrouped.length > 0 && (
         <div>
-          {hasSections && (
+          {hasGroups && (
             <div className="flex items-center px-1 mb-0.5 mt-2">
-              <span className="flex-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--mochi-text-muted)' }}>
-                Other
-              </span>
+              <span className="flex-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--mochi-text-muted)' }}>Other</span>
               <button
-                onClick={() => { setCreatingForSubject('none'); setNewDeckName('') }}
-                title="New deck"
+                onClick={() => { setCreatingForGroup('none'); setNewDeckName('') }}
+                title="New ungrouped deck"
                 className="p-0.5 rounded transition-colors"
                 style={{ color: 'var(--mochi-text-muted)' }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mochi-border)'; e.currentTarget.style.color = 'var(--mochi-text)' }}
@@ -380,81 +360,97 @@ export default function DeckSection() {
               </button>
             </div>
           )}
-          {creatingForSubject === 'none' && renderNewDeckInput('none')}
-          {unsectionedDecks.map((d) => renderDeckItem(d))}
+          {creatingForGroup === 'none' && renderNewDeckInput('none')}
+          {ungrouped.map(renderDeck)}
         </div>
       )}
 
-      {/* No sections and no decks yet */}
-      {!hasSections && unsectionedDecks.length === 0 && !creatingSection && (
+      {/* Empty state */}
+      {!hasGroups && ungrouped.length === 0 && !creatingGroup && (
         <div className="flex flex-col gap-1.5 mt-1">
           <button
-            onClick={() => { setCreatingSection(true); setNewSectionName('') }}
+            onClick={() => { setCreatingGroup(true); setNewGroupName('') }}
             className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold w-full"
             style={{ color: 'var(--mochi-text-muted)', border: '1.5px dashed var(--mochi-border)' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--mochi-cream)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <Plus size={12} />New section
+            <Plus size={12} />New group
           </button>
           <button
-            onClick={() => { setCreatingForSubject('none'); setNewDeckName('') }}
+            onClick={() => { setCreatingForGroup('none'); setNewDeckName('') }}
             className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold w-full"
             style={{ color: 'var(--mochi-text-muted)', border: '1.5px dashed var(--mochi-border)' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--mochi-cream)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <Layers size={12} />New deck (no section)
+            <Layers size={12} />New deck
           </button>
-          {creatingForSubject === 'none' && renderNewDeckInput('none')}
+          {creatingForGroup === 'none' && renderNewDeckInput('none')}
         </div>
       )}
 
-      {/* General: flashcards with no deck at all */}
+      {/* Add deck button when groups exist but no ungrouped decks */}
+      {(hasGroups || ungrouped.length > 0) && creatingForGroup !== 'none' && ungrouped.length === 0 && (
+        <button
+          onClick={() => { setCreatingForGroup('none'); setNewDeckName('') }}
+          className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold w-full mt-1"
+          style={{ color: 'var(--mochi-text-muted)', border: '1.5px dashed var(--mochi-border)' }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--mochi-cream)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          <Layers size={12} />New deck
+        </button>
+      )}
+
+      {/* General: flashcards with no deck */}
       {generalCount > 0 && (
         <>
           <div className="my-1.5 mx-1" style={{ borderTop: '1px solid var(--mochi-border)' }} />
           <div
             onClick={() => setActiveDeck('unlinked')}
             className="flex items-center gap-2 px-2.5 py-2 rounded-xl font-semibold transition-all cursor-pointer"
-            style={
-              activeDeckId === 'unlinked'
-                ? { background: 'var(--mochi-pink)', border: '1.5px solid var(--mochi-pink-mid)', color: 'var(--mochi-pink-dark)' }
-                : { color: 'var(--mochi-text-soft)', border: '1.5px solid transparent' }
+            style={activeDeckId === 'unlinked'
+              ? { background: 'var(--mochi-pink)', border: '1.5px solid var(--mochi-pink-mid)', color: 'var(--mochi-pink-dark)' }
+              : { color: 'var(--mochi-text-soft)', border: '1.5px solid transparent' }
             }
             onMouseEnter={(e) => { if (activeDeckId !== 'unlinked') e.currentTarget.style.background = 'var(--mochi-cream)' }}
             onMouseLeave={(e) => { if (activeDeckId !== 'unlinked') e.currentTarget.style.background = 'transparent' }}
           >
             <GalleryHorizontal size={13} style={{ flexShrink: 0 }} />
             <span className="flex-1 min-w-0 truncate text-xs">General</span>
-            <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+            <span
+              className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
               style={{
                 background: activeDeckId === 'unlinked' ? 'var(--mochi-pink-mid)' : 'var(--mochi-border)',
-                color: activeDeckId === 'unlinked' ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)',
-              }}>
+                color:      activeDeckId === 'unlinked' ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)',
+              }}
+            >
               {generalCount}
             </span>
           </div>
         </>
       )}
 
+      {/* Confirm: delete deck */}
       {confirmDeleteDeck && (
         <ConfirmModal
           title="Delete deck?"
           message={`"${confirmDeleteDeck.name}" will be deleted. Its cards will be moved to General.`}
           confirmLabel="Delete"
-          onConfirm={handleDeleteDeckConfirmed}
+          onConfirm={async () => { await deleteDeck(confirmDeleteDeck.id); setConfirmDeleteDeck(null) }}
           onCancel={() => setConfirmDeleteDeck(null)}
         />
       )}
 
-      {confirmDeleteSection && (
+      {/* Confirm: delete group */}
+      {confirmDeleteGroup && (
         <ConfirmModal
-          title="Delete section?"
-          message={`"${confirmDeleteSection.name}" and its subsections will be removed. Decks inside will move to Other.`}
+          title="Delete group?"
+          message={`"${confirmDeleteGroup.name}" will be removed. Decks inside will move to Other.`}
           confirmLabel="Delete"
-          onConfirm={async () => { await deleteSubject(confirmDeleteSection.id); setConfirmDeleteSection(null) }}
-          onCancel={() => setConfirmDeleteSection(null)}
+          onConfirm={async () => { await deleteDeckGroup(confirmDeleteGroup.id); setConfirmDeleteGroup(null) }}
+          onCancel={() => setConfirmDeleteGroup(null)}
         />
       )}
     </div>
