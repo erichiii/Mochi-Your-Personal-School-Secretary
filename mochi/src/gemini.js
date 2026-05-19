@@ -177,6 +177,87 @@ Other rules:
   }
 }
 
+// ── Study plan generation ─────────────────────────────────────
+export const generateStudyPlan = async ({ examName, examDate, scheduleItems = [], notesContext = [] }) => {
+  guardOnline()
+  try {
+    const model   = getModel()
+    const today   = new Date()
+    const examDay = new Date(examDate)
+
+    const toLocalStr = (d) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+    const daysUntil = Math.max(1, Math.round((examDay - today) / 86_400_000))
+    const planDays  = Math.min(daysUntil, 14)
+
+    // Start date: 14 days before exam (or tomorrow if closer)
+    const startMs   = Math.max(today.getTime() + 86_400_000, examDay.getTime() - planDays * 86_400_000)
+    const startDate = new Date(startMs)
+
+    const todayStr  = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    const examStr   = examDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    const startStr  = startDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+
+    const scheduleText = scheduleItems.length > 0
+      ? scheduleItems
+          .map((s) => `  ${s.day}: ${s.time} — ${s.subject}${s.room ? ` (${s.room})` : ''}`)
+          .join('\n')
+      : '  No schedule data.'
+
+    const topicsText = notesContext.length > 0
+      ? notesContext
+          .map((n) => `  "${n.title}": ${n.content || '(no content)'}`)
+          .join('\n')
+      : '  No notes provided — create a general study plan.'
+
+    const result = await model.generateContent(
+      `You are Mochi, a warm and helpful student secretary.
+Create a personalized day-by-day study plan.
+
+EXAM: ${examName}
+EXAM DATE: ${examStr} (${daysUntil} days from today)
+TODAY: ${todayStr}
+PLAN STARTS: ${startStr}
+PLAN LENGTH: exactly ${planDays} days
+
+WEEKLY CLASS SCHEDULE (plan lighter study on heavy class days):
+${scheduleText}
+
+TOPICS & NOTES (distribute across the plan):
+${topicsText}
+
+Rules:
+- Assign "light" load on days with many classes, "moderate" on average days, "heavy" on free days and the final day
+- Gradually increase intensity toward the exam date
+- Each day: 2–4 tasks, 1.5–3.5 total hours of study
+- Task types: "review" (read/reread notes), "practice" (problems/exercises), "memorize" (flashcards/mnemonics), "rest" (short mental break — only 1 per plan max)
+- Last day before exam: heavy review session covering all topics
+
+Respond ONLY with a valid JSON object. No markdown fences. No explanation.
+
+{
+  "overview": "2-3 sentence strategy summary",
+  "days": [
+    {
+      "date": "YYYY-MM-DD",
+      "label": "Day 1 — Monday, May 20",
+      "focus": "Main topic or goal for this day",
+      "load": "light|moderate|heavy",
+      "tasks": [
+        { "title": "Specific actionable task", "duration": "45 min", "type": "review|practice|memorize|rest" }
+      ]
+    }
+  ],
+  "tips": ["Practical exam tip 1", "Practical exam tip 2", "Practical exam tip 3"]
+}`
+    )
+    return parseJSON(result.response.text())
+  } catch (e) {
+    wrapError(e)
+  }
+}
+
 // ── Quiz generation ───────────────────────────────────────────
 export const generateQuiz = async (text, count = 5) => {
   guardOnline()

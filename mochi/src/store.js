@@ -273,7 +273,12 @@ const useStore = create((set, get) => ({
     set({ studyPlans })
   },
   createStudyPlan: async (data) => {
-    await db.studyPlan.add({ ...data, createdAt: Date.now() })
+    const id = await db.studyPlan.add({ ...data, createdAt: Date.now() })
+    await get().loadStudyPlans()
+    return id
+  },
+  updateStudyPlan: async (id, data) => {
+    await db.studyPlan.update(id, data)
     await get().loadStudyPlans()
   },
   deleteStudyPlan: async (id) => {
