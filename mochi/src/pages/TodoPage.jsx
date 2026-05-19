@@ -6,7 +6,7 @@ import TaskList from '../components/todo/TaskList'
 import TasksToday from '../components/todo/TasksToday'
 import TaskProgress from '../components/todo/TaskProgress'
 
-const labelStyle = {
+const sectionLabelStyle = {
   fontSize: '10px',
   fontWeight: 700,
   letterSpacing: '0.08em',
@@ -20,9 +20,7 @@ export default function TodoPage() {
   const { tasks, loadTasks, createTask, updateTask, deleteTask } = useStore()
   const [formOpen, setFormOpen] = useState(false)
 
-  useEffect(() => {
-    loadTasks()
-  }, [])
+  useEffect(() => { loadTasks() }, [])
 
   const stats = useMemo(() => {
     const done = tasks.filter((t) => t.isDone).length
@@ -31,9 +29,7 @@ export default function TodoPage() {
 
   const categories = useMemo(() => {
     const set = new Set()
-    tasks.forEach((t) => {
-      if (t.category) set.add(t.category)
-    })
+    tasks.forEach((t) => { if (t.category) set.add(t.category) })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [tasks])
 
@@ -51,52 +47,79 @@ export default function TodoPage() {
     setFormOpen(false)
   }
 
-  const handleToggleDone = async (task) => {
-    await updateTask(task.id, { isDone: !task.isDone })
-  }
-
-  const handleUpdate = async (id, data) => {
-    await updateTask(id, data)
-  }
-
-  const handleDelete = async (task) => {
-    await deleteTask(task.id)
-  }
+  const handleToggleDone  = async (task) => updateTask(task.id, { isDone: !task.isDone })
+  const handleUpdate      = async (id, data) => updateTask(id, data)
+  const handleDelete      = async (task) => deleteTask(task.id)
 
   return (
-    <div className="h-full overflow-y-auto px-6 py-6">
-      <div className="max-w-5xl mx-auto flex flex-col gap-6">
+    <div className="h-full overflow-y-auto" style={{ background: 'var(--mochi-cream)' }}>
+      <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col gap-6">
 
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p style={{ fontFamily: 'Fraunces, serif', fontSize: '22px', margin: 0, color: 'var(--mochi-mint-dark)' }}>
+        {/* ── Header ──────────────────────────────────────────── */}
+        <div
+          className="stagger-item flex items-end justify-between gap-4"
+          style={{ '--delay': '0ms' }}
+        >
+          {/* Left: title + stat */}
+          <div className="flex flex-col gap-1">
+            <p
+              style={{
+                fontFamily: 'Fraunces, serif',
+                fontSize: '26px',
+                lineHeight: 1.1,
+                fontWeight: 700,
+                margin: 0,
+                color: 'var(--mochi-mint-dark)',
+                letterSpacing: '-0.02em',
+              }}
+            >
               To-Do Studio
             </p>
-            <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--mochi-text-muted)' }}>
-              {stats.done} of {stats.total} tasks done
+            <p style={{ margin: 0, fontSize: '12px', color: 'var(--mochi-text-muted)' }}>
+              {stats.done} of {stats.total} tasks completed
             </p>
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Right: actions */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               type="button"
               onClick={() => setFormOpen((v) => !v)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all"
+              className="pressable inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold"
               style={formOpen
                 ? { background: 'var(--mochi-pink)', color: 'var(--mochi-pink-dark)', border: '1.5px solid var(--mochi-pink-mid)' }
                 : { background: 'var(--mochi-mint)', color: 'var(--mochi-mint-dark)', border: '1.5px solid var(--mochi-mint-mid)' }}
             >
               {formOpen ? <><X size={12} /> Cancel</> : <><Plus size={12} /> Add task</>}
             </button>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-full" style={{ background: 'var(--mochi-mint)', color: 'var(--mochi-mint-dark)', fontSize: '11px', fontWeight: 700 }}>
-              <Sparkles size={12} /> Focus on what matters
+
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded-full"
+              style={{
+                background: 'var(--mochi-mint)',
+                color: 'var(--mochi-mint-dark)',
+                fontSize: '11px',
+                fontWeight: 700,
+                border: '1.5px solid var(--mochi-mint-mid)',
+              }}
+            >
+              <Sparkles size={12} />
+              <span>Focus on what matters</span>
             </div>
           </div>
         </div>
 
-        {/* Add task form */}
+        {/* ── Task form (conditional) ──────────────────────────── */}
         {formOpen && (
-          <div className="rounded-3xl p-5" style={{ background: 'var(--mochi-surface)', border: '1.5px solid var(--mochi-border)' }}>
+          <div
+            className="stagger-item rounded-3xl p-5"
+            style={{
+              '--delay': '0ms',
+              background: 'var(--mochi-surface)',
+              border: '1px solid var(--mochi-border)',
+              boxShadow: '0 4px 24px -8px rgba(0,0,0,0.06)',
+            }}
+          >
             <TaskForm
               onCreate={handleCreate}
               categories={categories}
@@ -105,26 +128,49 @@ export default function TodoPage() {
           </div>
         )}
 
-        {/* Tasks Today + Task Progress */}
-        <div className="flex gap-4 items-stretch">
-          <div className="flex-1 rounded-3xl p-5 flex flex-col" style={{ background: 'var(--mochi-surface)', border: '1.5px solid var(--mochi-border)' }}>
-            <span style={labelStyle}>Tasks Today</span>
+        {/* ── Today + Progress panels ──────────────────────────── */}
+        <div
+          className="stagger-item grid gap-4"
+          style={{ '--delay': '80ms', gridTemplateColumns: '1fr 248px' }}
+        >
+          {/* Tasks Today */}
+          <div
+            className="rounded-3xl p-5 flex flex-col"
+            style={{
+              background: 'var(--mochi-surface)',
+              border: '1px solid var(--mochi-border)',
+              boxShadow: '0 4px 24px -8px rgba(0,0,0,0.04)',
+              minHeight: '200px',
+            }}
+          >
+            <span style={sectionLabelStyle}>Tasks Today</span>
             <TasksToday tasks={tasks} />
           </div>
-          <div className="rounded-3xl p-5 flex flex-col" style={{ background: 'var(--mochi-surface)', border: '1.5px solid var(--mochi-border)', width: '250px', flexShrink: 0 }}>
-            <span style={labelStyle}>Task Progress</span>
+
+          {/* Task Progress */}
+          <div
+            className="rounded-3xl p-5 flex flex-col"
+            style={{
+              background: 'var(--mochi-surface)',
+              border: '1px solid var(--mochi-border)',
+              boxShadow: '0 4px 24px -8px rgba(0,0,0,0.04)',
+            }}
+          >
+            <span style={sectionLabelStyle}>Task Progress</span>
             <TaskProgress tasks={tasks} />
           </div>
         </div>
 
-        {/* Task list */}
-        <TaskList
-          tasks={tasks}
-          categories={categories}
-          onToggleDone={handleToggleDone}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-        />
+        {/* ── Task list ────────────────────────────────────────── */}
+        <div className="stagger-item" style={{ '--delay': '160ms' }}>
+          <TaskList
+            tasks={tasks}
+            categories={categories}
+            onToggleDone={handleToggleDone}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+          />
+        </div>
 
       </div>
     </div>

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import { ArrowDownUp, Calendar, Check, Trash2 } from 'lucide-react'
+import { Fragment, useEffect, useRef, useState } from 'react'
+import { ArrowDownUp, Calendar, Check, Timer, Trash2 } from 'lucide-react'
 import { computePriority, priorityMeta } from '../../utils/priority'
+import PomodoroTimer from './PomodoroTimer'
 
 const fieldStyle = {
   background: 'var(--mochi-cream)',
@@ -72,6 +73,7 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
   const [additionalNotes, setNotes]     = useState(task.additionalNotes || '')
   const [effort, setEffort]             = useState(task.effort ?? 3)
   const [categoryMode, setCategoryMode] = useState('select')
+  const [timerOpen, setTimerOpen]       = useState(false)
   const deadlineRef = useRef(null)
 
   useEffect(() => {
@@ -91,122 +93,166 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
     save('effort', n)
   }
 
-  return (
-    <tr style={{ borderTop: '1px solid var(--mochi-border)', opacity: task.isDone ? 0.22 : 1 }}>
-      {/* Task */}
-      <td style={{ padding: '10px 12px', width: '26%' }}>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => onToggleDone(task)}
-            className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{
-              border: '1.5px solid var(--mochi-mint-mid)',
-              background: task.isDone ? 'var(--mochi-mint)' : 'transparent',
-              color: 'var(--mochi-mint-dark)',
-            }}
-            title={task.isDone ? 'Mark as not done' : 'Mark as done'}
-          >
-            {task.isDone && <Check size={12} />}
-          </button>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => { if (title.trim()) save('title', title.trim()) }}
-            style={{ ...fieldStyle, textDecoration: task.isDone ? 'line-through' : 'none' }}
-          />
-        </div>
-      </td>
+  const handlePomodoroComplete = () => {
+    onUpdate(task.id, { pomodoroCount: (task.pomodoroCount || 0) + 1 })
+  }
 
-      {/* Category */}
-      <td style={{ padding: '10px 12px', width: '16%' }}>
-        <div className="flex flex-col gap-2">
-          <select
-            value={categoryMode === 'custom' ? '__custom__' : (category || '')}
-            onChange={(e) => {
-              const v = e.target.value
-              if (v === '__custom__') { setCategoryMode('custom'); return }
-              setCategoryMode('select')
-              setCategory(v)
-              save('category', v)
-            }}
-            style={fieldStyle}
-          >
-            <option value="">No category</option>
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-            <option value="__custom__">Add new…</option>
-          </select>
-          {categoryMode === 'custom' && (
+  return (
+    <Fragment>
+      <tr className="task-row" style={{ borderTop: '1px solid var(--mochi-border)', opacity: task.isDone ? 0.22 : 1 }}>
+        {/* Task */}
+        <td style={{ padding: '10px 12px', width: '26%' }}>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onToggleDone(task)}
+              className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{
+                border: '1.5px solid var(--mochi-mint-mid)',
+                background: task.isDone ? 'var(--mochi-mint)' : 'transparent',
+                color: 'var(--mochi-mint-dark)',
+              }}
+              title={task.isDone ? 'Mark as not done' : 'Mark as done'}
+            >
+              {task.isDone && <Check size={12} />}
+            </button>
             <input
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              onBlur={() => save('category', category.trim())}
-              placeholder="New category"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={() => { if (title.trim()) save('title', title.trim()) }}
+              style={{ ...fieldStyle, textDecoration: task.isDone ? 'line-through' : 'none' }}
+            />
+          </div>
+        </td>
+
+        {/* Category */}
+        <td style={{ padding: '10px 12px', width: '16%' }}>
+          <div className="flex flex-col gap-2">
+            <select
+              value={categoryMode === 'custom' ? '__custom__' : (category || '')}
+              onChange={(e) => {
+                const v = e.target.value
+                if (v === '__custom__') { setCategoryMode('custom'); return }
+                setCategoryMode('select')
+                setCategory(v)
+                save('category', v)
+              }}
+              style={fieldStyle}
+            >
+              <option value="">No category</option>
+              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+              <option value="__custom__">Add new…</option>
+            </select>
+            {categoryMode === 'custom' && (
+              <input
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                onBlur={() => save('category', category.trim())}
+                placeholder="New category"
+                style={fieldStyle}
+              />
+            )}
+          </div>
+        </td>
+
+        {/* Due date */}
+        <td style={{ padding: '10px 12px', width: '14%' }}>
+          <div className="flex items-center gap-2">
+            <input
+              ref={deadlineRef}
+              type="date"
+              value={deadline}
+              onChange={(e) => {
+                const next = e.target.value
+                setDeadline(next)
+                save('deadline', next ? new Date(next + 'T00:00:00').getTime() : null)
+              }}
+              style={{ ...fieldStyle, appearance: 'auto', WebkitAppearance: 'auto' }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (deadlineRef.current?.showPicker) deadlineRef.current.showPicker()
+                else deadlineRef.current?.focus()
+              }}
+              className="p-1.5 rounded-lg"
+              style={{ border: '1.5px solid var(--mochi-border)', color: 'var(--mochi-text-muted)' }}
+              title="Pick a date"
+            >
+              <Calendar size={13} />
+            </button>
+          </div>
+        </td>
+
+        {/* Effort */}
+        <td style={{ padding: '10px 12px', width: '14%' }}>
+          <EffortPicker value={effort} onChange={handleEffortChange} />
+        </td>
+
+        {/* Priority badge */}
+        <td style={{ padding: '10px 12px', width: '12%' }}>
+          <PriorityBadge task={{ ...task, effort }} />
+        </td>
+
+        {/* Notes + Timer + Delete */}
+        <td style={{ padding: '10px 12px', width: '18%' }}>
+          <div className="flex items-center gap-1.5">
+            <input
+              value={additionalNotes}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={() => save('additionalNotes', additionalNotes.trim())}
+              placeholder="Notes"
               style={fieldStyle}
             />
-          )}
-        </div>
-      </td>
+            <div className="flex items-center gap-0.5 flex-shrink-0">
+              {/* Pomodoro count badge */}
+              {(task.pomodoroCount || 0) > 0 && (
+                <span
+                  className="flex items-center gap-0.5"
+                  style={{ fontSize: '9px', color: 'var(--mochi-text-muted)', lineHeight: 1, flexShrink: 0 }}
+                  title={`${task.pomodoroCount} pomodoro${task.pomodoroCount === 1 ? '' : 's'} completed`}
+                >
+                  <Timer size={9} strokeWidth={2} />
+                  <span>{task.pomodoroCount}</span>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setTimerOpen((t) => !t)}
+                className="p-1.5 rounded-lg transition-all"
+                style={{
+                  color:      timerOpen ? 'var(--mochi-mint-dark)' : 'var(--mochi-text-muted)',
+                  background: timerOpen ? 'var(--mochi-mint)'      : 'transparent',
+                }}
+                title={timerOpen ? 'Close timer' : 'Start Pomodoro'}
+              >
+                <Timer size={12} />
+              </button>
+              <button
+                onClick={() => onDelete(task)}
+                className="p-1.5 rounded-lg"
+                style={{ color: 'var(--mochi-pink-dark)' }}
+                title="Delete"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          </div>
+        </td>
+      </tr>
 
-      {/* Due date */}
-      <td style={{ padding: '10px 12px', width: '14%' }}>
-        <div className="flex items-center gap-2">
-          <input
-            ref={deadlineRef}
-            type="date"
-            value={deadline}
-            onChange={(e) => {
-              const next = e.target.value
-              setDeadline(next)
-              save('deadline', next ? new Date(next + 'T00:00:00').getTime() : null)
-            }}
-            style={{ ...fieldStyle, appearance: 'auto', WebkitAppearance: 'auto' }}
-          />
-          <button
-            type="button"
-            onClick={() => {
-              if (deadlineRef.current?.showPicker) deadlineRef.current.showPicker()
-              else deadlineRef.current?.focus()
-            }}
-            className="p-1.5 rounded-lg"
-            style={{ border: '1.5px solid var(--mochi-border)', color: 'var(--mochi-text-muted)' }}
-            title="Pick a date"
-          >
-            <Calendar size={13} />
-          </button>
-        </div>
-      </td>
-
-      {/* Effort */}
-      <td style={{ padding: '10px 12px', width: '14%' }}>
-        <EffortPicker value={effort} onChange={handleEffortChange} />
-      </td>
-
-      {/* Priority badge */}
-      <td style={{ padding: '10px 12px', width: '12%' }}>
-        <PriorityBadge task={{ ...task, effort }} />
-      </td>
-
-      {/* Notes + Delete */}
-      <td style={{ padding: '10px 12px', width: '18%' }}>
-        <div className="flex items-center gap-2">
-          <input
-            value={additionalNotes}
-            onChange={(e) => setNotes(e.target.value)}
-            onBlur={() => save('additionalNotes', additionalNotes.trim())}
-            placeholder="Notes"
-            style={fieldStyle}
-          />
-          <button
-            onClick={() => onDelete(task)}
-            className="p-1.5 rounded-lg"
-            style={{ color: 'var(--mochi-pink-dark)' }}
-            title="Delete"
-          >
-            <Trash2 size={12} />
-          </button>
-        </div>
-      </td>
-    </tr>
+      {/* Pomodoro timer sub-row */}
+      {timerOpen && (
+        <tr>
+          <td colSpan={6} style={{ padding: 0 }}>
+            <PomodoroTimer
+              task={task}
+              onPomodoroComplete={handlePomodoroComplete}
+              onClose={() => setTimerOpen(false)}
+            />
+          </td>
+        </tr>
+      )}
+    </Fragment>
   )
 }
 
