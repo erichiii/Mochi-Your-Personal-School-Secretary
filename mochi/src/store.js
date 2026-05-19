@@ -132,8 +132,8 @@ const useStore = create((set, get) => ({
     const deckGroups = await db.deckGroups.orderBy('createdAt').toArray()
     set({ deckGroups })
   },
-  createDeckGroup: async (name) => {
-    const id = await db.deckGroups.add({ name, createdAt: Date.now() })
+  createDeckGroup: async (name, color) => {
+    const id = await db.deckGroups.add({ name, color: color || '#C9B8F5', createdAt: Date.now() })
     await get().loadDeckGroups()
     return id
   },
@@ -164,7 +164,7 @@ const useStore = create((set, get) => ({
     await get().loadDecks()
   },
   deleteDeck: async (id) => {
-    await db.flashcards.where('deckId').equals(id).modify({ deckId: null })
+    await db.flashcards.where('deckId').equals(id).delete()
     await db.decks.delete(id)
     if (get().activeDeckId === id) set({ activeDeckId: null })
     await get().loadDecks()

@@ -47,7 +47,7 @@ function CardFormModal({ decks, initial, defaultDeckId, onSave, onClose }) {
   const [deckId, setDeckId] = useState(
     initial != null ? (initial.deckId ?? null) : (defaultDeckId ?? null)
   )
-  const valid = front.trim() && back.trim()
+  const valid = front.trim() && back.trim() && deckId !== null
 
   return (
     <div
@@ -89,9 +89,9 @@ function CardFormModal({ decks, initial, defaultDeckId, onSave, onClose }) {
             value={deckId ?? ''}
             onChange={(e) => setDeckId(e.target.value ? Number(e.target.value) : null)}
             className="w-full px-3 py-2 rounded-xl text-sm outline-none"
-            style={{ background: 'var(--mochi-cream)', border: '1.5px solid var(--mochi-border)', color: 'var(--mochi-text)' }}
+            style={{ background: 'var(--mochi-cream)', border: '1.5px solid var(--mochi-border)', color: deckId !== null ? 'var(--mochi-text)' : 'var(--mochi-text-muted)' }}
           >
-            <option value="">General</option>
+            {deckId === null && <option value="" disabled>Select a deck…</option>}
             {decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </div>
@@ -269,8 +269,7 @@ export default function FlashcardsPage() {
 
   // ── Derived cards ─────────────────────────────────────────
   const deckCards = useMemo(() => {
-    if (activeDeckId === null) return flashcards
-    if (activeDeckId === 'unlinked') return flashcards.filter((c) => !c.deckId)
+    if (activeDeckId === null) return []
     return flashcards.filter((c) => c.deckId === activeDeckId)
   }, [flashcards, activeDeckId])
 
@@ -292,10 +291,7 @@ export default function FlashcardsPage() {
   const card = displayCards[currentIndex] ?? null
   const total = displayCards.length
 
-  const deckLabel =
-    activeDeckId === null ? 'All Cards'
-    : activeDeckId === 'unlinked' ? 'General'
-    : (decks.find((d) => d.id === activeDeckId)?.name || 'Deck')
+  const deckLabel = decks.find((d) => d.id === activeDeckId)?.name || 'Deck'
 
   // ── Study handlers ────────────────────────────────────────
   const goNext = () => {
@@ -433,14 +429,18 @@ export default function FlashcardsPage() {
   const correctCount = Object.values(results).filter((v) => v === 'correct').length
   const incorrectCount = Object.values(results).filter((v) => v === 'incorrect').length
 
-  // ── Empty: no decks, no cards ─────────────────────────────
-  if (activeDeckId === null && flashcards.length === 0) {
+  // ── No deck selected ──────────────────────────────────────
+  if (activeDeckId === null) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center px-8" style={{ background: 'var(--mochi-cream)' }}>
         <Layers size={48} className="mb-4" style={{ color: 'var(--mochi-border)' }} />
-        <p className="text-base font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>No flashcards yet</p>
+        <p className="text-base font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>
+          {decks.length === 0 ? 'No decks yet' : 'Select a deck'}
+        </p>
         <p className="text-xs" style={{ color: 'var(--mochi-text-muted)' }}>
-          Create a deck in the sidebar, then add cards
+          {decks.length === 0
+            ? 'Create a section and deck in the sidebar to get started'
+            : 'Pick a deck from the sidebar to start studying'}
         </p>
       </div>
     )
