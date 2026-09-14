@@ -3,9 +3,9 @@ import {
   Calendar, Plus, X, Sparkles, Loader2, AlertCircle,
   Pencil, Trash2, Check, ImageIcon, Save, Download,
 } from 'lucide-react'
-import useStore from '../store'
-import { generateSchedule } from '../gemini'
-import ExportModal from '../components/schedule/ExportModal'
+import useStore from '../../app/store/useStore'
+import { generateSchedule } from '../../shared/lib/gemini'
+import ExportModal from './components/ExportModal'
 
 // ── Constants ──────────────────────────────────────────────────
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']

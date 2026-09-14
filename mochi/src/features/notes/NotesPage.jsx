@@ -1,5 +1,5 @@
-import NotesListPanel from '../components/notes/NotesListPanel'
-import EditorPane from '../components/notes/EditorPane'
+import NotesListPanel from './components/NotesListPanel'
+import EditorPane from './components/EditorPane'
 
 export default function NotesPage() {
   return (

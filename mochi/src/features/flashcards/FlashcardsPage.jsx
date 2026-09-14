@@ -6,9 +6,9 @@ import {
   Check, ThumbsDown, ThumbsUp, Target,
 } from 'lucide-react'
 import * as pdfjsLib from 'pdfjs-dist'
-import useStore from '../store'
-import { generateFlashcards } from '../gemini'
-import ConfirmModal from '../components/ConfirmModal'
+import useStore from '../../app/store/useStore'
+import { generateFlashcards } from '../../shared/lib/gemini'
+import ConfirmModal from '../../shared/components/ConfirmModal'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',

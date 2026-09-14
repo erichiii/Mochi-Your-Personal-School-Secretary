@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { db } from './db'
+import { db } from '../../shared/lib/db'
 
 const useStore = create((set, get) => ({
   // ── Theme ─────────────────────────────────────────────────

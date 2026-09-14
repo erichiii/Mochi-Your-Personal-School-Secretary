@@ -1,13 +1,13 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
-import NotesPage from './pages/NotesPage'
-import TodoPage from './pages/TodoPage'
-import SchedulePage from './pages/SchedulePage'
-import StudyPlanPage from './pages/StudyPlanPage'
-import FlashcardsPage from './pages/FlashcardsPage'
-import useStore from './store'
-import StickyNotesLayer from './components/StickyNotesLayer'
+import NotesPage from '../features/notes/NotesPage'
+import TodoPage from '../features/todo/TodoPage'
+import SchedulePage from '../features/schedule/SchedulePage'
+import StudyPlanPage from '../features/study-plan/StudyPlanPage'
+import FlashcardsPage from '../features/flashcards/FlashcardsPage'
+import useStore from './store/useStore'
+import StickyNotesLayer from '../features/sticky-notes/StickyNotesLayer'
 
 export default function App() {
   const theme = useStore((s) => s.theme)

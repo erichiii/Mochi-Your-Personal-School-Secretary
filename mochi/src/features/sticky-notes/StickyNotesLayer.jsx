@@ -4,7 +4,7 @@ import StarterKit from '@tiptap/starter-kit'
 import UnderlineExt from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import { X, Bold, Italic, Underline, Strikethrough } from 'lucide-react'
-import useStore from '../store'
+import useStore from '../../app/store/useStore'
 
 const PALETTE = {
   peach:    { bg: '#FFE5CC', border: '#FFCBA4', text: '#7A3A10' },

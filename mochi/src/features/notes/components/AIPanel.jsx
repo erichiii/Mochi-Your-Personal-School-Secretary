@@ -6,8 +6,8 @@ import {
 import * as pdfjsLib from 'pdfjs-dist'
 import { marked } from 'marked'
 import katex from 'katex'
-import { generateNotes, generateFlashcards } from '../../gemini'
-import useStore from '../../store'
+import { generateNotes, generateFlashcards } from '../../../shared/lib/gemini'
+import useStore from '../../../app/store/useStore'
 
 marked.use({ gfm: true, breaks: false })
 

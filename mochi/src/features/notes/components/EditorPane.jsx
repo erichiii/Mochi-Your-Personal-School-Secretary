@@ -12,12 +12,12 @@ import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table
 import Highlight from '@tiptap/extension-highlight'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { FileText, Plus, CheckCheck, AlertCircle, Loader2, Download } from 'lucide-react'
-import useStore from '../../store'
+import useStore from '../../../app/store/useStore'
 import EditorToolbar from './EditorToolbar'
 import SubjectPicker from './SubjectPicker'
 import ResourcesPanel from './ResourcesPanel'
 import AIPanel from './AIPanel'
-import { FontSize } from '../../extensions/FontSize'
+import { FontSize } from '../../../shared/extensions/FontSize'
 
 const TabIndent = Extension.create({
   name: 'tabIndent',

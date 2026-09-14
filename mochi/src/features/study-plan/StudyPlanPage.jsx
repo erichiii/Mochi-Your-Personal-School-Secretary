@@ -4,9 +4,9 @@ import {
   MoreHorizontal, Pencil, Plus, Sparkles, Target,
   Trash2, X, Zap,
 } from 'lucide-react'
-import useStore from '../store'
-import { generateStudyPlan } from '../gemini'
-import ConfirmModal from '../components/ConfirmModal'
+import useStore from '../../app/store/useStore'
+import { generateStudyPlan } from '../../shared/lib/gemini'
+import ConfirmModal from '../../shared/components/ConfirmModal'
 
 // ── Helpers ────────────────────────────────────────────────────
 

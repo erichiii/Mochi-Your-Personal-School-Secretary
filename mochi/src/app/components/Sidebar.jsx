@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { BookOpen, CheckSquare, Calendar, Brain, Layers, ChevronLeft, Sun, Moon, StickyNote } from 'lucide-react'
-import SubjectSection from './notes/SubjectSection'
-import DeckSection from './DeckSection'
-import useStore from '../store'
+import SubjectSection from '../../features/notes/components/SubjectSection'
+import DeckSection from '../../features/flashcards/components/DeckSection'
+import useStore from '../store/useStore'
 
 const NAV = [
   {

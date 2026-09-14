@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Sparkles, X } from 'lucide-react'
-import useStore from '../store'
-import TaskForm from '../components/todo/TaskForm'
-import TaskList from '../components/todo/TaskList'
-import TasksToday from '../components/todo/TasksToday'
-import TaskProgress from '../components/todo/TaskProgress'
+import useStore from '../../app/store/useStore'
+import TaskForm from './components/TaskForm'
+import TaskList from './components/TaskList'
+import TasksToday from './components/TasksToday'
+import TaskProgress from './components/TaskProgress'
 
 const fmtReminderOffset = (minutes) => {
   if (minutes < 60)   return `${minutes} min`

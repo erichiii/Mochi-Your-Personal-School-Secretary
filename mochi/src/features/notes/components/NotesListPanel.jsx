@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Plus, FileText, Trash2, PanelLeftClose, PanelLeftOpen, Search, X, Pin, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import useStore from '../../store'
-import ConfirmModal from '../ConfirmModal'
+import useStore from '../../../app/store/useStore'
+import ConfirmModal from '../../../shared/components/ConfirmModal'
 
 const stripHtml = (html) =>
   (html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()

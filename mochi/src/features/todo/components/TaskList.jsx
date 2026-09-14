@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { ArrowDownUp, Bell, Calendar, Check, Tag, Timer, Trash2 } from 'lucide-react'
-import { computePriority, priorityMeta } from '../../utils/priority'
+import { computePriority, priorityMeta } from '../../../shared/utils/priority'
 import PomodoroTimer from './PomodoroTimer'
 
 export const REMINDER_OPTIONS = [

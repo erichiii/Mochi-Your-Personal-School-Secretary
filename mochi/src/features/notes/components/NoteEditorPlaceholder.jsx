@@ -1,5 +1,5 @@
 import { FileText } from 'lucide-react'
-import useStore from '../../store'
+import useStore from '../../../app/store/useStore'
 
 export default function NoteEditorPlaceholder() {
   const { activeNoteId, createNote } = useStore()

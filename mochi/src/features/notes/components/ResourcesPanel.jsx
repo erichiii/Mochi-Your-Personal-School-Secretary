@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Paperclip, X, ExternalLink, FileText, StickyNote, Link2, Upload, Search, ChevronDown } from 'lucide-react'
-import useStore from '../../store'
+import useStore from '../../../app/store/useStore'
 
 function labelFromUrl(url) {
   try { return new URL(url).hostname.replace(/^www\./, '') }

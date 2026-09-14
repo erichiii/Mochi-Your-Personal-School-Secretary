@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, X, Plus } from 'lucide-react'
-import useStore from '../../store'
+import useStore from '../../../app/store/useStore'
 
 const PRESET_COLORS = [
   '#FFB3C6', '#C9B8F5', '#A8E6CF', '#FFCBA4', '#A8D4F5', '#FFE899',

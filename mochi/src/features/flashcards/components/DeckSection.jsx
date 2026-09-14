@@ -1,8 +1,8 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Layers, MoreHorizontal, Pencil, Plus, Trash2, X } from 'lucide-react'
-import useStore from '../store'
-import ConfirmModal from './ConfirmModal'
+import useStore from '../../../app/store/useStore'
+import ConfirmModal from '../../../shared/components/ConfirmModal'
 
 const PRESET_COLORS = [
   '#FFB3C6', '#FF8FAB', '#F7A8A8', '#FFD1D1', '#E8A0A0', '#FABDB0',
