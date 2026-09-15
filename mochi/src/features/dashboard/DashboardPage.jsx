@@ -42,7 +42,7 @@ export default function DashboardPage() {
   const {
     notes, tasks, scheduleItems, scheduleSections, subjects,
     loadNotes, loadTasks, loadSchedule, loadScheduleSections, loadSubjects,
-    setActiveNote, setSubjectFilter,
+    setActiveNote, setSubjectFilter, updateTask,
   } = useStore()
 
   useEffect(() => {
@@ -84,6 +84,10 @@ export default function DashboardPage() {
     ? 'Use your time productively or rest as needed. Good job!'
     : null
 
+  const toggleTaskStatus = async (task) => {
+    await updateTask(task.id, { isDone: !task.isDone })
+  }
+
   return (
     <main className="h-full overflow-y-auto px-5 py-6 sm:px-8 sm:py-8" style={{ background: 'var(--mochi-cream)' }}>
       <div className="mx-auto flex max-w-6xl flex-col gap-7">
@@ -111,11 +115,22 @@ export default function DashboardPage() {
               ) : (
                 <div className="mt-4 flex flex-col gap-2">
                   {tasksForPanel.map((task) => (
-                    <Link key={task.id} to="/todo" className="group flex items-center gap-3 rounded-xl px-3 py-2" style={{ color: 'inherit', textDecoration: 'none', background: 'var(--mochi-hover)' }}>
-                      <Circle size={17} style={{ color: 'var(--mochi-pink-dark)', flexShrink: 0 }} />
-                      <span className="min-w-0 flex-1 truncate text-sm font-semibold">{task.title || 'Untitled task'}</span>
-                      <span className="hidden text-xs sm:inline" style={{ color: 'var(--mochi-pink-dark)' }}>{dueLabel(task.deadline)}</span>
-                    </Link>
+                    <div key={task.id} className="group flex items-center gap-3 rounded-xl px-3 py-2" style={{ background: 'var(--mochi-hover)' }}>
+                      <button
+                        type="button"
+                        onClick={() => toggleTaskStatus(task)}
+                        title="Mark task complete"
+                        aria-label={`Mark ${task.title || 'task'} complete`}
+                        className="flex h-6 w-6 items-center justify-center rounded-full"
+                        style={{ color: 'var(--mochi-pink-dark)', flexShrink: 0 }}
+                      >
+                        <Circle size={18} strokeWidth={2.4} />
+                      </button>
+                      <Link to="/todo" className="flex min-w-0 flex-1 items-center gap-3" style={{ color: 'inherit', textDecoration: 'none' }}>
+                        <span className="min-w-0 flex-1 truncate text-sm font-semibold">{task.title || 'Untitled task'}</span>
+                        <span className="hidden text-xs sm:inline" style={{ color: 'var(--mochi-pink-dark)' }}>{dueLabel(task.deadline)}</span>
+                      </Link>
+                    </div>
                   ))}
                 </div>
               )}
