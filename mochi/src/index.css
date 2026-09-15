@@ -604,6 +604,13 @@ input:focus, select:focus, textarea:focus {
 .todo-task-table tbody tr.task-row td:last-child { border-right: 2px solid var(--mochi-border); border-radius: 0 1.2rem 1.2rem 0; }
 .todo-task-table tbody tr.task-row:hover td { background: #ffdef2; }
 .todo-task-table tbody tr.task-row td:first-child > div { width: 4px !important; }
+.todo-task-table tbody tr.task-row.is-completed td { border-color: rgba(92, 151, 102, 0.45); background: #eef9ef; opacity: 0.72; }
+.todo-task-table tbody tr.task-row.is-completed:hover td { background: #e5f5e6; }
+.todo-task-table tbody tr.task-row.is-completed input { color: #55775b !important; }
+.todo-task-table tbody tr.task-row.is-completed td:first-child > div { background: #75a87d !important; }
+.task-list-completed-divider td { padding-top: 0.15rem !important; padding-bottom: 0.15rem !important; background: transparent !important; }
+.task-list-completed-divider td > div > div { background: rgba(247, 104, 160, 0.25) !important; }
+.task-list-completed-divider span { color: var(--mochi-text-muted) !important; font-size: 0.58rem !important; letter-spacing: 0.06em !important; }
 .todo-task-empty { display: grid; place-items: center; min-height: 11rem; border: 2px dashed var(--mochi-border); border-radius: 1rem; background: #fff0f9; color: var(--mochi-text-muted); text-align: center; }
 .todo-task-empty p { margin: 0; padding: 1.5rem; font-size: 0.92rem; font-weight: 600; }
 

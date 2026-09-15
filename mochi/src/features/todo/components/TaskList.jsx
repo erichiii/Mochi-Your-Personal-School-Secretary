@@ -139,8 +139,8 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
   return (
     <Fragment>
       <tr
-        className="task-row group"
-        style={{ borderTop: '1px solid var(--mochi-border)', opacity: task.isDone ? 0.28 : 1, transition: 'opacity 0.2s' }}
+        className={`task-row group ${task.isDone ? 'is-completed' : ''}`}
+        style={{ borderTop: '1px solid var(--mochi-border)', transition: 'opacity 0.2s' }}
       >
         {/* Priority accent */}
         <td style={{ padding: 0, width: 3, verticalAlign: 'middle' }}>
@@ -434,7 +434,7 @@ export default function TaskList({ tasks, categories = [], filter = 'all', onTog
 
           {/* Completed section divider */}
           {done.length > 0 && active.length > 0 && (
-            <tr>
+            <tr className="task-list-completed-divider">
               <td colSpan={7} style={{ padding: '6px 16px', background: 'var(--mochi-cream)' }}>
                 <div className="flex items-center gap-3">
                   <div style={{ flex: 1, height: 1, background: 'var(--mochi-border)' }} />
