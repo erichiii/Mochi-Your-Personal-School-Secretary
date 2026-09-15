@@ -11,11 +11,11 @@ import TaskItem from '@tiptap/extension-task-item'
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 import Highlight from '@tiptap/extension-highlight'
 import { TextStyle } from '@tiptap/extension-text-style'
-import { BookOpen, Brain, ClipboardCheck, FilePenLine, FileText, Link2, Plus, Download, Sparkles, Upload, Loader2, CheckCheck, AlertCircle } from 'lucide-react'
+import { BookOpen, Brain, ClipboardCheck, FilePenLine, FileText, Link2, Plus, Download, Sparkles, Upload, Loader2, Check, CheckCheck, AlertCircle } from 'lucide-react'
 import useStore from '../../../app/store/useStore'
 import EditorToolbar from './EditorToolbar'
 import ResourcesPanel from './ResourcesPanel'
-import AIPanel, { parseMarkdownWithMath } from './AIPanel'
+import AIPanel, { extractPdfText, parseMarkdownWithMath } from './AIPanel'
 import { FontSize } from '../../../shared/extensions/FontSize'
 import { generateNotes } from '../../../shared/lib/gemini'
 import mochiLoading from '../../../assets/mascots/mochi-loading.png'
@@ -38,6 +38,14 @@ const TabIndent = Extension.create({
   },
 })
 
+const PREPARATION_STEPS = [
+  { id: 'reading', label: 'Reading your resources' },
+  { id: 'primer', label: 'Creating primer' },
+  { id: 'notes', label: 'Organizing notes' },
+  { id: 'reviewer', label: 'Preparing your reviewer' },
+  { id: 'test', label: 'Building your practice test' },
+]
+
 export default function EditorPane() {
   const { notes, subjects, activeNoteId, activeSubjectFilter, updateNote, createNote, loadNotes } = useStore()
   const activeNote = notes.find((n) => n.id === activeNoteId) ?? null
@@ -46,6 +54,7 @@ export default function EditorPane() {
   const [aiOpen, setAiOpen] = useState(false)
   const [studyTab, setStudyTab] = useState('notes')
   const [isPreparing, setIsPreparing] = useState(false)
+  const [preparationStep, setPreparationStep] = useState('reading')
   const [prepareError, setPrepareError] = useState('')
   const [saveStatus, setSaveStatus] = useState('idle') // 'idle' | 'saving' | 'saved' | 'error'
   const saveTimer = useRef(null)
@@ -255,6 +264,7 @@ export default function EditorPane() {
     const files = Array.from(event.target.files ?? [])
     if (!files.length) return
     setIsPreparing(true)
+    setPreparationStep('reading')
     setPrepareError('')
 
     const id = activeNote?.id ?? await createNote({
@@ -276,7 +286,24 @@ export default function EditorPane() {
         reader.readAsDataURL(file)
       })))
 
+      const sourceParts = await Promise.all(files.map(async (file) => {
+        try {
+          if (file.type === 'application/pdf') return await extractPdfText(file)
+          if (file.type.startsWith('image/')) return ''
+          return await file.text()
+        } catch {
+          return ''
+        }
+      }))
+
       await updateNote(id, { resources: [...(activeNote?.resources ?? []), ...materials] })
+      setPreparationStep('notes')
+      const source = sourceParts.filter(Boolean).join('\n\n---\n\n').trim() || `Module: ${activeNote?.title || files[0].name.replace(/\.[^.]+$/, '')}\nMaterials: ${files.map((file) => file.name).join(', ')}`
+      const markdown = await generateNotes(source, 'general')
+      const content = parseMarkdownWithMath(markdown)
+      activeNoteRef.current = { ...(activeNoteRef.current ?? {}), id, content }
+      await updateNote(id, { content })
+      editor?.commands.setContent(content, false)
       setStudyTab('notes')
       setStartWritingNoteId(id)
     } catch (error) {
@@ -321,6 +348,13 @@ export default function EditorPane() {
     } finally {
       setIsPreparing(false)
     }
+  }
+
+  const preparationTitle = activeNote?.title || activeModule?.name || 'your module'
+  const getPreparationStatus = (step) => {
+    if (step.id === preparationStep) return 'current'
+    if (step.id === 'reading' && preparationStep === 'notes') return 'complete'
+    return 'pending'
   }
 
   return (
@@ -384,15 +418,13 @@ export default function EditorPane() {
         {showEmptyModuleState && (
           <div className="flex-1 flex items-center justify-center">
             <div className="notes-empty-module-state">
-              {isPreparing ? <><Loader2 size={32} className="animate-spin" /><h2>Preparing your materials...</h2><p>Mochi is attaching this file to your module.</p></> : <>
-                <img src={mochiLoading} alt="Mochi ready to study on a stack of books" />
-                <h2>Let's start studying!</h2>
-                <p>Add your lecture materials and Mochi will prepare this module for you.</p>
-                <input ref={materialInputRef} type="file" className="sr-only" onChange={handleMaterialUpload} accept=".txt,.md,.csv,.pdf,image/*" multiple />
-                <button type="button" className="notes-empty-module-state__upload" onClick={() => materialInputRef.current?.click()}><Upload size={21} /> Upload Materials</button>
-                <div className="notes-empty-module-state__divider"><span>or</span></div>
-                <button type="button" className="notes-empty-module-state__scratch" onClick={handleStartFromScratch}><FilePenLine size={20} /> Start from scratch</button>
-              </>}
+              <img src={mochiLoading} alt="Mochi ready to study on a stack of books" />
+              <h2>Let's start studying!</h2>
+              <p>Add your lecture materials and Mochi will prepare this module for you.</p>
+              <input ref={materialInputRef} type="file" className="sr-only" onChange={handleMaterialUpload} accept=".txt,.md,.csv,.pdf,image/*" multiple />
+              <button type="button" className="notes-empty-module-state__upload" onClick={() => materialInputRef.current?.click()}><Upload size={21} /> Upload Materials</button>
+              <div className="notes-empty-module-state__divider"><span>or</span></div>
+              <button type="button" className="notes-empty-module-state__scratch" onClick={handleStartFromScratch}><FilePenLine size={20} /> Start from scratch</button>
             </div>
           </div>
         )}
@@ -405,18 +437,29 @@ export default function EditorPane() {
         {showEditor && aiOpen && (
           <AIPanel editor={editor} noteId={activeNoteId} onClose={() => setAiOpen(false)} initialMode={studyTab === 'reviewer' ? 'reviewer' : studyTab === 'primer' ? 'primer' : 'general'} />
         )}
-        {showEditor && isPreparing && (
-          <div className="notes-module-preparing" role="status">
-            <Loader2 size={26} className="animate-spin" />
-            <div><strong>Mochi is preparing your {studyTab}...</strong><span>This can take a moment.</span></div>
-          </div>
-        )}
         {showEditor && prepareError && !isPreparing && (
           <div className="notes-module-preparing notes-module-preparing--error" role="alert">
             <div><strong>Couldn't prepare this {studyTab}.</strong><span>{prepareError}</span></div>
           </div>
         )}
       </div>
+      {isPreparing && (
+        <div className="notes-module-preparing" role="status" aria-live="polite">
+          <div className="notes-module-preparing__card">
+            <img src={mochiLoading} alt="Mochi preparing your study materials" />
+            <h2>Mochi is preparing {preparationTitle}...</h2>
+            <ul>
+              {PREPARATION_STEPS.map((step) => {
+                const status = getPreparationStatus(step)
+                return <li key={step.id} className={`is-${status}`}>
+                  <span>{status === 'complete' ? <Check size={15} strokeWidth={3} /> : status === 'current' ? <Loader2 size={15} className="animate-spin" /> : null}</span>
+                  {step.label}
+                </li>
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
       {showEditor && <button type="button" className="notes-mochi-help" onClick={() => setAiOpen((open) => !open)} title="Let Mochi help"><Sparkles size={17} /> Let Mochi help</button>}
     </div>
   )
