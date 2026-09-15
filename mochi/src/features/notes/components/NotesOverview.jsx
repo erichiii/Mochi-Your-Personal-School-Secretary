@@ -17,8 +17,24 @@ export default function NotesOverview({ onOpenWorkspace }) {
   const folders = useMemo(() => subjects.filter((subject) => !subject.parentId), [subjects])
   const selectedFolder = folders.find((folder) => folder.id === activeSubjectFilter) ?? null
   const childNotebooks = selectedFolder ? subjects.filter((subject) => subject.parentId === selectedFolder.id) : folders
-  // Existing flat sections remain directly openable as notebooks.
-  const notebooks = selectedFolder && childNotebooks.length === 0 ? [selectedFolder] : childNotebooks
+  // All notes includes notebooks directly inside folders, not deeper organizing sections.
+  const allNotebooks = subjects.filter((subject) => folders.some((folder) => folder.id === subject.parentId))
+  const notebooks = selectedFolder
+    ? (childNotebooks.length === 0 ? [selectedFolder] : childNotebooks)
+    : allNotebooks
+
+  const getNoteCount = (subjectId) => {
+    const subjectIds = new Set([subjectId])
+    const queue = [subjectId]
+    while (queue.length > 0) {
+      const parentId = queue.shift()
+      subjects.filter((subject) => subject.parentId === parentId).forEach((subject) => {
+        subjectIds.add(subject.id)
+        queue.push(subject.id)
+      })
+    }
+    return notes.filter((note) => subjectIds.has(note.subjectId)).length
+  }
   const query = searchQuery.trim().toLowerCase()
   const visibleNotebooks = query
     ? subjects.filter((subject) => {
@@ -102,7 +118,7 @@ export default function NotesOverview({ onOpenWorkspace }) {
         </form>}
         <div className="notes-notebook-list">
           {visibleNotebooks.map((notebook) => {
-            const count = notes.filter((note) => note.subjectId === notebook.id).length
+            const count = getNoteCount(notebook.id)
             return <button type="button" key={notebook.id} className="notes-notebook-row" onClick={() => openNotebook(notebook)}>
               <span className="notes-notebook-row__icon"><FileText size={27} aria-hidden="true" /></span><span className="notes-notebook-row__name">{notebook.name}</span><span className="notes-notebook-row__count">{count} {count === 1 ? 'note' : 'notes'}</span><ArrowRight size={31} aria-hidden="true" />
             </button>
