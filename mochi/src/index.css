@@ -563,6 +563,54 @@ input:focus, select:focus, textarea:focus {
 .notes-mochi-help { position: absolute; right: 1.5rem; bottom: 1.5rem; z-index: 12; display: inline-flex; align-items: center; gap: 0.5rem; border: 2px solid var(--mochi-border); border-radius: 999px; padding: 0.7rem 1rem; background: var(--mochi-pink-mid); color: #fff; font-size: 0.9rem; font-weight: 700; box-shadow: 3px 3px 0 rgba(224, 33, 137, 0.2); }
 .notes-mochi-help:hover { background: var(--mochi-border); }
 
+/* To-do */
+.todo-page { background: #fff4fb; color: var(--mochi-text); }
+.todo-page__inner { width: min(100%, 64rem); margin: 0 auto; padding: 2.4rem clamp(1.25rem, 3vw, 2.25rem) 3.25rem; display: flex; flex-direction: column; gap: 1.65rem; }
+.todo-page__header { display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; }
+.todo-page__header > div:first-child { min-width: 0; }
+.todo-page__header img { width: 4.3rem !important; height: 4.3rem !important; }
+.todo-page__heading-copy h1 { margin: 0; color: var(--mochi-text); font-family: var(--font-display); font-size: clamp(2.35rem, 4vw, 3.45rem); font-weight: 700; line-height: 0.96; }
+.todo-page__heading-copy p { display: none; }
+.todo-page__add-task { display: inline-flex; align-items: center; gap: 0.5rem; border: 2px solid var(--mochi-border); border-radius: 999px; padding: 0.72rem 1.1rem; background: var(--mochi-pink-mid); color: #fff; font-size: 0.9rem; font-weight: 700; box-shadow: none; transition: transform .18s ease, background .18s ease; }
+.todo-page__add-task:hover { background: var(--mochi-border); transform: translateY(-1px); }
+.todo-page__add-task:active { transform: translateY(1px); }
+.todo-page__form { padding: 1.25rem; border: 2px solid var(--mochi-border); border-radius: 1rem; background: var(--mochi-surface); box-shadow: var(--shadow-soft); }
+.todo-page__summary-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(15rem, 0.95fr); gap: 1.5rem; align-items: stretch; }
+.todo-page__summary-card, .todo-page__progress-card { min-height: 14rem; padding: 1.2rem 1.55rem; border: 3px solid var(--mochi-border); border-radius: 1.55rem; background: var(--mochi-surface); box-shadow: none; }
+.todo-page__progress-card { display: flex; flex-direction: column; align-items: stretch; }
+.todo-page__progress-card > div { flex: 1; }
+.todo-page__weekly-heading { margin: 0; color: var(--mochi-text); font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; line-height: 1.35; }
+.todo-page__weekly-empty { max-width: 28rem; margin: 1rem 0 0; color: var(--mochi-text-soft); font-size: 0.9rem; font-weight: 600; line-height: 1.55; }
+.todo-page__weekly-list { display: grid; gap: 0.45rem; margin-top: 1rem; }
+.todo-page__weekly-row { display: flex; align-items: center; gap: 0.6rem; min-width: 0; color: var(--mochi-text); font-size: 0.78rem; }
+.todo-page__weekly-row button { display: grid; place-items: center; flex: 0 0 auto; border: 0; padding: 0; background: transparent; color: var(--mochi-pink-mid); }
+.todo-page__weekly-task { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.todo-page__weekly-subject::before { content: '|'; margin-right: 0.55rem; color: var(--mochi-text-muted); }
+.todo-page__weekly-subject { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--mochi-text-soft); }
+.todo-page__weekly-date { margin-left: auto; flex: 0 0 auto; color: var(--mochi-pink-dark); font-weight: 700; }
+.todo-page__tasks { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
+.todo-page__tasks-heading { display: flex; align-items: center; gap: 1rem; }
+.todo-page__filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; gap: 0.65rem; }
+.todo-page__filters button { min-width: 0; border: 2px solid transparent; border-radius: 999px; padding: 0.55rem 0.75rem; background: transparent; color: var(--mochi-pink-mid); font-size: 0.85rem; font-weight: 700; text-align: center; text-transform: capitalize; transition: background .18s ease, color .18s ease; }
+.todo-page__filters button:hover { background: var(--mochi-hover); }
+.todo-page__filters button.is-active { border: 2px solid var(--mochi-border); background: #fff0f9; color: var(--mochi-pink-dark); }
+.todo-task-list { overflow-x: auto; padding: 0.55rem 0.75rem 0.75rem; border: 3px solid var(--mochi-border); border-radius: 1.55rem; background: #fff8fd; }
+.todo-task-table { min-width: 48rem; border-collapse: separate; border-spacing: 0 0.5rem; }
+.todo-task-table thead tr { background: transparent !important; }
+.todo-task-table thead th { padding-bottom: 0.1rem !important; color: var(--mochi-pink-dark) !important; }
+.todo-task-table tbody tr.task-row { border: 0 !important; opacity: 1 !important; }
+.todo-task-table tbody tr.task-row td { border-top: 2px solid var(--mochi-border); border-bottom: 2px solid var(--mochi-border); background: #ffd3ef; }
+.todo-task-table tbody tr.task-row td:first-child { border-left: 2px solid var(--mochi-border); border-radius: 1.2rem 0 0 1.2rem; overflow: hidden; }
+.todo-task-table tbody tr.task-row td:last-child { border-right: 2px solid var(--mochi-border); border-radius: 0 1.2rem 1.2rem 0; }
+.todo-task-table tbody tr.task-row:hover td { background: #ffdef2; }
+.todo-task-table tbody tr.task-row td:first-child > div { width: 4px !important; }
+.todo-task-empty { display: grid; place-items: center; min-height: 11rem; border: 2px dashed var(--mochi-border); border-radius: 1rem; background: #fff0f9; color: var(--mochi-text-muted); text-align: center; }
+.todo-task-empty p { margin: 0; padding: 1.5rem; font-size: 0.92rem; font-weight: 600; }
+
+@media (max-width: 900px) {
+  .todo-page__summary-grid { grid-template-columns: 1fr; }
+}
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: var(--mochi-pink-mid); border: 2px solid var(--mochi-cream); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--mochi-pink-dark); }
@@ -590,6 +638,11 @@ input:focus, select:focus, textarea:focus {
   .notes-editor-canvas { padding: 1rem 1rem 5rem; }
   .notes-mochi-help { right: 1rem; bottom: 1rem; }
   .notes-module-add { width: 2.35rem; height: 2.35rem; }
+  .todo-page__inner { padding: 1.25rem 1rem 2rem; }
+  .todo-page__summary-grid { grid-template-columns: 1fr; }
+  .todo-page__filters { gap: 0.25rem; }
+  .todo-page__filters button { padding: 0.5rem 0.35rem; font-size: 0.78rem; }
+  .todo-page__weekly-subject { display: none; }
 }
 
 @media (min-width: 761px) and (max-width: 1100px) {

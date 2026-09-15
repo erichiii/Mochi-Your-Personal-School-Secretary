@@ -390,14 +390,23 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
 
 // ── TaskList ───────────────────────────────────────────────────────────────
 
-export default function TaskList({ tasks, categories = [], onToggleDone, onDelete, onUpdate }) {
-  const active = sortByPriority(tasks.filter((t) => !t.isDone))
-  const done   = tasks.filter((t) => t.isDone).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+export default function TaskList({ tasks, categories = [], filter = 'all', onToggleDone, onDelete, onUpdate }) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = today.getTime() + 86_400_000
+  const filteredTasks = tasks.filter((task) => {
+    if (filter === 'completed') return task.isDone
+    if (filter === 'today') return !task.isDone && task.deadline >= today.getTime() && task.deadline < tomorrow
+    if (filter === 'upcoming') return !task.isDone && task.deadline >= tomorrow
+    return true
+  })
+  const active = sortByPriority(filteredTasks.filter((t) => !t.isDone))
+  const done   = filteredTasks.filter((t) => t.isDone).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
 
-  if (tasks.length === 0) {
+  if (filteredTasks.length === 0) {
     return (
-      <div className="rounded-2xl p-6" style={{ border: '1.5px dashed var(--mochi-border)' }}>
-        <p className="text-sm" style={{ color: 'var(--mochi-text-muted)' }}>No tasks yet. Add your first one above.</p>
+      <div className="todo-task-empty">
+        <p>{tasks.length === 0 ? 'No tasks yet. Add your first one above.' : `No ${filter} tasks right now.`}</p>
       </div>
     )
   }
@@ -405,13 +414,13 @@ export default function TaskList({ tasks, categories = [], onToggleDone, onDelet
   const rowProps = { categories, onToggleDone, onDelete, onUpdate }
 
   return (
-    <div className="rounded-3xl overflow-hidden" style={{ border: '1.5px solid var(--mochi-border)', background: 'var(--mochi-surface)' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', tableLayout: 'fixed' }}>
+    <div className="todo-task-list">
+      <table className="todo-task-table" style={{ width: '100%', fontSize: '12px', tableLayout: 'fixed' }}>
         <thead>
           <tr style={{ background: 'var(--mochi-cream)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '10px', color: 'var(--mochi-text-muted)' }}>
             <th style={{ width: 3, padding: 0 }} />
             <th style={{ textAlign: 'left', padding: '10px 12px' }}>Task</th>
-            <th style={{ textAlign: 'left', padding: '10px 12px' }}>Category</th>
+            <th style={{ textAlign: 'left', padding: '10px 12px' }}>Subject</th>
             <th style={{ textAlign: 'left', padding: '10px 12px' }}>Due date</th>
             <th style={{ textAlign: 'left', padding: '10px 12px' }}>Effort</th>
             <th style={{ textAlign: 'left', padding: '10px 12px' }}>

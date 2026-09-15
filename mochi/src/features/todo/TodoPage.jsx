@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Plus, Sparkles, X } from 'lucide-react'
+import { Circle, Plus, X } from 'lucide-react'
 import useStore from '../../app/store/useStore'
 import TaskForm from './components/TaskForm'
 import TaskList from './components/TaskList'
-import TasksToday from './components/TasksToday'
 import TaskProgress from './components/TaskProgress'
 import mochiTodo from '../../assets/mascots/mochi-todo.png'
 
@@ -15,18 +14,22 @@ const fmtReminderOffset = (minutes) => {
 }
 
 const sectionLabelStyle = {
-  fontSize: '10px',
+  fontSize: '13px',
   fontWeight: 700,
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  color: 'var(--mochi-text-muted)',
-  marginBottom: '10px',
+  letterSpacing: '0',
+  color: 'var(--mochi-text)',
+  marginBottom: '6px',
   display: 'block',
 }
+
+const dueLabel = (deadline) => deadline
+  ? new Date(deadline).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  : 'No due date'
 
 export default function TodoPage() {
   const { tasks, loadTasks, createTask, updateTask, deleteTask } = useStore()
   const [formOpen, setFormOpen] = useState(false)
+  const [filter, setFilter] = useState('all')
 
   useEffect(() => { loadTasks() }, [])
 
@@ -40,6 +43,31 @@ export default function TodoPage() {
     tasks.forEach((t) => { if (t.category) set.add(t.category) })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [tasks])
+
+  const dueThisWeek = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const weekEnd = new Date(today)
+    weekEnd.setDate(weekEnd.getDate() + 6)
+    weekEnd.setHours(23, 59, 59, 999)
+    return tasks
+      .filter((task) => !task.isDone && task.deadline && task.deadline >= today.getTime() && task.deadline <= weekEnd.getTime())
+      .sort((a, b) => a.deadline - b.deadline)
+  }, [tasks])
+
+  const otherTasks = useMemo(() => tasks
+    .filter((task) => !task.isDone && !dueThisWeek.some((dueTask) => dueTask.id === task.id))
+    .sort((a, b) => (a.deadline || Number.MAX_SAFE_INTEGER) - (b.deadline || Number.MAX_SAFE_INTEGER)), [tasks, dueThisWeek])
+
+  const tasksForPanel = dueThisWeek.length > 0 ? dueThisWeek.slice(0, 3) : otherTasks.slice(0, 3)
+  const taskHeading = dueThisWeek.length > 0
+    ? `You have ${dueThisWeek.length} task${dueThisWeek.length === 1 ? '' : 's'} due this week.`
+    : otherTasks.length > 0
+      ? 'You have no tasks due this week. Want to stay ahead?'
+      : 'Wohoo! A free day today!'
+  const taskSupportingText = dueThisWeek.length === 0 && otherTasks.length === 0
+    ? 'Use your time productively or rest as needed. Good job!'
+    : null
 
   const handleCreate = async (payload) => {
     await createTask({
@@ -98,32 +126,17 @@ export default function TodoPage() {
   const handleDelete      = async (task) => deleteTask(task.id)
 
   return (
-    <div className="h-full overflow-y-auto" style={{ background: 'var(--mochi-cream)' }}>
-      <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col gap-6">
+    <div className="todo-page h-full overflow-y-auto">
+      <div className="todo-page__inner">
 
         {/* ── Header ──────────────────────────────────────────── */}
-        <div
-          className="stagger-item flex items-end justify-between gap-4"
-          style={{ '--delay': '0ms' }}
-        >
+        <div className="todo-page__header stagger-item" style={{ '--delay': '0ms' }}>
           {/* Left: title + stat */}
           <div className="flex items-center gap-3">
             <img src={mochiTodo} alt="Mochi ready to help with tasks" style={{ width: '54px', height: '54px', objectFit: 'contain', imageRendering: 'pixelated' }} />
-            <div className="flex flex-col gap-1">
-            <p
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '30px',
-                lineHeight: 1.1,
-                fontWeight: 700,
-                margin: 0,
-                color: 'var(--mochi-text)',
-                letterSpacing: '0',
-              }}
-            >
-              To-Do Studio
-            </p>
-            <p style={{ margin: 0, fontSize: '12px', color: 'var(--mochi-text-muted)' }}>
+            <div className="todo-page__heading-copy">
+            <h1>To-do</h1>
+            <p>
               {stats.done} of {stats.total} tasks completed
             </p>
             </div>
@@ -134,41 +147,16 @@ export default function TodoPage() {
             <button
               type="button"
               onClick={() => setFormOpen((v) => !v)}
-              className="pressable inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold"
-              style={formOpen
-                ? { background: 'var(--mochi-pink)', color: 'var(--mochi-pink-dark)', border: '1.5px solid var(--mochi-pink-mid)' }
-                : { background: 'var(--mochi-mint)', color: 'var(--mochi-mint-dark)', border: '1.5px solid var(--mochi-mint-mid)' }}
+              className="todo-page__add-task"
             >
               {formOpen ? <><X size={12} /> Cancel</> : <><Plus size={12} /> Add task</>}
             </button>
-
-            <div
-              className="flex items-center gap-2 px-3 py-2 rounded-full"
-              style={{
-                background: 'var(--mochi-mint)',
-                color: 'var(--mochi-mint-dark)',
-                fontSize: '11px',
-                fontWeight: 700,
-                border: '1.5px solid var(--mochi-mint-mid)',
-              }}
-            >
-              <Sparkles size={12} />
-              <span>Focus on what matters</span>
-            </div>
           </div>
         </div>
 
         {/* ── Task form (conditional) ──────────────────────────── */}
         {formOpen && (
-          <div
-            className="stagger-item rounded-3xl p-5"
-            style={{
-              '--delay': '0ms',
-              background: 'var(--mochi-surface)',
-              border: '1px solid var(--mochi-border)',
-              boxShadow: 'var(--shadow-soft)',
-            }}
-          >
+          <div className="todo-page__form stagger-item" style={{ '--delay': '0ms' }}>
             <TaskForm
               onCreate={handleCreate}
               categories={categories}
@@ -178,48 +166,43 @@ export default function TodoPage() {
         )}
 
         {/* ── Today + Progress panels ──────────────────────────── */}
-        <div
-          className="stagger-item grid gap-4"
-          style={{ '--delay': '80ms', gridTemplateColumns: '1fr 248px' }}
-        >
+        <div className="todo-page__summary-grid stagger-item" style={{ '--delay': '80ms' }}>
           {/* Tasks Today */}
-          <div
-            className="rounded-3xl p-5 flex flex-col"
-            style={{
-              background: 'var(--mochi-surface)',
-              border: '1px solid var(--mochi-border)',
-              boxShadow: 'var(--shadow-soft)',
-              minHeight: '200px',
-            }}
-          >
-            <span style={sectionLabelStyle}>Tasks Today</span>
-            <TasksToday tasks={tasks} />
+          <div className="todo-page__summary-card">
+            <p className="todo-page__weekly-heading">{taskHeading}</p>
+            {taskSupportingText ? <p className="todo-page__weekly-empty">{taskSupportingText}</p> : <div className="todo-page__weekly-list">
+              {tasksForPanel.map((task) => <div key={task.id} className="todo-page__weekly-row">
+                <button type="button" onClick={() => handleToggleDone(task)} title="Mark task complete" aria-label={`Mark ${task.title || 'task'} complete`}><Circle size={18} strokeWidth={2.4} /></button>
+                <span className="todo-page__weekly-task">{task.title || 'Untitled task'}</span>
+                {task.category && <span className="todo-page__weekly-subject">{task.category}</span>}
+                <span className="todo-page__weekly-date">{dueLabel(task.deadline)}</span>
+              </div>)}
+            </div>}
           </div>
 
           {/* Task Progress */}
-          <div
-            className="rounded-3xl p-5 flex flex-col"
-            style={{
-              background: 'var(--mochi-surface)',
-              border: '1px solid var(--mochi-border)',
-              boxShadow: 'var(--shadow-soft)',
-            }}
-          >
+          <div className="todo-page__progress-card">
             <span style={sectionLabelStyle}>Task Progress</span>
             <TaskProgress tasks={tasks} />
           </div>
         </div>
 
         {/* ── Task list ────────────────────────────────────────── */}
-        <div className="stagger-item" style={{ '--delay': '160ms' }}>
+        <section className="todo-page__tasks stagger-item" style={{ '--delay': '160ms' }}>
+          <div className="todo-page__tasks-heading">
+            <nav className="todo-page__filters" aria-label="Task filters">
+              {['all', 'today', 'upcoming', 'completed'].map((item) => <button key={item} type="button" className={filter === item ? 'is-active' : ''} onClick={() => setFilter(item)}>{item}</button>)}
+            </nav>
+          </div>
           <TaskList
             tasks={tasks}
             categories={categories}
+            filter={filter}
             onToggleDone={handleToggleDone}
             onUpdate={handleUpdate}
             onDelete={handleDelete}
           />
-        </div>
+        </section>
 
       </div>
     </div>

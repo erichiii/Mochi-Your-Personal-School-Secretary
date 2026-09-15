@@ -1,16 +1,16 @@
 import { useState } from 'react'
 
-const SIZE = 160
-const CX = 80
-const CY = 80
-const R = 56
-const STROKE = 15
+const SIZE = 136
+const CX = 68
+const CY = 68
+const R = 48
+const STROKE = 14
 const C = 2 * Math.PI * R
 
 const LEGENDS = [
-  { key: 'total',     label: 'Total',       color: 'var(--mochi-text-muted)' },
-  { key: 'done',      label: 'Done',        color: 'var(--mochi-mint-mid)'   },
-  { key: 'remaining', label: 'Not started', color: 'var(--mochi-border)'     },
+  { key: 'total',     label: 'Total',       color: 'var(--mochi-text)'       },
+  { key: 'done',      label: 'Done',        color: 'var(--mochi-pink-mid)'   },
+  { key: 'remaining', label: 'Not started', color: 'var(--mochi-lavender-mid)' },
 ]
 
 export default function TaskProgress({ tasks }) {
@@ -33,7 +33,7 @@ export default function TaskProgress({ tasks }) {
           <circle
             cx={CX} cy={CY} r={R}
             fill="none"
-            stroke="var(--mochi-border)"
+            stroke="var(--mochi-lavender-mid)"
             strokeWidth={STROKE}
           />
           {/* Done arc */}
@@ -41,7 +41,7 @@ export default function TaskProgress({ tasks }) {
             <circle
               cx={CX} cy={CY} r={R}
               fill="none"
-              stroke="var(--mochi-mint-mid)"
+              stroke="var(--mochi-pink-mid)"
               strokeWidth={STROKE}
               strokeDasharray={`${doneLen} ${C}`}
               strokeLinecap="butt"
