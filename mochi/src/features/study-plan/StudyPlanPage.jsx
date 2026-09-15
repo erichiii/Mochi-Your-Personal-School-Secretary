@@ -91,7 +91,7 @@ function NewPlanForm({ subjects, notes, scheduleItems, onCreate, onCancel }) {
 
         {/* Title */}
         <div>
-          <p style={{ fontFamily: 'Fraunces, serif', fontSize: '22px', fontWeight: 700, color: 'var(--mochi-sky-dark)', marginBottom: '4px' }}>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 700, color: 'var(--mochi-sky-dark)', marginBottom: '4px' }}>
             New Study Plan
           </p>
           <p style={{ fontSize: '12px', color: 'var(--mochi-text-muted)' }}>
@@ -251,7 +251,7 @@ function PlanView({ plan, planData, onPushTodo, onDelete }) {
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1 min-w-0">
-            <p style={{ fontFamily: 'Fraunces, serif', fontSize: '24px', fontWeight: 700, color: 'var(--mochi-sky-dark)', lineHeight: 1.2 }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 700, color: 'var(--mochi-sky-dark)', lineHeight: 1.2 }}>
               {plan.title}
             </p>
             <div className="flex items-center gap-2 flex-wrap">
@@ -639,7 +639,7 @@ export default function StudyPlanPage() {
             >
               <Sparkles size={28} style={{ color: 'var(--mochi-sky-dark)' }} />
             </div>
-            <p style={{ fontFamily: 'Fraunces, serif', fontSize: '20px', fontWeight: 700, color: 'var(--mochi-text)', marginBottom: '8px' }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 700, color: 'var(--mochi-text)', marginBottom: '8px' }}>
               Study smarter, not harder
             </p>
             <p style={{ fontSize: '12px', color: 'var(--mochi-text-muted)', maxWidth: '280px', lineHeight: 1.6, marginBottom: '20px' }}>

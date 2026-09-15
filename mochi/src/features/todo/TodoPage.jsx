@@ -5,6 +5,7 @@ import TaskForm from './components/TaskForm'
 import TaskList from './components/TaskList'
 import TasksToday from './components/TasksToday'
 import TaskProgress from './components/TaskProgress'
+import mochiTodo from '../../assets/mascots/mochi-todo.png'
 
 const fmtReminderOffset = (minutes) => {
   if (minutes < 60)   return `${minutes} min`
@@ -106,16 +107,18 @@ export default function TodoPage() {
           style={{ '--delay': '0ms' }}
         >
           {/* Left: title + stat */}
-          <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <img src={mochiTodo} alt="Mochi ready to help with tasks" style={{ width: '54px', height: '54px', objectFit: 'contain', imageRendering: 'pixelated' }} />
+            <div className="flex flex-col gap-1">
             <p
               style={{
-                fontFamily: 'Fraunces, serif',
-                fontSize: '26px',
+                fontFamily: 'var(--font-display)',
+                fontSize: '30px',
                 lineHeight: 1.1,
                 fontWeight: 700,
                 margin: 0,
-                color: 'var(--mochi-mint-dark)',
-                letterSpacing: '-0.02em',
+                color: 'var(--mochi-text)',
+                letterSpacing: '0',
               }}
             >
               To-Do Studio
@@ -123,6 +126,7 @@ export default function TodoPage() {
             <p style={{ margin: 0, fontSize: '12px', color: 'var(--mochi-text-muted)' }}>
               {stats.done} of {stats.total} tasks completed
             </p>
+            </div>
           </div>
 
           {/* Right: actions */}
@@ -162,7 +166,7 @@ export default function TodoPage() {
               '--delay': '0ms',
               background: 'var(--mochi-surface)',
               border: '1px solid var(--mochi-border)',
-              boxShadow: '0 4px 24px -8px rgba(0,0,0,0.06)',
+              boxShadow: 'var(--shadow-soft)',
             }}
           >
             <TaskForm
@@ -184,7 +188,7 @@ export default function TodoPage() {
             style={{
               background: 'var(--mochi-surface)',
               border: '1px solid var(--mochi-border)',
-              boxShadow: '0 4px 24px -8px rgba(0,0,0,0.04)',
+              boxShadow: 'var(--shadow-soft)',
               minHeight: '200px',
             }}
           >
@@ -198,7 +202,7 @@ export default function TodoPage() {
             style={{
               background: 'var(--mochi-surface)',
               border: '1px solid var(--mochi-border)',
-              boxShadow: '0 4px 24px -8px rgba(0,0,0,0.04)',
+              boxShadow: 'var(--shadow-soft)',
             }}
           >
             <span style={sectionLabelStyle}>Task Progress</span>

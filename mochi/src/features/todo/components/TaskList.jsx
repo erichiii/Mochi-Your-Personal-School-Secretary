@@ -167,7 +167,7 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
                 background: 'transparent', border: 'none', outline: 'none',
                 fontSize: '13px', fontWeight: 600,
                 color: 'var(--mochi-text)',
-                fontFamily: 'Nunito, sans-serif',
+                fontFamily: 'var(--font-body)',
                 textDecoration: task.isDone ? 'line-through' : 'none',
               }}
             />
@@ -300,7 +300,7 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
                 flex: 1, minWidth: 0,
                 background: 'transparent', border: 'none', outline: 'none',
                 fontSize: '11px', color: 'var(--mochi-text-muted)',
-                fontFamily: 'Nunito, sans-serif',
+                fontFamily: 'var(--font-body)',
               }}
             />
 

@@ -20,7 +20,7 @@ export default function App() {
     <BrowserRouter>
       <StickyNotesLayer />
       <div
-        className="flex h-screen overflow-hidden"
+        className="mochi-app-shell flex h-screen overflow-hidden"
         style={{ background: 'var(--mochi-cream)' }}
       >
         <Sidebar />

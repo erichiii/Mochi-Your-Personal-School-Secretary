@@ -6,6 +6,7 @@ import {
 import useStore from '../../app/store/useStore'
 import { generateSchedule } from '../../shared/lib/gemini'
 import ExportModal from './components/ExportModal'
+import mochiSchedule from '../../assets/mascots/mochi-schedule.png'
 
 // ── Constants ──────────────────────────────────────────────────
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -540,7 +541,8 @@ export default function SchedulePage() {
           style={{ borderBottom: '1.5px solid var(--mochi-border)' }}
         >
           <div className="flex items-center gap-3">
-            <p className="text-lg font-bold" style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-text)' }}>
+            <img src={mochiSchedule} alt="Mochi with a class schedule" style={{ width: '42px', height: '42px', objectFit: 'contain', imageRendering: 'pixelated' }} />
+            <p className="text-lg font-bold" style={{ fontFamily: 'var(--font-display)', color: 'var(--mochi-text)', fontSize: '22px' }}>
               {activeSection ? activeSection.name : 'Weekly Schedule'}
             </p>
             {activeSection && (() => {

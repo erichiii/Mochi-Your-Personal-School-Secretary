@@ -86,7 +86,7 @@ export default function PomodoroTimer({ task, onPomodoroComplete, onClose }) {
       {/* Clock face */}
       <span
         style={{
-          fontFamily: 'Nunito, sans-serif',
+          fontFamily: 'var(--font-body)',
           fontSize: '20px',
           fontWeight: 800,
           color: phaseColor,

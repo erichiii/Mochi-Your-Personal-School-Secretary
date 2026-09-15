@@ -3,7 +3,7 @@ import { db } from '../../shared/lib/db'
 
 const useStore = create((set, get) => ({
   // ── Theme ─────────────────────────────────────────────────
-  theme: localStorage.getItem('mochi_theme') || 'dark',
+  theme: localStorage.getItem('mochi_theme') || 'light',
   toggleTheme: () => {
     const next = get().theme === 'dark' ? 'light' : 'dark'
     localStorage.setItem('mochi_theme', next)

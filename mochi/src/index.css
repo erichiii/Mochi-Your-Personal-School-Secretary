@@ -1,76 +1,105 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&display=swap');
-
 @import "tailwindcss";
+
+@font-face {
+  font-family: 'Fredoka';
+  src: url('./assets/fonts/Fredoka-Variable.ttf') format('truetype');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Modak';
+  src: url('./assets/fonts/Modak-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* ── CSS Variables ─────────────────────────────────────────── */
 :root {
   /* Neutrals */
-  --mochi-cream:   #FFF8F0;
-  --mochi-surface: #FFFBF8;
-  --mochi-hover:   #FFE8D4;
-  --mochi-border:  #D8C0CC;
+  --mochi-cream: #ffcef0;
+  --mochi-surface: #ffffff;
+  --mochi-hover: #ffe5f6;
+  --mochi-border: #f9447f;
 
   /* Text */
-  --mochi-text:       #2A1A22;
-  --mochi-text-soft:  #52333F;
-  --mochi-text-muted: #7A5566;
+  --mochi-text: #29213c;
+  --mochi-text-soft: #503c65;
+  --mochi-text-muted: #856b96;
 
   /* Pink — global accents, active states */
-  --mochi-pink:      #FFD6E0;
-  --mochi-pink-mid:  #FFB3C6;
-  --mochi-pink-dark: #B03060;
+  --mochi-pink: #ffcef0;
+  --mochi-pink-mid: #f768a0;
+  --mochi-pink-dark: #e02189;
 
   /* Lavender — notes section */
-  --mochi-lavender:      #E8DEFF;
-  --mochi-lavender-mid:  #C9B8F5;
-  --mochi-lavender-dark: #5C38B0;
+  --mochi-lavender: #f2dcff;
+  --mochi-lavender-mid: #cb6ce6;
+  --mochi-lavender-dark: #7e3a9f;
 
   /* Mint — to-do section */
-  --mochi-mint:      #D4F5E9;
-  --mochi-mint-mid:  #A8E6CF;
-  --mochi-mint-dark: #207A50;
+  --mochi-mint: #ffe7f4;
+  --mochi-mint-mid: #f768a0;
+  --mochi-mint-dark: #d92b77;
 
   /* Peach — schedule section */
-  --mochi-peach:      #FFE5CC;
-  --mochi-peach-mid:  #FFCBA4;
-  --mochi-peach-dark: #B05010;
+  --mochi-peach: #fff0f8;
+  --mochi-peach-mid: #f768a0;
+  --mochi-peach-dark: #d92b77;
 
   /* Sky — study plan section */
-  --mochi-sky:      #D6EEFF;
-  --mochi-sky-mid:  #A8D4F5;
-  --mochi-sky-dark: #1860A8;
+  --mochi-sky: #f0e3ff;
+  --mochi-sky-mid: #cb6ce6;
+  --mochi-sky-dark: #703a91;
+  --font-display: 'Fredoka', sans-serif;
+  --font-body: 'Fredoka', sans-serif;
+  --radius-sm: 0.625rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --shadow-pixel: 4px 4px 0 var(--mochi-border);
+  --shadow-soft: 0 8px 0 rgba(249, 68, 127, 0.12);
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
 }
 
 /* ── Dark mode ─────────────────────────────────────────────── */
 [data-theme="dark"] {
-    --mochi-cream:   #0C0C0C;
-    --mochi-surface: #111111;
-    --mochi-hover:   #1E1E1E;
-    --mochi-border:  #242424;
+    --mochi-cream: #2d1637;
+    --mochi-surface: #3a2046;
+    --mochi-hover: #4d2a5d;
+    --mochi-border: #f768a0;
 
-    --mochi-text:       #F5E6EE;
-    --mochi-text-soft:  #C4A8B8;
-    --mochi-text-muted: #7A5F6A;
+    --mochi-text: #fff4fc;
+    --mochi-text-soft: #f5d6eb;
+    --mochi-text-muted: #d6aacb;
 
-    --mochi-pink:      #3D1A28;
-    --mochi-pink-mid:  #5C2840;
-    --mochi-pink-dark: #F098B8;
+    --mochi-pink: #5c244b;
+    --mochi-pink-mid: #f768a0;
+    --mochi-pink-dark: #ff9fca;
 
-    --mochi-lavender:      #201840;
-    --mochi-lavender-mid:  #342860;
-    --mochi-lavender-dark: #C4AAFF;
+    --mochi-lavender: #48265b;
+    --mochi-lavender-mid: #cb6ce6;
+    --mochi-lavender-dark: #e7b6ff;
 
-    --mochi-mint:      #0E2820;
-    --mochi-mint-mid:  #1A3D2E;
-    --mochi-mint-dark: #72E0AA;
+    --mochi-mint: #51213f;
+    --mochi-mint-mid: #f768a0;
+    --mochi-mint-dark: #ffabd1;
 
-    --mochi-peach:      #2E1A0A;
-    --mochi-peach-mid:  #4A2810;
-    --mochi-peach-dark: #FFB07A;
+    --mochi-peach: #51213f;
+    --mochi-peach-mid: #f768a0;
+    --mochi-peach-dark: #ffabd1;
 
-    --mochi-sky:      #0A1C2E;
-    --mochi-sky-mid:  #122840;
-    --mochi-sky-dark: #80C8FF;
+    --mochi-sky: #48265b;
+    --mochi-sky-mid: #cb6ce6;
+    --mochi-sky-dark: #e7b6ff;
 }
 
 /* ── Base ──────────────────────────────────────────────────── */
@@ -80,10 +109,11 @@
 
 body {
   margin: 0;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-body);
   background: var(--mochi-cream);
   color: var(--mochi-text);
   -webkit-font-smoothing: antialiased;
+  font-weight: var(--font-weight-medium);
 }
 
 /* ── Motion tokens ─────────────────────────────────────────── */
@@ -113,8 +143,7 @@ body {
 .fade-in     { animation: fadeSlideIn var(--dur-base) var(--ease-spring) both; }
 .spin        { animation: spin 0.7s linear infinite; }
 .shimmer     { animation: shimmer-move 1.6s var(--ease-out) infinite;
-               background: linear-gradient(90deg, var(--mochi-cream) 0%, var(--mochi-border) 50%, var(--mochi-cream) 100%);
-               background-size: 200% 100%; }
+               background: var(--mochi-hover); }
 
 /* Stagger support — set --delay as inline style on each child */
 .stagger-item {
@@ -169,7 +198,7 @@ input:focus, select:focus {
 /* ── Tiptap base ───────────────────────────────────────────── */
 .tiptap {
   outline: none;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-body);
   color: var(--mochi-text);
   line-height: 1.7;
   min-height: 100%;
@@ -185,7 +214,7 @@ input:focus, select:focus {
 
 /* ── Tiptap headings ───────────────────────────────────────── */
 .tiptap h1 {
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--mochi-text);
@@ -193,7 +222,7 @@ input:focus, select:focus {
   line-height: 1.25;
 }
 .tiptap h2 {
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 600;
   color: var(--mochi-text);
@@ -201,7 +230,7 @@ input:focus, select:focus {
   line-height: 1.3;
 }
 .tiptap h3 {
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--mochi-text-soft);
@@ -347,4 +376,69 @@ input:focus, select:focus {
   border-radius: 12px;
   margin: 0.5rem 0;
   display: block;
+}
+
+/* Mochi pixel school-secretary system */
+html { background: var(--mochi-cream); }
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+button {
+  transition: transform var(--dur-fast) ease, background var(--dur-base) var(--ease-spring), border-color var(--dur-base) var(--ease-spring), box-shadow var(--dur-base) var(--ease-spring);
+}
+
+button:not(:disabled):hover { transform: translateY(-1px); }
+button:not(:disabled):active { transform: translate(1px, 1px); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--mochi-lavender-mid);
+  outline-offset: 3px;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mochi-pink-mid) 42%, transparent);
+}
+
+.mochi-app-shell {
+  min-height: 100dvh;
+  background-color: var(--mochi-cream);
+}
+
+.mochi-page-title {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-bold);
+  color: var(--mochi-text);
+}
+
+.mochi-panel {
+  background: var(--mochi-surface);
+  border: 2px solid var(--mochi-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.mochi-sidebar {
+  background: var(--mochi-pink);
+  border-right: 3px solid var(--mochi-border);
+  box-shadow: 4px 0 0 rgba(249, 68, 127, 0.12);
+}
+
+.mochi-sidebar .sidebar-btn[data-active] {
+  box-shadow: 2px 2px 0 rgba(224, 33, 137, 0.2);
+}
+
+.mochi-sidebar .sidebar-btn:not([data-active]):hover {
+  background: rgba(255, 255, 255, 0.72) !important;
+  color: var(--mochi-pink-dark) !important;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--mochi-pink-mid); border: 2px solid var(--mochi-cream); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--mochi-pink-dark); }
+
+@media (max-width: 760px) {
+  .mochi-sidebar { width: 64px !important; }
+  .mochi-sidebar .mochi-wordmark, .mochi-sidebar .sidebar-label, .mochi-sidebar .sidebar-context { display: none; }
 }

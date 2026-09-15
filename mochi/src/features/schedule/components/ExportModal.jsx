@@ -187,7 +187,7 @@ export default function ExportModal({ items = [], section, onClose }) {
         {/* Header + tabs */}
         <div style={{ padding: '20px 24px 0', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <p style={{ fontFamily: 'Fraunces, serif', fontSize: '18px', fontWeight: '700', color: 'var(--mochi-text)', margin: 0 }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: '700', color: 'var(--mochi-text)', margin: 0 }}>
               Export{section ? ` — ${section.name}` : ' Schedule'}
             </p>
             <button

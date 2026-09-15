@@ -219,7 +219,7 @@ export default function EditorPane() {
             onChange={handleTitleChange}
             placeholder="Untitled"
             className="w-full bg-transparent outline-none text-2xl font-bold placeholder:opacity-30 mb-2"
-            style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-text)' }}
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--mochi-text)' }}
           />
           <div className="flex items-center gap-2 flex-wrap">
             <SubjectPicker noteId={activeNoteId} />

@@ -62,7 +62,7 @@ function CardFormModal({ decks, initial, defaultDeckId, onSave, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold" style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-text)' }}>
+          <h2 className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)', color: 'var(--mochi-text)' }}>
             {initial ? 'Edit Card' : 'New Card'}
           </h2>
           <button type="button" onClick={onClose} style={{ color: 'var(--mochi-text-muted)' }}><X size={15} /></button>
@@ -488,7 +488,7 @@ export default function FlashcardsPage() {
         {/* Header */}
         <div className="w-full max-w-2xl flex items-center justify-between mb-4">
           <div>
-            <p className="text-lg font-bold" style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-text)' }}>
+            <p className="text-lg font-bold" style={{ fontFamily: 'var(--font-display)', color: 'var(--mochi-text)' }}>
               {reviewCards ? 'Review Missed' : deckLabel}
             </p>
             {!completed && (
@@ -546,7 +546,7 @@ export default function FlashcardsPage() {
               style={{ background: 'var(--mochi-mint)', border: '2px solid var(--mochi-mint-mid)' }}>
               <Check size={28} style={{ color: 'var(--mochi-mint-dark)' }} />
             </div>
-            <p className="text-2xl font-bold mb-2" style={{ fontFamily: 'Fraunces, serif', color: 'var(--mochi-text)' }}>
+            <p className="text-2xl font-bold mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--mochi-text)' }}>
               Set Complete!
             </p>
             {trackMode && (

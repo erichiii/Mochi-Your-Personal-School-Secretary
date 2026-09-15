@@ -4,6 +4,7 @@ import { BookOpen, CheckSquare, Calendar, Brain, Layers, ChevronLeft, Sun, Moon,
 import SubjectSection from '../../features/notes/components/SubjectSection'
 import DeckSection from '../../features/flashcards/components/DeckSection'
 import useStore from '../store/useStore'
+import mochiLogo from '../../assets/mascots/mochi-logo.png'
 
 const NAV = [
   {
@@ -59,14 +60,14 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="flex-shrink-0 flex flex-col h-full"
+      className="mochi-sidebar flex-shrink-0 flex flex-col h-full"
       style={{
-        width: collapsed ? '64px' : '224px',
-        borderRight: '1px solid var(--mochi-border)',
-        background: 'var(--mochi-surface)',
+        width: collapsed ? '72px' : '244px',
+        borderRight: 'none',
+        background: 'var(--mochi-pink)',
         transition: 'width 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
         overflow: 'hidden',
-        boxShadow: 'inset -1px 0 0 rgba(255,255,255,0.03)',
+        boxShadow: 'none',
       }}
     >
       {/* ── Logo / header ─────────────────────────────────────── */}
@@ -75,7 +76,7 @@ export default function Sidebar() {
         style={{
           padding: collapsed ? '16px 0' : '16px 12px 16px 14px',
           minHeight: '64px',
-          borderBottom: '1px solid var(--mochi-border)',
+          borderBottom: '2px solid rgba(255,255,255,0.7)',
           justifyContent: collapsed ? 'center' : 'space-between',
           transition: 'padding 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
@@ -84,28 +85,30 @@ export default function Sidebar() {
           /* Mini "m" badge — click to expand */
           <button
             onClick={() => setCollapsed(false)}
-            className="sidebar-btn w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0"
+            className="sidebar-btn w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0"
             style={{
-              background: 'var(--mochi-pink)',
-              border: '1.5px solid var(--mochi-pink-mid)',
+              background: 'var(--mochi-surface)',
+              border: '2px solid var(--mochi-border)',
               color: 'var(--mochi-pink-dark)',
-              fontFamily: 'Fraunces, serif',
+              fontFamily: 'var(--font-display)',
               fontSize: '18px',
             }}
             title="Expand sidebar"
           >
-            m
+            <img src={mochiLogo} alt="Mochi" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
           </button>
         ) : (
           <>
-            <div className="flex-1 min-w-0">
+            <div className="mochi-wordmark flex items-center gap-2 flex-1 min-w-0">
+              <img src={mochiLogo} alt="Mochi mascot" style={{ width: '38px', height: '38px', objectFit: 'contain', imageRendering: 'pixelated' }} />
+              <div className="min-w-0">
               <span
                 className="font-bold"
                 style={{
-                  fontFamily: 'Fraunces, serif',
-                  fontSize: '20px',
-                  color: 'var(--mochi-pink-dark)',
-                  letterSpacing: '-0.02em',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '22px',
+                  color: 'var(--mochi-text)',
+                  letterSpacing: '0',
                   lineHeight: 1,
                 }}
               >
@@ -113,15 +116,16 @@ export default function Sidebar() {
               </span>
               <p
                 className="truncate"
-                style={{ fontSize: '10px', marginTop: '3px', color: 'var(--mochi-text-muted)', letterSpacing: '0.01em' }}
+                style={{ fontSize: '10px', marginTop: '3px', color: 'var(--mochi-text-soft)', letterSpacing: '0' }}
               >
                 your personal school secretary
               </p>
+              </div>
             </div>
             <button
               onClick={() => setCollapsed(true)}
               className="sidebar-btn p-1.5 rounded-lg flex-shrink-0"
-              style={{ color: 'var(--mochi-text-muted)' }}
+              style={{ color: 'var(--mochi-text)' }}
               title="Collapse sidebar"
             >
               <span className="sidebar-icon"><ChevronLeft size={14} strokeWidth={2} /></span>
@@ -149,7 +153,7 @@ export default function Sidebar() {
                 <span className="sidebar-icon flex-shrink-0">
                   <Icon size={15} strokeWidth={2} />
                 </span>
-                {!collapsed && <span className="truncate leading-none">{label}</span>}
+                {!collapsed && <span className="sidebar-label truncate leading-none">{label}</span>}
 
                 {/* Active dot in collapsed mode */}
                 {isActive && collapsed && (
@@ -166,14 +170,18 @@ export default function Sidebar() {
         {/* Contextual sections */}
         {onNotes && !collapsed && (
           <>
-            <div className="my-2" style={{ borderTop: '1px solid var(--mochi-border)', marginLeft: '4px', marginRight: '4px' }} />
-            <SubjectSection />
+            <div className="sidebar-context">
+              <div className="my-2" style={{ borderTop: '2px solid rgba(255,255,255,0.7)', marginLeft: '4px', marginRight: '4px' }} />
+              <SubjectSection />
+            </div>
           </>
         )}
         {onFlashcards && !collapsed && (
           <>
-            <div className="my-2" style={{ borderTop: '1px solid var(--mochi-border)', marginLeft: '4px', marginRight: '4px' }} />
-            <DeckSection />
+            <div className="sidebar-context">
+              <div className="my-2" style={{ borderTop: '2px solid rgba(255,255,255,0.7)', marginLeft: '4px', marginRight: '4px' }} />
+              <DeckSection />
+            </div>
           </>
         )}
       </nav>
@@ -181,7 +189,7 @@ export default function Sidebar() {
       {/* ── Bottom actions ─────────────────────────────────────── */}
       <div
         className="flex flex-col gap-0.5 p-2 flex-shrink-0"
-        style={{ borderTop: '1px solid var(--mochi-border)' }}
+        style={{ borderTop: '2px solid rgba(255,255,255,0.7)' }}
       >
         <button
           onClick={createStickyNote}
@@ -190,7 +198,7 @@ export default function Sidebar() {
           style={{
             padding: collapsed ? '9px 0' : '9px 10px',
             justifyContent: collapsed ? 'center' : 'flex-start',
-            color: 'var(--mochi-text-soft)',
+            color: 'var(--mochi-text)',
           }}
         >
           <span className="sidebar-icon flex-shrink-0"><StickyNote size={15} strokeWidth={2} /></span>
@@ -203,7 +211,7 @@ export default function Sidebar() {
           style={{
             padding: collapsed ? '9px 0' : '9px 10px',
             justifyContent: collapsed ? 'center' : 'flex-start',
-            color: 'var(--mochi-text-soft)',
+            color: 'var(--mochi-text)',
           }}
         >
           <span className="sidebar-icon flex-shrink-0">
