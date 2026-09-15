@@ -1,13 +1,19 @@
 import { useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
-import NotesListPanel from './components/NotesListPanel'
+import ModuleSidebar from './components/ModuleSidebar'
 import EditorPane from './components/EditorPane'
 import NotesOverview from './components/NotesOverview'
 
 export default function NotesPage() {
   const [showWorkspace, setShowWorkspace] = useState(false)
+  const [workspaceNotebookId, setWorkspaceNotebookId] = useState(null)
 
-  if (!showWorkspace) return <NotesOverview onOpenWorkspace={() => setShowWorkspace(true)} />
+  if (!showWorkspace) {
+    return <NotesOverview onOpenWorkspace={(notebookId) => {
+      setWorkspaceNotebookId(notebookId ?? null)
+      setShowWorkspace(true)
+    }} />
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -17,7 +23,7 @@ export default function NotesPage() {
         </button>
       </div>
       <div className="flex min-h-0 flex-1">
-        <NotesListPanel />
+        <ModuleSidebar notebookId={workspaceNotebookId} />
         <EditorPane />
       </div>
     </div>

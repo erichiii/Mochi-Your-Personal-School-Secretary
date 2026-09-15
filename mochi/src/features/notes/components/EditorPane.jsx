@@ -38,7 +38,7 @@ const TabIndent = Extension.create({
 })
 
 export default function EditorPane() {
-  const { notes, subjects, activeNoteId, updateNote, createNote, loadNotes } = useStore()
+  const { notes, subjects, activeNoteId, activeSubjectFilter, updateNote, createNote, loadNotes } = useStore()
   const activeNote = notes.find((n) => n.id === activeNoteId) ?? null
 
   const [title, setTitle] = useState('')
@@ -219,7 +219,7 @@ export default function EditorPane() {
             onChange={handleTitleChange}
             placeholder="Untitled"
             className="w-full bg-transparent outline-none text-2xl font-bold placeholder:opacity-30 mb-2"
-            style={{ fontFamily: 'var(--font-display)', color: 'var(--mochi-text)' }}
+            style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: 'var(--mochi-text)' }}
           />
           <div className="flex items-center gap-2 flex-wrap">
             <SubjectPicker noteId={activeNoteId} />
@@ -275,7 +275,7 @@ export default function EditorPane() {
                 or create a new one
               </p>
               <button
-                onClick={() => createNote()}
+                onClick={() => createNote(activeSubjectFilter ? { subjectId: activeSubjectFilter } : {})}
                 className="px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-80"
                 style={{
                   background: 'var(--mochi-lavender)',
