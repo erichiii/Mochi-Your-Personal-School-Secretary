@@ -20,7 +20,7 @@ export default function Sidebar() {
   const itemStyle = (isActive) => ({
     background: isActive ? 'var(--mochi-cream)' : 'transparent',
     border: isActive ? '2px solid var(--mochi-border)' : '2px solid transparent',
-    color: isActive ? 'var(--mochi-text)' : 'var(--mochi-surface)',
+    color: isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-surface)',
     boxShadow: isActive ? '2px 2px 0 rgba(224, 33, 137, 0.18)' : 'none',
   })
 
@@ -29,7 +29,7 @@ export default function Sidebar() {
       className="mochi-sidebar flex flex-col h-full flex-shrink-0"
       style={{
         width: collapsed ? '72px' : 'clamp(200px, 19vw, 244px)',
-        background: 'var(--mochi-pink-dark)',
+        background: 'var(--mochi-pink-mid)',
         transition: 'width var(--dur-base) var(--ease-spring)',
         overflow: 'visible',
         position: 'relative',
@@ -44,12 +44,12 @@ export default function Sidebar() {
       <button
         type="button"
         onClick={() => setCollapsed((value) => !value)}
-        className="flex items-center justify-center rounded-full"
-        style={{ position: 'absolute', top: '40px', right: '-28px', width: '56px', height: '56px', background: 'var(--mochi-surface)', border: '2px solid var(--mochi-border)', color: 'var(--mochi-pink-dark)', boxShadow: '2px 2px 0 rgba(224, 33, 137, 0.16)' }}
+        className="flex items-center justify-center"
+        style={{ position: 'absolute', top: '50%', right: '-18px', width: '36px', height: '72px', transform: 'translateY(-50%)', background: 'var(--mochi-pink-mid)', border: 'none', borderRadius: '0 18px 18px 0', color: 'var(--mochi-surface)', boxShadow: 'none' }}
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
-        {collapsed ? <ChevronRight size={25} strokeWidth={2.5} /> : <ChevronLeft size={25} strokeWidth={2.5} />}
+        {collapsed ? <ChevronRight size={16} strokeWidth={2.5} /> : <ChevronLeft size={16} strokeWidth={2.5} />}
       </button>
 
       <nav className="flex flex-col gap-2 px-3 pt-5 flex-1 overflow-y-auto overflow-x-hidden" aria-label="Main navigation">
