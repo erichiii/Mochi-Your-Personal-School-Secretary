@@ -251,12 +251,19 @@ const useStore = create((set, get) => ({
     set({ scheduleSections })
   },
   createScheduleSection: async (name, color) => {
-    const id = await db.scheduleSections.add({ name, color, createdAt: Date.now() })
+    const id = await db.scheduleSections.add({ name, color, isActive: false, createdAt: Date.now() })
     await get().loadScheduleSections()
     return id
   },
   updateScheduleSection: async (id, data) => {
     await db.scheduleSections.update(id, data)
+    await get().loadScheduleSections()
+  },
+  setActiveScheduleSection: async (id) => {
+    await db.transaction('rw', db.scheduleSections, async () => {
+      await db.scheduleSections.toCollection().modify({ isActive: false })
+      await db.scheduleSections.update(id, { isActive: true })
+    })
     await get().loadScheduleSections()
   },
   deleteScheduleSection: async (id) => {

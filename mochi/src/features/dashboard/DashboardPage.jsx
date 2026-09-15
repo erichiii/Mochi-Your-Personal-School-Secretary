@@ -40,8 +40,8 @@ const dueLabel = (deadline) => {
 export default function DashboardPage() {
   const [now, setNow] = useState(() => new Date())
   const {
-    notes, tasks, scheduleItems, subjects,
-    loadNotes, loadTasks, loadSchedule, loadSubjects,
+    notes, tasks, scheduleItems, scheduleSections, subjects,
+    loadNotes, loadTasks, loadSchedule, loadScheduleSections, loadSubjects,
     setActiveNote, setSubjectFilter,
   } = useStore()
 
@@ -49,6 +49,7 @@ export default function DashboardPage() {
     loadNotes()
     loadTasks()
     loadSchedule()
+    loadScheduleSections()
     loadSubjects()
     const timer = window.setInterval(() => setNow(new Date()), 60_000)
     return () => window.clearInterval(timer)
@@ -66,9 +67,10 @@ export default function DashboardPage() {
     .filter((task) => !task.isDone && !dueThisWeek.some((dueTask) => dueTask.id === task.id))
     .sort((a, b) => (a.deadline || Number.MAX_SAFE_INTEGER) - (b.deadline || Number.MAX_SAFE_INTEGER)), [tasks, dueThisWeek])
 
+  const activeScheduleSection = scheduleSections.find((section) => section.isActive) ?? null
   const todayClasses = useMemo(() => scheduleItems
-    .filter((item) => item.day === todayName)
-    .sort((a, b) => timeScore(a.time) - timeScore(b.time)), [scheduleItems, todayName])
+    .filter((item) => activeScheduleSection && item.sectionId === activeScheduleSection.id && item.day === todayName)
+    .sort((a, b) => timeScore(a.time) - timeScore(b.time)), [scheduleItems, activeScheduleSection, todayName])
 
   const recentNotes = notes.slice(0, 4)
   const topLevelSubjects = subjects.filter((subject) => !subject.parentId).slice(0, 5)
@@ -135,8 +137,8 @@ export default function DashboardPage() {
               )) : (
                 <Link to="/schedule" className="flex flex-col items-center rounded-2xl px-4 py-8 text-center" style={{ background: 'var(--mochi-hover)', border: '2px dashed var(--mochi-border)', color: 'inherit', textDecoration: 'none' }}>
                   <Clock3 size={28} style={{ color: 'var(--mochi-pink-dark)' }} />
-                  <span className="mt-3 text-sm font-bold">No classes are scheduled today.</span>
-                  <span className="mt-1 text-xs" style={{ color: 'var(--mochi-text-soft)' }}>Open Schedule to add one.</span>
+                  <span className="mt-3 text-sm font-bold">{activeScheduleSection ? 'No classes are scheduled today.' : 'Choose an active term first.'}</span>
+                  <span className="mt-1 text-xs" style={{ color: 'var(--mochi-text-soft)' }}>{activeScheduleSection ? 'Open Schedule to add one.' : 'Open Schedule and mark the current term with the check icon.'}</span>
                 </Link>
               )}
             </div>

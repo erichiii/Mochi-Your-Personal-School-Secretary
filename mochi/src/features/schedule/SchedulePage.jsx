@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Calendar, Plus, X, Sparkles, Loader2, AlertCircle,
-  Pencil, Trash2, Check, ImageIcon, Save, Download,
+  Pencil, Trash2, Check, CircleCheck, ImageIcon, Save, Download,
 } from 'lucide-react'
 import useStore from '../../app/store/useStore'
 import { generateSchedule } from '../../shared/lib/gemini'
@@ -89,7 +89,7 @@ export default function SchedulePage() {
     scheduleItems, loadSchedule,
     createScheduleItem, updateScheduleItem, deleteScheduleItem,
     scheduleSections, loadScheduleSections,
-    createScheduleSection, updateScheduleSection, deleteScheduleSection,
+    createScheduleSection, updateScheduleSection, deleteScheduleSection, setActiveScheduleSection,
   } = useStore()
 
   // Active section (null = "All")
@@ -374,6 +374,15 @@ export default function SchedulePage() {
                 <span className="flex-1 text-xs font-semibold truncate" style={{ color: isActive ? colors.text : 'var(--mochi-text)' }}>
                   {section.name}
                 </span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setActiveScheduleSection(section.id) }}
+                  className="p-0.5 rounded transition-all"
+                  title={section.isActive ? 'Active term' : 'Set as active term'}
+                  aria-label={section.isActive ? `${section.name} is the active term` : `Set ${section.name} as the active term`}
+                  style={{ color: section.isActive ? 'var(--mochi-pink-dark)' : 'var(--mochi-text-muted)', opacity: section.isActive ? 1 : 0.55 }}
+                >
+                  <CircleCheck size={14} fill={section.isActive ? 'var(--mochi-pink)' : 'none'} />
+                </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); startEditSection(section) }}
                   className="opacity-0 group-hover:opacity-100 p-0.5 rounded transition-all"
