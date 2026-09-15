@@ -6,7 +6,7 @@ import notesMascot from '../../../assets/mascots/mochi-notes.png'
 const stripHtml = (html) => (html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 
 export default function NotesOverview({ onOpenWorkspace }) {
-  const { notes, subjects, activeSubjectFilter, loadNotes, loadSubjects, createNote, createSubject, setSubjectFilter } = useStore()
+  const { notes, subjects, activeSubjectFilter, loadNotes, loadSubjects, createNote, createSubject, setActiveNote, setSubjectFilter } = useStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [creating, setCreating] = useState(null)
@@ -45,7 +45,7 @@ export default function NotesOverview({ onOpenWorkspace }) {
       })
     : notebooks
 
-  const openNotebook = (subject) => { setSubjectFilter(subject.id); onOpenWorkspace(subject.id) }
+  const openNotebook = (subject) => { setSubjectFilter(subject.id); setActiveNote(null); onOpenWorkspace(subject.id) }
   const selectFolder = (folderId) => { setSubjectFilter(folderId); setSearchQuery('') }
 
   const handleCreate = async () => {

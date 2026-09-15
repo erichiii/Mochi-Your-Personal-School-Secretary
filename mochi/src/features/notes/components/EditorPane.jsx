@@ -11,13 +11,14 @@ import TaskItem from '@tiptap/extension-task-item'
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 import Highlight from '@tiptap/extension-highlight'
 import { TextStyle } from '@tiptap/extension-text-style'
-import { FileText, Plus, CheckCheck, AlertCircle, Loader2, Download } from 'lucide-react'
+import { FilePenLine, FileText, Plus, CheckCheck, AlertCircle, Loader2, Download, Upload } from 'lucide-react'
 import useStore from '../../../app/store/useStore'
 import EditorToolbar from './EditorToolbar'
 import SubjectPicker from './SubjectPicker'
 import ResourcesPanel from './ResourcesPanel'
 import AIPanel from './AIPanel'
 import { FontSize } from '../../../shared/extensions/FontSize'
+import mochiLoading from '../../../assets/mascots/mochi-loading.png'
 
 const TabIndent = Extension.create({
   name: 'tabIndent',
@@ -48,6 +49,8 @@ export default function EditorPane() {
   const titleTimer = useRef(null)
   const savedTimer = useRef(null)
   const lastLoadedId = useRef(null)
+  const materialInputRef = useRef(null)
+  const [startWritingNoteId, setStartWritingNoteId] = useState(null)
 
   // Ensure data is fresh on remount (tab switch back to Notes)
   useEffect(() => { loadNotes() }, [])
@@ -209,10 +212,38 @@ export default function EditorPane() {
     input.click()
   }
 
+  const handleStartFromScratch = () =>
+    activeNote
+      ? setStartWritingNoteId(activeNote.id)
+      : createNote(activeSubjectFilter ? { subjectId: activeSubjectFilter } : {}).then((id) => setStartWritingNoteId(id))
+
+  const handleMaterialUpload = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const id = activeNote?.id ?? await createNote({
+      subjectId: activeSubjectFilter ?? null,
+      title: file.name.replace(/\.[^.]+$/, ''),
+    })
+    const reader = new FileReader()
+    reader.onload = async (loadEvent) => {
+      await updateNote(id, {
+        resources: [{ id: crypto.randomUUID(), type: 'file', name: file.name, mimeType: file.type, dataUrl: loadEvent.target.result }],
+      })
+      setStartWritingNoteId(id)
+    }
+    reader.readAsDataURL(file)
+    event.target.value = ''
+  }
+
+  const hasStoredContent = Boolean(activeNote?.content?.replace(/<[^>]+>/g, '').trim() || activeNote?.resources?.length)
+  const showEmptyModuleState = Boolean(activeSubjectFilter && (!activeNote || (!hasStoredContent && startWritingNoteId !== activeNote.id)))
+  const showEditor = Boolean(activeNote && !showEmptyModuleState)
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative">
       {/* ── Active note header ─────────────────────────────── */}
-      {activeNote && (
+      {showEditor && (
         <div className="px-8 pt-6 pb-3" style={{ borderBottom: '1.5px solid var(--mochi-border)' }}>
           <input
             value={title}
@@ -247,7 +278,7 @@ export default function EditorPane() {
       )}
 
       {/* ── Toolbar ────────────────────────────────────────── */}
-      {activeNote && (
+      {showEditor && (
         <EditorToolbar
           editor={editor}
           onImageUpload={handleImageUpload}
@@ -259,38 +290,31 @@ export default function EditorPane() {
       {/* ── Editor + AI panel row ─────────────────────────── */}
       <div className="flex-1 flex overflow-hidden">
         {/* Editor content — ALWAYS mounted so Tiptap keeps its DOM node */}
-        <div className="flex-1 overflow-y-auto px-8 py-6" style={{ display: activeNote ? 'block' : 'none' }}>
+        <div className="flex-1 overflow-y-auto px-8 py-6" style={{ display: showEditor ? 'block' : 'none' }}>
           <EditorContent editor={editor} />
         </div>
 
         {/* Empty state — shown when no note selected */}
-        {!activeNote && (
+        {showEmptyModuleState && (
           <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <FileText size={48} className="mx-auto mb-4" style={{ color: 'var(--mochi-border)' }} />
-              <p className="text-base font-semibold mb-1" style={{ color: 'var(--mochi-text-soft)' }}>
-                Select a note to open it
-              </p>
-              <p className="text-xs mb-4" style={{ color: 'var(--mochi-text-muted)' }}>
-                or create a new one
-              </p>
-              <button
-                onClick={() => createNote(activeSubjectFilter ? { subjectId: activeSubjectFilter } : {})}
-                className="px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-80"
-                style={{
-                  background: 'var(--mochi-lavender)',
-                  color: 'var(--mochi-lavender-dark)',
-                  border: '1.5px solid var(--mochi-lavender-mid)',
-                }}
-              >
-                New note
-              </button>
+            <div className="notes-empty-module-state">
+              <img src={mochiLoading} alt="Mochi ready to study on a stack of books" />
+              <h2>Let's start studying!</h2>
+              <p>Add your lecture materials and Mochi will prepare this module for you.</p>
+              <input ref={materialInputRef} type="file" className="sr-only" onChange={handleMaterialUpload} accept=".txt,.md,.csv,.pdf,image/*" />
+              <button type="button" className="notes-empty-module-state__upload" onClick={() => materialInputRef.current?.click()}><Upload size={21} /> Upload Materials</button>
+              <div className="notes-empty-module-state__divider"><span>or</span></div>
+              <button type="button" className="notes-empty-module-state__scratch" onClick={handleStartFromScratch}><FilePenLine size={20} /> Start from scratch</button>
             </div>
           </div>
         )}
 
+        {!activeNote && !activeSubjectFilter && (
+          <div className="flex-1 flex items-center justify-center"><div className="text-center"><FileText size={48} className="mx-auto mb-4" style={{ color: 'var(--mochi-border)' }} /><p className="text-base font-semibold" style={{ color: 'var(--mochi-text-soft)' }}>Select a note to open it</p></div></div>
+        )}
+
         {/* AI panel */}
-        {activeNote && aiOpen && (
+        {showEditor && aiOpen && (
           <AIPanel editor={editor} noteId={activeNoteId} onClose={() => setAiOpen(false)} />
         )}
       </div>

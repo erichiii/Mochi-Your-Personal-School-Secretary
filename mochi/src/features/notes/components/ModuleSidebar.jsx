@@ -19,9 +19,11 @@ const collectSubjectIds = (subjects, subjectId) => {
 const stripHtml = (html) => (html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 
 export default function ModuleSidebar({ notebookId }) {
-  const { notes, subjects, activeNoteId, activeSubjectFilter, loadNotes, loadSubjects, createNote, deleteNote, setSubjectFilter, setActiveNote } = useStore()
+  const { notes, subjects, activeNoteId, activeSubjectFilter, loadNotes, loadSubjects, createNote, updateNote, deleteNote, setSubjectFilter, setActiveNote } = useStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [menuId, setMenuId] = useState(null)
+  const [editingId, setEditingId] = useState(null)
+  const [editingTitle, setEditingTitle] = useState('')
   const [confirmNote, setConfirmNote] = useState(null)
   const [collapsed, setCollapsed] = useState(false)
 
@@ -41,16 +43,20 @@ export default function ModuleSidebar({ notebookId }) {
     ? notebookNotes.filter((note) => note.title.toLowerCase().includes(query) || stripHtml(note.content).toLowerCase().includes(query))
     : notebookNotes
 
-  useEffect(() => {
-    if (!notebook || activeNoteId && notebookSubjectIds.has(notes.find((note) => note.id === activeNoteId)?.subjectId)) return
-    setActiveNote(notebookNotes[0]?.id ?? null)
-  }, [activeNoteId, notebook, notebookNotes, notebookSubjectIds, notes, setActiveNote])
-
   const createPage = async () => {
     if (!notebook) return
     const id = await createNote({ subjectId: notebook.id })
     setSubjectFilter(notebook.id)
     setActiveNote(id)
+    setEditingId(id)
+    setEditingTitle('')
+  }
+
+  const savePageTitle = async () => {
+    if (!editingId) return
+    await updateNote(editingId, { title: editingTitle.trim() })
+    setEditingId(null)
+    setEditingTitle('')
   }
 
   if (collapsed) {
@@ -85,14 +91,12 @@ export default function ModuleSidebar({ notebookId }) {
         {visibleNotes.map((note) => {
           const isActive = activeNoteId === note.id
           return <article key={note.id} className={`notes-module-card ${isActive ? 'is-active' : ''}`}>
-            <button type="button" className="notes-module-card__select" onClick={() => { setActiveNote(note.id); setSubjectFilter(note.subjectId ?? notebook?.id) }}>
-              <FileText size={17} aria-hidden="true" />
-              <span>{note.title || 'Untitled'}</span>
-            </button>
-            <div className="notes-module-card__menu">
-              <button type="button" onClick={() => setMenuId(menuId === note.id ? null : note.id)} aria-label={`Options for ${note.title || 'Untitled'}`}><MoreVertical size={21} /></button>
-              {menuId === note.id && <div className="notes-module-card__dropdown"><button type="button" onClick={() => { setConfirmNote(note); setMenuId(null) }}><Trash2 size={15} /> Delete</button></div>}
-            </div>
+            {editingId === note.id ? <input autoFocus value={editingTitle} onChange={(event) => setEditingTitle(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') savePageTitle(); if (event.key === 'Escape') setEditingId(null) }} onBlur={savePageTitle} placeholder="Page name" /> : <>
+              <button type="button" className="notes-module-card__select" onClick={() => { setActiveNote(note.id); setSubjectFilter(note.subjectId ?? notebook?.id) }}><FileText size={17} aria-hidden="true" /><span>{note.title || 'Untitled'}</span></button>
+              <div className="notes-module-card__menu"><button type="button" onClick={() => setMenuId(menuId === note.id ? null : note.id)} aria-label={`Options for ${note.title || 'Untitled'}`}><MoreVertical size={21} /></button>
+                {menuId === note.id && <div className="notes-module-card__dropdown"><button type="button" onClick={() => { setEditingId(note.id); setEditingTitle(note.title); setMenuId(null) }}>Rename</button><button type="button" onClick={() => { setConfirmNote(note); setMenuId(null) }}><Trash2 size={15} /> Delete</button></div>}
+              </div>
+            </>}
           </article>
         })}
         {!notebook && <p className="notes-module-empty">Select a notebook from the Notes overview.</p>}
