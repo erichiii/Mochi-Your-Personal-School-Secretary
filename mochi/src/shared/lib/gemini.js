@@ -82,6 +82,18 @@ ${text}
 
 IMPORTANT: Output clean Markdown only. Start with your first heading — no greeting, no preamble. In markdown tables, escape any pipe character used as mathematical notation with a backslash (write d\|n, not d|n).`,
 
+  test: (text, extra) => `You are Mochi, a warm and helpful student secretary.
+Respond in clean Markdown. No preamble. No greeting. Start directly with content.
+${extra}
+Create a practice test from the following module material.
+Include a balanced mix of multiple-choice, short-answer, and application questions.
+Place an answer key after a horizontal rule at the end. Keep questions specific and study-ready.
+
+Document:
+${text}
+
+IMPORTANT: Output clean Markdown only. Start with your first heading â€” no greeting, no preamble.`,
+
   general: (text, extra) => `You are Mochi, a warm and helpful student secretary.
 Respond in clean Markdown. No preamble. No greeting. Start directly with content.
 ${extra}

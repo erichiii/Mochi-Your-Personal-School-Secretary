@@ -23,7 +23,7 @@ const fixTablePipes = (markdown) =>
     )
   }).join('\n')
 
-const parseMarkdownWithMath = (markdown) => {
+export const parseMarkdownWithMath = (markdown) => {
   const slots = []
   const reserve = (tex, display) => {
     const idx = slots.length
@@ -90,7 +90,7 @@ const extractPdfText = async (file) => {
   return pages.join('\n\n')
 }
 
-export default function AIPanel({ editor, noteId, onClose }) {
+export default function AIPanel({ editor, noteId, onClose, initialMode = 'primer' }) {
   const { createFlashcard, notes, decks, loadDecks } = useStore()
 
   const [mode, setMode] = useState('primer')
@@ -108,6 +108,7 @@ export default function AIPanel({ editor, noteId, onClose }) {
   const fileRef = useRef()
 
   useEffect(() => { loadDecks() }, [])
+  useEffect(() => { setMode(initialMode) }, [initialMode])
 
   const getSourceText = () => {
     if (uploadedFiles.length > 0) return uploadedFiles.map((f) => f.text).join('\n\n---\n\n')

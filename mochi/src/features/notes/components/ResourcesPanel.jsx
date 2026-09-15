@@ -34,7 +34,7 @@ function AddTab({ active, onClick, children }) {
   )
 }
 
-export default function ResourcesPanel({ noteId, resources = [] }) {
+export default function ResourcesPanel({ noteId, resources = [], forceOpen = false, showTrigger = true, inline = false }) {
   const { updateNote, notes, setActiveNote } = useStore()
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState(null) // 'url' | 'file' | 'note'
@@ -50,6 +50,8 @@ export default function ResourcesPanel({ noteId, resources = [] }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  useEffect(() => { setOpen(forceOpen && !inline) }, [forceOpen, inline])
+
   const resetForm = () => { setTab(null); setUrl(''); setUrlLabel(''); setNoteSearch('') }
 
   const save = (list) => updateNote(noteId, { resources: list })
@@ -62,14 +64,16 @@ export default function ResourcesPanel({ noteId, resources = [] }) {
     setUrl(''); setUrlLabel(''); setTab(null)
   }
 
-  const handleAddFile = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      save([...resources, { id: crypto.randomUUID(), type: 'file', name: file.name, mimeType: file.type, dataUrl: ev.target.result }])
-    }
-    reader.readAsDataURL(file)
+  const handleAddFile = async (e) => {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    const additions = await Promise.all(files.map((file) => new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (ev) => resolve({ id: crypto.randomUUID(), type: 'file', name: file.name, mimeType: file.type, dataUrl: ev.target.result })
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })))
+    save([...resources, ...additions])
     e.target.value = ''
     setTab(null)
   }
@@ -111,29 +115,30 @@ export default function ResourcesPanel({ noteId, resources = [] }) {
   ))
 
   return (
-    <div className="relative" ref={ref}>
-      {/* Trigger */}
-      <button
-        onClick={() => { setOpen((v) => !v); if (open) resetForm() }}
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
-        style={
-          resources.length > 0
-            ? { background: 'var(--mochi-peach)', border: '1.5px solid var(--mochi-peach-mid)', color: 'var(--mochi-peach-dark)' }
-            : { background: 'var(--mochi-border)', color: 'var(--mochi-text-muted)', border: '1.5px solid transparent' }
-        }
-      >
-        <Paperclip size={11} />
-        <span>{resources.length > 0 ? `${resources.length} resource${resources.length > 1 ? 's' : ''}` : 'Resources'}</span>
-        <ChevronDown size={10} style={{ transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform 0.15s' }} />
-      </button>
+    <div className={inline ? 'notes-resources-panel' : 'relative'} ref={ref}>
+      {showTrigger && (
+        <button
+          onClick={() => { setOpen((v) => !v); if (open) resetForm() }}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
+          style={
+            resources.length > 0
+              ? { background: 'var(--mochi-peach)', border: '1.5px solid var(--mochi-peach-mid)', color: 'var(--mochi-peach-dark)' }
+              : { background: 'var(--mochi-border)', color: 'var(--mochi-text-muted)', border: '1.5px solid transparent' }
+          }
+        >
+          <Paperclip size={11} />
+          <span>{resources.length > 0 ? `${resources.length} resource${resources.length > 1 ? 's' : ''}` : 'Resources'}</span>
+          <ChevronDown size={10} style={{ transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform 0.15s' }} />
+        </button>
+      )}
 
-      {open && (
+      {(inline || open) && (
         <div
-          className="absolute left-0 top-full mt-1.5 z-50 rounded-2xl shadow-xl fade-in"
+          className={inline ? 'notes-resources-panel__content fade-in' : 'absolute left-0 top-full mt-1.5 z-50 rounded-2xl shadow-xl fade-in'}
           style={{
             background: 'var(--mochi-surface)',
             border: '1.5px solid var(--mochi-border)',
-            width: '260px',
+            width: inline ? 'min(100%, 44rem)' : '260px',
           }}
         >
           {/* Existing resources */}
@@ -250,7 +255,7 @@ export default function ResourcesPanel({ noteId, resources = [] }) {
           </div>
 
           {/* Hidden file input */}
-          <input ref={fileRef} type="file" className="hidden" onChange={handleAddFile} />
+          <input ref={fileRef} type="file" className="hidden" onChange={handleAddFile} multiple />
         </div>
       )}
     </div>
