@@ -1,47 +1,184 @@
-import { useEffect } from 'react'
-import { CalendarDays, CheckSquare, NotebookText } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { ArrowRight, CalendarDays, CheckCircle2, Circle, Clock3, FileText, NotebookText } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import useStore from '../../app/store/useStore'
-import mochiLogo from '../../assets/mascots/mochi-logo.png'
+import mochiDashboard from '../../assets/mascots/mochi-dashboard.png'
 
-const summaryCards = [
-  { key: 'notes', label: 'Notes', Icon: NotebookText },
-  { key: 'tasks', label: 'To-do', Icon: CheckSquare },
-  { key: 'scheduleItems', label: 'Schedule items', Icon: CalendarDays },
-]
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+const getGreeting = (date) => {
+  const hour = date.getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
+const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+
+const endOfWeek = (date) => {
+  const end = new Date(date)
+  end.setDate(date.getDate() + (6 - date.getDay()))
+  end.setHours(23, 59, 59, 999)
+  return end.getTime()
+}
+
+const timeScore = (time = '') => {
+  const match = time.match(/(\d+)(?::(\d+))?\s*(AM|PM)/i)
+  if (!match) return Number.MAX_SAFE_INTEGER
+  let hour = Number(match[1])
+  if (match[3].toUpperCase() === 'PM' && hour !== 12) hour += 12
+  if (match[3].toUpperCase() === 'AM' && hour === 12) hour = 0
+  return hour * 60 + Number(match[2] || 0)
+}
+
+const dueLabel = (deadline) => {
+  if (!deadline) return 'No due date'
+  const due = new Date(deadline)
+  return `Due ${due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+}
 
 export default function DashboardPage() {
-  const { notes, tasks, scheduleItems, loadNotes, loadTasks, loadSchedule } = useStore()
+  const [now, setNow] = useState(() => new Date())
+  const {
+    notes, tasks, scheduleItems, subjects,
+    loadNotes, loadTasks, loadSchedule, loadSubjects,
+    setActiveNote, setSubjectFilter,
+  } = useStore()
 
   useEffect(() => {
     loadNotes()
     loadTasks()
     loadSchedule()
+    loadSubjects()
+    const timer = window.setInterval(() => setNow(new Date()), 60_000)
+    return () => window.clearInterval(timer)
   }, [])
 
-  const values = {
-    notes: notes.length,
-    tasks: tasks.filter((task) => !task.isDone).length,
-    scheduleItems: scheduleItems.length,
-  }
+  const todayStart = startOfDay(now)
+  const todayName = DAY_NAMES[now.getDay()]
+  const thisWeekEnd = endOfWeek(now)
+
+  const dueThisWeek = useMemo(() => tasks
+    .filter((task) => !task.isDone && Number.isFinite(task.deadline) && task.deadline >= todayStart && task.deadline <= thisWeekEnd)
+    .sort((a, b) => a.deadline - b.deadline), [tasks, todayStart, thisWeekEnd])
+
+  const otherTasks = useMemo(() => tasks
+    .filter((task) => !task.isDone && !dueThisWeek.some((dueTask) => dueTask.id === task.id))
+    .sort((a, b) => (a.deadline || Number.MAX_SAFE_INTEGER) - (b.deadline || Number.MAX_SAFE_INTEGER)), [tasks, dueThisWeek])
+
+  const todayClasses = useMemo(() => scheduleItems
+    .filter((item) => item.day === todayName)
+    .sort((a, b) => timeScore(a.time) - timeScore(b.time)), [scheduleItems, todayName])
+
+  const recentNotes = notes.slice(0, 4)
+  const topLevelSubjects = subjects.filter((subject) => !subject.parentId).slice(0, 5)
+  const tasksForPanel = dueThisWeek.length > 0 ? dueThisWeek.slice(0, 3) : otherTasks.slice(0, 3)
+  const taskHeading = dueThisWeek.length > 0
+    ? `You have ${dueThisWeek.length} task${dueThisWeek.length === 1 ? '' : 's'} due this week.`
+    : otherTasks.length > 0
+      ? 'You have no tasks due this week. Want to stay ahead?'
+      : 'Wohoo! A free day today!'
+  const taskSupportingText = dueThisWeek.length === 0 && otherTasks.length === 0
+    ? 'Use your time productively or rest as needed. Good job!'
+    : null
 
   return (
-    <main className="h-full overflow-y-auto px-6 py-8" style={{ background: 'var(--mochi-cream)' }}>
-      <div className="mx-auto max-w-5xl">
-        <section className="mochi-panel flex items-center gap-5 p-6" style={{ maxWidth: '760px' }}>
-          <img src={mochiLogo} alt="Mochi mascot" style={{ width: '82px', height: '82px', imageRendering: 'pixelated' }} />
-          <div>
-            <h1 className="mochi-page-title m-0 text-3xl">Your school desk</h1>
-            <p className="mt-2 mb-0 text-sm" style={{ color: 'var(--mochi-text-soft)' }}>Your notes, tasks, and schedule are ready here.</p>
+    <main className="h-full overflow-y-auto px-5 py-6 sm:px-8 sm:py-8" style={{ background: 'var(--mochi-cream)' }}>
+      <div className="mx-auto flex max-w-6xl flex-col gap-7">
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)]">
+          <div className="mochi-panel relative overflow-hidden p-6 sm:p-8" style={{ minHeight: '302px' }}>
+            <div className="flex items-start gap-4">
+              <img src={mochiDashboard} alt="Mochi relaxing at a school desk" style={{ width: '112px', height: '112px', objectFit: 'contain', imageRendering: 'pixelated', flexShrink: 0 }} />
+              <div className="min-w-0 pt-2">
+                <p className="mochi-page-title m-0 text-3xl sm:text-4xl">{getGreeting(now)}, Angel!</p>
+                <p className="mt-2 mb-0 text-sm sm:text-base" style={{ color: 'var(--mochi-text-soft)' }}>Here is your school desk for {todayName}.</p>
+              </div>
+            </div>
+
+            <div className="mt-6 border-t-2 pt-5" style={{ borderColor: 'var(--mochi-pink)' }}>
+              <Link to="/todo" className="group block rounded-2xl" style={{ color: 'inherit', textDecoration: 'none' }}>
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 size={25} style={{ color: 'var(--mochi-pink-dark)', flexShrink: 0 }} />
+                  <p className="mochi-page-title m-0 flex-1 text-xl sm:text-2xl" style={{ color: 'var(--mochi-text)' }}>{taskHeading}</p>
+                  <ArrowRight size={28} className="transition-transform group-hover:translate-x-1" style={{ color: 'var(--mochi-pink-dark)', flexShrink: 0 }} />
+                </div>
+              </Link>
+
+              {taskSupportingText ? (
+                <p className="mb-0 mt-3 text-sm" style={{ color: 'var(--mochi-text-soft)' }}>{taskSupportingText}</p>
+              ) : (
+                <div className="mt-4 flex flex-col gap-2">
+                  {tasksForPanel.map((task) => (
+                    <Link key={task.id} to="/todo" className="group flex items-center gap-3 rounded-xl px-3 py-2" style={{ color: 'inherit', textDecoration: 'none', background: 'var(--mochi-hover)' }}>
+                      <Circle size={17} style={{ color: 'var(--mochi-pink-dark)', flexShrink: 0 }} />
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold">{task.title || 'Untitled task'}</span>
+                      <span className="hidden text-xs sm:inline" style={{ color: 'var(--mochi-pink-dark)' }}>{dueLabel(task.deadline)}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+
+          <section className="mochi-panel p-6" aria-labelledby="today-schedule-title">
+            <div className="mb-5 flex items-center gap-3">
+              <CalendarDays size={28} style={{ color: 'var(--mochi-pink-dark)' }} />
+              <h2 id="today-schedule-title" className="mochi-page-title m-0 text-2xl">Your schedule today <span style={{ color: 'var(--mochi-pink-dark)' }}>({todayName})</span></h2>
+            </div>
+            <div className="flex flex-col gap-3">
+              {todayClasses.length > 0 ? todayClasses.map((item) => (
+                <Link key={item.id} to="/schedule" className="group flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: 'var(--mochi-pink)', border: '2px solid var(--mochi-border)', color: 'inherit', textDecoration: 'none' }}>
+                  <span className="min-w-[88px] text-xs font-bold sm:min-w-[108px]" style={{ color: 'var(--mochi-pink-dark)' }}>{item.time || 'Time TBA'}</span>
+                  <span className="min-w-0 flex-1 text-sm font-bold">{item.subject || 'Class'}</span>
+                  <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" style={{ color: 'var(--mochi-pink-dark)', flexShrink: 0 }} />
+                </Link>
+              )) : (
+                <Link to="/schedule" className="flex flex-col items-center rounded-2xl px-4 py-8 text-center" style={{ background: 'var(--mochi-hover)', border: '2px dashed var(--mochi-border)', color: 'inherit', textDecoration: 'none' }}>
+                  <Clock3 size={28} style={{ color: 'var(--mochi-pink-dark)' }} />
+                  <span className="mt-3 text-sm font-bold">No classes are scheduled today.</span>
+                  <span className="mt-1 text-xs" style={{ color: 'var(--mochi-text-soft)' }}>Open Schedule to add one.</span>
+                </Link>
+              )}
+            </div>
+          </section>
         </section>
-        <section className="mt-6 grid gap-4 sm:grid-cols-3">
-          {summaryCards.map(({ key, label, Icon }) => (
-            <article key={key} className="mochi-panel p-5">
-              <Icon size={24} style={{ color: 'var(--mochi-pink-dark)' }} />
-              <p className="mt-5 mb-1 text-sm font-bold" style={{ color: 'var(--mochi-text)' }}>{label}</p>
-              <p className="m-0 text-3xl font-bold" style={{ color: 'var(--mochi-pink-dark)', fontVariantNumeric: 'tabular-nums' }}>{values[key]}</p>
-            </article>
-          ))}
+
+        <section className="grid gap-7 xl:grid-cols-2">
+          <section aria-labelledby="recent-notes-title">
+            <div className="mb-3 flex items-center gap-3">
+              <h2 id="recent-notes-title" className="mochi-page-title m-0 text-2xl">Recent notes</h2>
+              <div className="h-0 flex-1 border-t-2" style={{ borderColor: 'var(--mochi-pink-mid)' }} />
+            </div>
+            <div className="flex flex-col gap-3">
+              {recentNotes.length > 0 ? recentNotes.map((note) => (
+                <Link key={note.id} to="/notes" onClick={() => setActiveNote(note.id)} className="group flex items-center gap-3 rounded-2xl px-5 py-4" style={{ background: 'var(--mochi-surface)', border: '2px solid var(--mochi-border)', color: 'inherit', textDecoration: 'none' }}>
+                  <FileText size={20} style={{ color: 'var(--mochi-pink-dark)', flexShrink: 0 }} />
+                  <span className="min-w-0 flex-1 truncate text-base font-bold">{note.title?.trim() || 'Untitled note'}</span>
+                  <ArrowRight size={23} className="transition-transform group-hover:translate-x-1" style={{ color: 'var(--mochi-pink-dark)', flexShrink: 0 }} />
+                </Link>
+              )) : (
+                <Link to="/notes" className="rounded-2xl px-5 py-6 text-sm font-semibold" style={{ display: 'block', background: 'var(--mochi-hover)', border: '2px dashed var(--mochi-border)', color: 'var(--mochi-text-soft)', textDecoration: 'none' }}>No notes yet. Start your first note.</Link>
+              )}
+            </div>
+          </section>
+
+          <section aria-labelledby="subjects-title">
+            <div className="mb-3 flex items-center gap-3">
+              <h2 id="subjects-title" className="mochi-page-title m-0 text-2xl">Your subjects</h2>
+              <div className="h-0 flex-1 border-t-2" style={{ borderColor: 'var(--mochi-pink-mid)' }} />
+            </div>
+            <div className="flex flex-col gap-3">
+              {topLevelSubjects.length > 0 ? topLevelSubjects.map((subject) => (
+                <Link key={subject.id} to="/notes" onClick={() => setSubjectFilter(subject.id)} className="group flex items-center gap-3 rounded-2xl px-5 py-4" style={{ background: 'var(--mochi-pink-dark)', border: '2px solid var(--mochi-pink-dark)', color: 'var(--mochi-surface)', textDecoration: 'none' }}>
+                  <NotebookText size={21} style={{ flexShrink: 0 }} />
+                  <span className="min-w-0 flex-1 truncate text-base font-bold">{subject.name}</span>
+                  <ArrowRight size={24} className="transition-transform group-hover:translate-x-1" style={{ flexShrink: 0 }} />
+                </Link>
+              )) : (
+                <Link to="/notes" className="rounded-2xl px-5 py-6 text-sm font-semibold" style={{ display: 'block', background: 'var(--mochi-hover)', border: '2px dashed var(--mochi-border)', color: 'var(--mochi-text-soft)', textDecoration: 'none' }}>No subjects yet. Add one from Notes.</Link>
+              )}
+            </div>
+          </section>
         </section>
       </div>
     </main>
