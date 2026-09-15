@@ -6,6 +6,7 @@ import TodoPage from '../features/todo/TodoPage'
 import SchedulePage from '../features/schedule/SchedulePage'
 import StudyPlanPage from '../features/study-plan/StudyPlanPage'
 import FlashcardsPage from '../features/flashcards/FlashcardsPage'
+import DashboardPage from '../features/dashboard/DashboardPage'
 import useStore from './store/useStore'
 import StickyNotesLayer from '../features/sticky-notes/StickyNotesLayer'
 
@@ -26,7 +27,8 @@ export default function App() {
         <Sidebar />
         <div className="flex-1 min-w-0 overflow-hidden" style={{ height: '100vh' }}>
           <Routes>
-            <Route path="/" element={<Navigate to="/notes" replace />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/notes" element={<NotesPage />} />
             <Route path="/todo" element={<TodoPage />} />
             <Route path="/schedule" element={<SchedulePage />} />
