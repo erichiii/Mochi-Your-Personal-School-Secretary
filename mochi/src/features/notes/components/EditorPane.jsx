@@ -40,20 +40,21 @@ const TabIndent = Extension.create({
 
 const PREPARATION_STEPS = [
   { id: 'reading', label: 'Reading your resources' },
-  { id: 'primer', label: 'Creating primer' },
   { id: 'notes', label: 'Organizing notes' },
+  { id: 'primer', label: 'Creating primer' },
   { id: 'reviewer', label: 'Preparing your reviewer' },
   { id: 'test', label: 'Building your practice test' },
 ]
 
-export default function EditorPane() {
-  const { notes, subjects, activeNoteId, activeSubjectFilter, updateNote, createNote, loadNotes } = useStore()
+export default function EditorPane({ notebookId = null }) {
+  const { notes, subjects, activeNoteId, activeSubjectFilter, updateNote, createNote, loadNotes, setSubjectFilter } = useStore()
   const activeNote = notes.find((n) => n.id === activeNoteId) ?? null
 
   const [title, setTitle] = useState('')
   const [aiOpen, setAiOpen] = useState(false)
   const [studyTab, setStudyTab] = useState('notes')
   const [isPreparing, setIsPreparing] = useState(false)
+  const [isPreparingMaterials, setIsPreparingMaterials] = useState(false)
   const [preparationStep, setPreparationStep] = useState('reading')
   const [prepareError, setPrepareError] = useState('')
   const [saveStatus, setSaveStatus] = useState('idle') // 'idle' | 'saving' | 'saved' | 'error'
@@ -264,13 +265,16 @@ export default function EditorPane() {
     const files = Array.from(event.target.files ?? [])
     if (!files.length) return
     setIsPreparing(true)
+    setIsPreparingMaterials(true)
     setPreparationStep('reading')
     setPrepareError('')
 
+    const moduleSubjectId = notebookId ?? activeSubjectFilter ?? null
     const id = activeNote?.id ?? await createNote({
-      subjectId: activeSubjectFilter ?? null,
+      subjectId: moduleSubjectId,
       title: files[0].name.replace(/\.[^.]+$/, ''),
     })
+    if (moduleSubjectId) setSubjectFilter(moduleSubjectId)
 
     try {
       const materials = await Promise.all(files.map((file) => new Promise((resolve, reject) => {
@@ -299,10 +303,20 @@ export default function EditorPane() {
       await updateNote(id, { resources: [...(activeNote?.resources ?? []), ...materials] })
       setPreparationStep('notes')
       const source = sourceParts.filter(Boolean).join('\n\n---\n\n').trim() || `Module: ${activeNote?.title || files[0].name.replace(/\.[^.]+$/, '')}\nMaterials: ${files.map((file) => file.name).join(', ')}`
-      const markdown = await generateNotes(source, 'general')
-      const content = parseMarkdownWithMath(markdown)
-      activeNoteRef.current = { ...(activeNoteRef.current ?? {}), id, content }
+      const notesMarkdown = await generateNotes(source, 'general')
+      const content = parseMarkdownWithMath(notesMarkdown)
+      activeNoteRef.current = { ...(activeNoteRef.current ?? {}), id, content, resources: [...(activeNote?.resources ?? []), ...materials] }
       await updateNote(id, { content })
+
+      const studyContent = {}
+      for (const step of ['primer', 'reviewer', 'test']) {
+        setPreparationStep(step)
+        const markdown = await generateNotes(source, step)
+        studyContent[step] = parseMarkdownWithMath(markdown)
+        activeNoteRef.current = { ...activeNoteRef.current, studyContent: { ...studyContent } }
+        await updateNote(id, { studyContent: { ...studyContent } })
+      }
+
       editor?.commands.setContent(content, false)
       setStudyTab('notes')
       setStartWritingNoteId(id)
@@ -310,6 +324,7 @@ export default function EditorPane() {
       setPrepareError(error.message || "Couldn't add the selected materials. Please try again.")
     } finally {
       setIsPreparing(false)
+      setIsPreparingMaterials(false)
     }
     event.target.value = ''
   }
@@ -352,8 +367,10 @@ export default function EditorPane() {
 
   const preparationTitle = activeNote?.title || activeModule?.name || 'your module'
   const getPreparationStatus = (step) => {
-    if (step.id === preparationStep) return 'current'
-    if (step.id === 'reading' && preparationStep === 'notes') return 'complete'
+    const currentIndex = PREPARATION_STEPS.findIndex((item) => item.id === preparationStep)
+    const stepIndex = PREPARATION_STEPS.findIndex((item) => item.id === step.id)
+    if (stepIndex === currentIndex) return 'current'
+    if (stepIndex < currentIndex) return 'complete'
     return 'pending'
   }
 
@@ -443,7 +460,7 @@ export default function EditorPane() {
           </div>
         )}
       </div>
-      {isPreparing && (
+      {isPreparingMaterials && (
         <div className="notes-module-preparing" role="status" aria-live="polite">
           <div className="notes-module-preparing__card">
             <img src={mochiLoading} alt="Mochi preparing your study materials" />
@@ -457,6 +474,14 @@ export default function EditorPane() {
                 </li>
               })}
             </ul>
+          </div>
+        </div>
+      )}
+      {isPreparing && !isPreparingMaterials && (
+        <div className="notes-module-preparing notes-module-preparing--single" role="status" aria-live="polite">
+          <div className="notes-module-preparing__card">
+            <Loader2 size={28} className="animate-spin" />
+            <h2>Mochi is creating your {studyTab}...</h2>
           </div>
         </div>
       )}

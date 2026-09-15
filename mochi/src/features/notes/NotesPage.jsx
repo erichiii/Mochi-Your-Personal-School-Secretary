@@ -24,7 +24,7 @@ export default function NotesPage() {
       </div>
       <div className="flex min-h-0 flex-1">
         <ModuleSidebar notebookId={workspaceNotebookId} />
-        <EditorPane />
+        <EditorPane notebookId={workspaceNotebookId} />
       </div>
     </div>
   )
