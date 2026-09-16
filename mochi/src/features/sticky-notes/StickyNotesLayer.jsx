@@ -1,9 +1,9 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import UnderlineExt from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
-import { X, Bold, Italic, Underline, Strikethrough } from 'lucide-react'
+import { X, Bold, Italic, Underline, Strikethrough, Save, Check } from 'lucide-react'
 import useStore from '../../app/store/useStore'
 
 const PALETTE = {
@@ -40,6 +40,7 @@ function StickyNote({ note }) {
   const colors = PALETTE[note.color] ?? PALETTE.peach
   const w = note.width  ?? 216
   const h = note.height ?? 200
+  const [saveStatus, setSaveStatus] = useState('saved')
 
   const editor = useEditor({
     extensions: [
@@ -48,7 +49,7 @@ function StickyNote({ note }) {
       Placeholder.configure({ placeholder: 'Write something…' }),
     ],
     content: note.content || '',
-    onUpdate: ({ editor }) => updateStickyNote(note.id, { content: editor.getHTML() }),
+    onUpdate: ({ editor }) => { setSaveStatus('saving'); updateStickyNote(note.id, { content: editor.getHTML() }); setSaveStatus('saved') },
   })
 
   const onDragStart = useCallback((e) => {
@@ -125,6 +126,15 @@ function StickyNote({ note }) {
           style={{ color: colors.text }}
         >
           <X size={12} />
+        </button>
+        <button
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={() => { if (editor) { updateStickyNote(note.id, { content: editor.getHTML() }); setSaveStatus('saved') } }}
+          title="Save sticky note"
+          className="p-0.5 rounded transition-opacity opacity-60 hover:opacity-100"
+          style={{ color: colors.text }}
+        >
+          {saveStatus === 'saved' ? <Check size={12} /> : <Save size={12} />}
         </button>
       </div>
 

@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Bell, Calendar, Check, Tag, Timer, Trash2 } from 'lucide-react'
 import { computePriority, getPriorityBreakdown, priorityMeta } from '../../../shared/utils/priority'
-import PomodoroTimer from './PomodoroTimer'
+import useStore from '../../../app/store/useStore'
 
 export const REMINDER_OPTIONS = [
   { label: 'No reminder',    value: null },
@@ -127,13 +127,13 @@ function ReminderDropdown({ position, value, onChange, onClose }) {
 // ── Task row ───────────────────────────────────────────────────────────────
 
 function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
+  const { pomodoro, startPomodoro } = useStore()
   const [title,    setTitle]    = useState(task.title || '')
   const [category, setCategory] = useState(task.category || '')
   const [deadline, setDeadline] = useState(task.deadline ? toLocalDate(task.deadline) : '')
   const [notes,    setNotes]    = useState(task.additionalNotes || '')
   const [catEdit,      setCatEdit]      = useState(null) // null | 'select' | 'custom'
   const [dateEdit,     setDateEdit]     = useState(false)
-  const [timerOpen,    setTimerOpen]    = useState(false)
   const [reminderOpen, setReminderOpen] = useState(false)
   const [reminderPos,  setReminderPos]  = useState({ top: 0, left: 0 })
   const dateRef = useRef()
@@ -351,10 +351,10 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
                 </button>
               </div>
               <button
-                onClick={() => setTimerOpen((v) => !v)}
+                onClick={() => startPomodoro(task.id)}
                 className="p-1.5 rounded-lg transition-all"
-                style={{ color: timerOpen ? 'var(--mochi-mint-dark)' : 'var(--mochi-text-muted)', background: timerOpen ? 'var(--mochi-mint)' : 'transparent' }}
-                title={timerOpen ? 'Close timer' : 'Start Pomodoro'}
+                style={{ color: pomodoro.taskId === task.id ? 'var(--mochi-mint-dark)' : 'var(--mochi-text-muted)', background: pomodoro.taskId === task.id ? 'var(--mochi-mint)' : 'transparent' }}
+                title={pomodoro.taskId === task.id ? 'Pause or continue timer' : 'Start Pomodoro'}
               >
                 <Timer size={12} />
               </button>
@@ -372,19 +372,6 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
           </div>
         </td>
       </tr>
-
-      {/* Pomodoro timer sub-row */}
-      {timerOpen && (
-        <tr>
-          <td colSpan={7} style={{ padding: 0 }}>
-            <PomodoroTimer
-              task={task}
-              onPomodoroComplete={() => onUpdate(task.id, { pomodoroCount: (task.pomodoroCount || 0) + 1 })}
-              onClose={() => setTimerOpen(false)}
-            />
-          </td>
-        </tr>
-      )}
 
       {/* Reminder portal */}
       {reminderOpen && (

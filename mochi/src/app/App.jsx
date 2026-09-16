@@ -9,6 +9,7 @@ import FlashcardsPage from '../features/flashcards/FlashcardsPage'
 import DashboardPage from '../features/dashboard/DashboardPage'
 import useStore from './store/useStore'
 import StickyNotesLayer from '../features/sticky-notes/StickyNotesLayer'
+import PomodoroTimer from '../features/todo/components/PomodoroTimer'
 
 export default function App() {
   const theme = useStore((s) => s.theme)
@@ -20,6 +21,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <StickyNotesLayer />
+      <PomodoroTimer />
       <div
         className="mochi-app-shell flex h-screen overflow-hidden"
         style={{ background: 'var(--mochi-cream)' }}

@@ -41,6 +41,32 @@ const useStore = create((set, get) => ({
     localStorage.setItem('mochi_sticky_notes', JSON.stringify(next))
     set({ stickyNotes: next })
   },
+  pomodoro: JSON.parse(localStorage.getItem('mochi_pomodoro') || '{"taskId":null,"isRunning":false,"isBreak":false,"isLongBreak":false,"secondsLeft":1500,"sessionPomos":0,"focusMinutes":25}'),
+  setPomodoro: (data) => {
+    const next = { ...get().pomodoro, ...data }
+    localStorage.setItem('mochi_pomodoro', JSON.stringify(next))
+    set({ pomodoro: next })
+  },
+  startPomodoro: (taskId) => {
+    const current = get().pomodoro
+    const next = current.taskId === taskId
+      ? { ...current, isRunning: !current.isRunning }
+      : { taskId, isRunning: false, isBreak: false, isLongBreak: false, secondsLeft: current.focusMinutes * 60, sessionPomos: 0, focusMinutes: current.focusMinutes }
+    localStorage.setItem('mochi_pomodoro', JSON.stringify(next))
+    set({ pomodoro: next })
+  },
+  setPomodoroFocusMinutes: (minutes) => {
+    const focusMinutes = Math.max(1, Math.min(120, Number(minutes) || 25))
+    const current = get().pomodoro
+    const next = { ...current, focusMinutes, ...(current.isRunning || current.isBreak ? {} : { secondsLeft: focusMinutes * 60 }) }
+    localStorage.setItem('mochi_pomodoro', JSON.stringify(next))
+    set({ pomodoro: next })
+  },
+  closePomodoro: () => {
+    const next = { ...get().pomodoro, taskId: null, isRunning: false }
+    localStorage.setItem('mochi_pomodoro', JSON.stringify(next))
+    set({ pomodoro: next })
+  },
 
   // ── Subjects ──────────────────────────────────────────────
   subjects: [],

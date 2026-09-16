@@ -167,6 +167,7 @@ export default function DashboardPage() {
                       </button>
                       <Link to="/todo" className="flex min-w-0 flex-1 items-center gap-3" style={{ color: 'inherit', textDecoration: 'none' }}>
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{task.title || 'Untitled task'}</span>
+                        <span className="max-w-[9rem] truncate text-xs font-semibold" style={{ color: 'var(--mochi-text-soft)' }} title={task.category || 'No subject'}>{task.category || 'No subject'}</span>
                         <span className="flex-shrink-0 text-xs font-bold" style={{ color: 'var(--mochi-pink-dark)' }} title={dueLabel(task.deadline)}>{daysLeftLabel(task.deadline, todayStart)}</span>
                       </Link>
                     </div>

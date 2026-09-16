@@ -804,6 +804,7 @@ input:focus, select:focus {
 }
 .tiptap-sticky .tiptap ul,
 .tiptap-sticky .tiptap ol { padding-left: 1.25rem; margin: 0.25rem 0; }
+.pomodoro-dock { position: fixed; left: 50%; bottom: 1rem; z-index: 60; max-width: calc(100vw - 2rem); border-radius: 999px; box-shadow: 0 8px 24px rgba(41, 33, 60, 0.18); transform: translateX(-50%); }
 
 /* ── Tiptap images ─────────────────────────────────────────── */
 .tiptap img {
@@ -875,7 +876,7 @@ input:focus, select:focus, textarea:focus {
 .notes-overview__title-wrap, .notes-overview__actions, .notes-new-menu, .notes-folder-list, .notes-create-form, .notes-overview__section-heading, .notes-notebook-row { display: flex; align-items: center; }
 .notes-overview__title-wrap { gap: 1.25rem; min-width: 0; }
 .notes-overview__mascot { width: 4.25rem; height: 4.25rem; object-fit: contain; image-rendering: pixelated; }
-.notes-overview__title { margin: 0; font-family: 'Proxima Nova', var(--font-display); font-size: clamp(2.7rem, 4.8vw, 4.5rem); line-height: 0.9; }
+.notes-overview__title { margin: 0; font-family: var(--font-display); font-size: clamp(2.7rem, 4.8vw, 4.5rem); line-height: 0.9; }
 .notes-overview__actions { gap: 1.25rem; flex: 1; justify-content: flex-end; }
 .notes-search { display: flex; align-items: center; gap: 0.6rem; min-width: min(100%, 16rem); padding: 0.45rem 0.2rem; color: var(--mochi-pink-mid); border-bottom: 3px solid var(--mochi-pink-mid); }
 .notes-search input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--mochi-text); font-size: 1.05rem; font-weight: 500; }
@@ -1095,6 +1096,39 @@ input:focus, select:focus, textarea:focus {
 .task-list-completed-divider span { color: var(--mochi-text-muted) !important; font-size: 0.58rem !important; letter-spacing: 0.06em !important; }
 .todo-task-empty { display: grid; place-items: center; min-height: 11rem; border: 2px dashed var(--mochi-border); border-radius: 1rem; background: #fff0f9; color: var(--mochi-text-muted); text-align: center; }
 .todo-task-empty p { margin: 0; padding: 1.5rem; font-size: 0.92rem; font-weight: 600; }
+
+/* Keep the light Mochi surfaces readable when the theme is dark. */
+[data-theme="dark"] .mochi-app-shell,
+[data-theme="dark"] .notes-overview,
+[data-theme="dark"] .notes-study-header,
+[data-theme="dark"] .notes-module-sidebar,
+[data-theme="dark"] .notes-module-sidebar--collapsed,
+[data-theme="dark"] .todo-page,
+[data-theme="dark"] .schedule-page { background: var(--mochi-cream) !important; color: var(--mochi-text); }
+[data-theme="dark"] .mochi-panel,
+[data-theme="dark"] .notes-notebook-row,
+[data-theme="dark"] .notes-module-card,
+[data-theme="dark"] .notes-editor-canvas,
+[data-theme="dark"] .notes-resources-view,
+[data-theme="dark"] .todo-task-list,
+[data-theme="dark"] .todo-page__summary-card,
+[data-theme="dark"] .todo-page__progress-card,
+[data-theme="dark"] .schedule-page__board,
+[data-theme="dark"] .schedule-generator-modal__card { background: var(--mochi-surface) !important; color: var(--mochi-text); }
+[data-theme="dark"] .notes-study-header__title,
+[data-theme="dark"] .notes-study-header__title::placeholder,
+[data-theme="dark"] .notes-search input,
+[data-theme="dark"] .notes-module-search input,
+[data-theme="dark"] .notes-module-card__select,
+[data-theme="dark"] .todo-task-table input,
+[data-theme="dark"] .tiptap { color: var(--mochi-text) !important; }
+[data-theme="dark"] .notes-folder-pill:not(.is-active),
+[data-theme="dark"] .todo-task-table tbody tr.task-row td,
+[data-theme="dark"] .todo-task-table tbody tr.task-row:hover td { background: var(--mochi-hover) !important; }
+[data-theme="dark"] .notes-workspace-bar,
+[data-theme="dark"] .notes-module-search,
+[data-theme="dark"] .notes-study-note-modes button,
+[data-theme="dark"] .notes-study-tabs__add-button { background: var(--mochi-surface); color: var(--mochi-text); }
 
 @media (max-width: 900px) {
   .todo-page__summary-grid { grid-template-columns: 1fr; }
