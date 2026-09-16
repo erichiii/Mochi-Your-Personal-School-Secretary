@@ -108,6 +108,8 @@ export default function SchedulePage() {
   const [parsing, setParsing] = useState(false)
   const [parseError, setParseError] = useState('')
   const imageRef = useRef()
+  const generatorDialogRef = useRef()
+  const generatorInputRef = useRef()
 
   // Pending items (parsed, not yet saved)
   const [pendingItems, setPendingItems] = useState([])
@@ -135,12 +137,34 @@ export default function SchedulePage() {
     loadScheduleSections()
   }, [])
 
+  useEffect(() => {
+    if (!showGenerator) return undefined
+    const dialog = generatorDialogRef.current
+    const focusable = () => [...dialog?.querySelectorAll('button:not(:disabled), input:not(:disabled)') ?? []]
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape' && !parsing) {
+        setShowGenerator(false)
+        return
+      }
+      if (event.key !== 'Tab') return
+      const items = focusable()
+      if (!items.length) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+    }
+    generatorInputRef.current?.focus()
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [showGenerator, parsing])
+
   // Auto-select first section once sections load (activeSectionId resets to null on each mount)
   useEffect(() => {
-    if (activeSectionId === null && scheduleSections.length > 0) {
-      setActiveSectionId(scheduleSections[0].id)
-    }
-  }, [scheduleSections])
+    if (activeSectionId !== null || scheduleSections.length === 0) return undefined
+    const selectionTimer = window.setTimeout(() => setActiveSectionId(scheduleSections[0].id), 0)
+    return () => window.clearTimeout(selectionTimer)
+  }, [activeSectionId, scheduleSections])
 
   // ── Image handlers ─────────────────────────────────────────
   const processFile = (file) => {
@@ -853,11 +877,13 @@ export default function SchedulePage() {
 
     {showGenerator && (
       <div className="schedule-generator-modal" role="dialog" aria-modal="true" aria-labelledby="schedule-generator-title" onMouseDown={(e) => { if (e.target === e.currentTarget && !parsing) setShowGenerator(false) }}>
-        <div className="schedule-generator-modal__panel">
+        <div ref={generatorDialogRef} className="schedule-generator-modal__panel">
+          <button type="button" className="schedule-generator-modal__close" onClick={() => setShowGenerator(false)} disabled={parsing} aria-label="Close Add New schedule dialog"><X size={18} /></button>
           <label className="schedule-generator-modal__field">
             <span id="schedule-generator-title"><Circle size={40} fill="#f768a0" strokeWidth={0} aria-hidden="true" />Section Name</span>
             <input
               autoFocus
+              ref={generatorInputRef}
               value={generatorSectionName}
               onChange={(e) => setGeneratorSectionName(e.target.value)}
               placeholder="e.g. 3Y3T | TN34"

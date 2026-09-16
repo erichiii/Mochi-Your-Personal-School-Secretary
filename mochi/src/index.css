@@ -193,6 +193,9 @@ body {
   flex: 0 0 auto;
 }
 
+.schedule-page img[src*="mascot"],
+.schedule-page img[src*="mochi-"] { max-width: 100%; object-fit: contain; image-rendering: pixelated; }
+
 .schedule-page__heading h1 {
   margin: 0;
   color: var(--mochi-text);
@@ -419,6 +422,7 @@ body {
 }
 
 .schedule-day__classes .group > span { overflow-wrap: anywhere; }
+.schedule-day__classes .group > span.flex-1 { width: 100%; }
 
 .schedule-day__classes .text-xs {
   color: #766f77 !important;
@@ -454,6 +458,7 @@ body {
 }
 
 .schedule-generator-modal__panel {
+  position: relative;
   width: min(780px, calc(100vw - 48px));
   padding: 2.25rem;
   border: 2px solid #f768a0;
@@ -461,6 +466,23 @@ body {
   background: #fff8fd;
   box-shadow: none;
 }
+
+.schedule-generator-modal__close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mochi-pink-dark);
+  cursor: pointer;
+}
+.schedule-generator-modal__close:hover { background: var(--mochi-pink); }
+.schedule-generator-modal__close:disabled { cursor: wait; opacity: 0.55; }
 
 .schedule-generator-modal__preview button {
   display: grid;
