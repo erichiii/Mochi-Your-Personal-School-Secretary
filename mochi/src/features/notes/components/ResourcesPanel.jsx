@@ -69,7 +69,13 @@ export default function ResourcesPanel({ noteId, resources = [], forceOpen = fal
     if (!files.length) return
     const additions = await Promise.all(files.map((file) => new Promise((resolve, reject) => {
       const reader = new FileReader()
-      reader.onload = (ev) => resolve({ id: crypto.randomUUID(), type: 'file', name: file.name, mimeType: file.type, dataUrl: ev.target.result })
+      reader.onload = async (ev) => {
+        let text = ''
+        if (file.type.startsWith('text/') || /\.(txt|md|csv)$/i.test(file.name)) {
+          try { text = await file.text() } catch { /* A file can still be attached even when text extraction fails. */ }
+        }
+        resolve({ id: crypto.randomUUID(), type: 'file', name: file.name, mimeType: file.type, dataUrl: ev.target.result, text })
+      }
       reader.onerror = reject
       reader.readAsDataURL(file)
     })))

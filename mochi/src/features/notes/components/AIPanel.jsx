@@ -8,6 +8,7 @@ import { marked } from 'marked'
 import katex from 'katex'
 import { generateNotes, generateFlashcards } from '../../../shared/lib/gemini'
 import useStore from '../../../app/store/useStore'
+import ConfirmModal from '../../../shared/components/ConfirmModal'
 
 marked.use({ gfm: true, breaks: false })
 
@@ -105,6 +106,7 @@ export default function AIPanel({ editor, noteId, onClose, initialMode = 'primer
   const [fcDeckId, setFcDeckId] = useState(null) // null = General
   const [fcLoading, setFcLoading] = useState(false)
   const [fcSuccess, setFcSuccess] = useState(0) // number of cards generated
+  const [confirmReplace, setConfirmReplace] = useState(false)
   const fileRef = useRef()
 
   useEffect(() => { loadDecks() }, [])
@@ -152,7 +154,7 @@ export default function AIPanel({ editor, noteId, onClose, initialMode = 'primer
   const removeFile = (name) => setUploadedFiles((prev) => prev.filter((f) => f.name !== name))
   const clearFiles = () => setUploadedFiles([])
 
-  const handleGenerateNotes = async () => {
+  const generateNotesIntoEditor = async () => {
     const text = getSourceText()
     if (!text.trim()) {
       setError('No content to generate from. Write a note or upload a file first.')
@@ -178,6 +180,14 @@ export default function AIPanel({ editor, noteId, onClose, initialMode = 'primer
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleGenerateNotes = () => {
+    if (insertMode === 'replace' && editor?.getText().trim()) {
+      setConfirmReplace(true)
+      return
+    }
+    generateNotesIntoEditor()
   }
 
   const handleGenerateFlashcards = async () => {
@@ -221,6 +231,13 @@ export default function AIPanel({ editor, noteId, onClose, initialMode = 'primer
         background: 'var(--mochi-surface)',
       }}
     >
+      {confirmReplace && <ConfirmModal
+        title="Replace the current note?"
+        message="Mochi will replace the current note with generated content."
+        confirmLabel="Replace note"
+        onCancel={() => setConfirmReplace(false)}
+        onConfirm={() => { setConfirmReplace(false); generateNotesIntoEditor() }}
+      />}
       <div className="flex flex-col gap-4 px-4 py-4 flex-1">
 
         {/* Source indicator */}

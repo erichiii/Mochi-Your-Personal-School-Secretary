@@ -965,10 +965,26 @@ input:focus, select:focus, textarea:focus {
 .notes-study-header__meta { position: absolute; top: 1.25rem; right: 2rem; display: flex; align-items: center; }
 .notes-study-header__meta > span { display: none; }
 .notes-study-header__save-status { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--mochi-text-muted); font-size: 0.72rem; font-weight: 600; }
-.notes-study-tabs { display: flex; align-items: center; gap: 1rem; margin-top: 1.1rem; overflow-x: auto; }
-.notes-study-tabs button { display: inline-flex; align-items: center; gap: 0.5rem; flex: 0 0 auto; border: 0; border-bottom: 4px solid transparent; padding: 0.75rem 0.9rem; background: transparent; color: var(--mochi-pink-mid); font-size: 1rem; font-weight: 700; }
-.notes-study-tabs button:hover { background: var(--mochi-hover); }
-.notes-study-tabs button.is-active { color: var(--mochi-pink-dark); border-bottom-color: var(--mochi-border); }
+.notes-study-tabs { display: flex; align-items: center; gap: 0.25rem; margin-top: 1.1rem; overflow-x: auto; scrollbar-width: thin; }
+.notes-study-tab { position: relative; display: flex; align-items: center; flex: 0 0 auto; }
+.notes-study-tab > button:first-child { display: inline-flex; align-items: center; gap: 0.45rem; border: 0; border-bottom: 3px solid transparent; padding: 0.7rem 0.72rem; background: transparent; color: var(--mochi-pink-mid); font-size: 0.93rem; font-weight: 700; white-space: nowrap; }
+.notes-study-tab > button:first-child:hover { background: var(--mochi-hover); }
+.notes-study-tab > button:first-child.is-active { color: var(--mochi-pink-dark); border-bottom-color: var(--mochi-border); }
+.notes-study-tab__menu { display: grid; place-items: center; margin-left: -0.35rem; border: 0; border-radius: 0.5rem; padding: 0.3rem; background: transparent; color: var(--mochi-text-muted); opacity: 0; }
+.notes-study-tab:hover .notes-study-tab__menu { opacity: 1; }
+.notes-study-tab__menu:hover { background: var(--mochi-hover); color: var(--mochi-pink-dark); }
+.notes-study-tab__dropdown { position: absolute; top: calc(100% - 0.2rem); right: 0; z-index: 16; display: grid; min-width: 6.8rem; padding: 0.3rem; border: 1.5px solid var(--mochi-border); border-radius: 0.7rem; background: var(--mochi-surface); box-shadow: var(--shadow-soft); }
+.notes-study-tab__dropdown button { border: 0; border-radius: 0.4rem; padding: 0.45rem 0.55rem; background: transparent; color: var(--mochi-text); font-size: 0.78rem; font-weight: 700; text-align: left; }
+.notes-study-tab__dropdown button:hover { background: var(--mochi-hover); }
+.notes-study-tab__rename input { width: 8rem; margin: 0 0.35rem; border: 1.5px solid var(--mochi-border); border-radius: 0.55rem; padding: 0.45rem 0.55rem; background: var(--mochi-surface); color: var(--mochi-text); font: inherit; font-size: 0.85rem; font-weight: 700; outline: none; }
+.notes-study-tabs__add { flex: 0 0 auto; margin-left: 0.45rem; }
+.notes-study-tabs__add-button { display: inline-flex; align-items: center; gap: 0.35rem; border: 1.5px dashed var(--mochi-pink-mid); border-radius: 999px; padding: 0.43rem 0.68rem; background: var(--mochi-surface); color: var(--mochi-pink-dark); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+.notes-study-tabs__add-button:hover { background: var(--mochi-hover); }
+.notes-study-tabs__add form { display: flex; align-items: center; gap: 0.2rem; border: 1.5px solid var(--mochi-border); border-radius: 999px; padding: 0.2rem 0.3rem 0.2rem 0.6rem; background: var(--mochi-surface); }
+.notes-study-tabs__add input { width: 7.5rem; border: 0; background: transparent; color: var(--mochi-text); font-size: 0.78rem; font-weight: 700; outline: none; }
+.notes-study-tabs__add form button { display: grid; place-items: center; border: 0; border-radius: 50%; padding: 0.24rem; background: transparent; color: var(--mochi-pink-dark); }
+.notes-study-tabs__add form button:hover { background: var(--mochi-hover); }
+.notes-study-tabs__error { margin: 0.35rem 0 0; color: #c34b75; font-size: 0.73rem; font-weight: 700; }
 .notes-editor-canvas { padding: 1.5rem clamp(1.5rem, 5vw, 5rem) 5rem; background: #fff9fd; }
 .notes-editor-canvas .tiptap { width: min(100%, 52rem); min-height: 32rem; margin: 0 auto; color: var(--mochi-text); font-size: 1.05rem; line-height: 1.8; outline: none; }
 .notes-editor-canvas .tiptap > :first-child { margin-top: 0; }
@@ -989,6 +1005,23 @@ input:focus, select:focus, textarea:focus {
 .notes-module-preparing--error > div { padding: 0.8rem 1rem; border: 1.5px solid var(--mochi-border); border-radius: 0.85rem; background: var(--mochi-surface); box-shadow: var(--shadow-soft); }
 .notes-mochi-help { position: absolute; right: 1.5rem; bottom: 1.5rem; z-index: 12; display: inline-flex; align-items: center; gap: 0.5rem; border: 2px solid var(--mochi-border); border-radius: 999px; padding: 0.7rem 1rem; background: var(--mochi-pink-mid); color: #fff; font-size: 0.9rem; font-weight: 700; box-shadow: 3px 3px 0 rgba(224, 33, 137, 0.2); }
 .notes-mochi-help:hover { background: var(--mochi-border); }
+.notes-mochi-menu { position: absolute; right: 1.5rem; bottom: 4.9rem; z-index: 13; display: grid; width: min(22rem, calc(100% - 3rem)); padding: 0.45rem; border: 1.5px solid var(--mochi-border); border-radius: 1rem; background: var(--mochi-surface); box-shadow: var(--shadow-soft); }
+.notes-mochi-menu__heading { display: flex; align-items: center; gap: 0.45rem; padding: 0.6rem 0.65rem 0.45rem; color: var(--mochi-pink-dark); font-size: 0.82rem; font-weight: 800; }
+.notes-mochi-menu button { display: flex; align-items: center; gap: 0.45rem; border: 0; border-radius: 0.65rem; padding: 0.62rem 0.7rem; background: transparent; color: var(--mochi-text); font-size: 0.8rem; font-weight: 650; text-align: left; }
+.notes-mochi-menu button:hover { background: var(--mochi-hover); color: var(--mochi-pink-dark); }
+.notes-source-message { position: absolute; right: 1.5rem; bottom: 4.9rem; z-index: 14; display: flex; align-items: center; gap: 0.45rem; max-width: min(26rem, calc(100% - 3rem)); border: 1.5px solid var(--mochi-pink-mid); border-radius: 0.8rem; padding: 0.7rem 0.75rem; background: var(--mochi-surface); color: var(--mochi-pink-dark); box-shadow: var(--shadow-soft); font-size: 0.78rem; font-weight: 700; }
+.notes-source-message button { display: grid; place-items: center; margin-left: auto; border: 0; background: transparent; color: inherit; }
+.notes-upload-choices { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 1.5rem; background: rgba(255, 249, 253, 0.9); }
+.notes-upload-choices__card { position: relative; width: min(100%, 31rem); border: 1.5px solid var(--mochi-border); border-radius: 1.25rem; padding: 1.5rem; background: var(--mochi-surface); box-shadow: var(--shadow-soft); color: var(--mochi-text); text-align: center; }
+.notes-upload-choices__card > svg { color: var(--mochi-pink-dark); }
+.notes-upload-choices__card h2 { margin: 0.7rem 0 0.35rem; color: var(--mochi-pink-dark); font-family: var(--font-display); font-size: 1.7rem; }
+.notes-upload-choices__card p { max-width: 24rem; margin: 0 auto 1rem; color: var(--mochi-text-soft); font-size: 0.9rem; line-height: 1.45; }
+.notes-upload-choices__card > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+.notes-upload-choices__card button { border: 1.5px solid var(--mochi-border); border-radius: 0.75rem; padding: 0.7rem; background: #fff9fd; color: var(--mochi-pink-dark); font-size: 0.8rem; font-weight: 750; }
+.notes-upload-choices__card button:hover { background: var(--mochi-hover); }
+.notes-upload-choices__all { width: 100%; margin-top: 0.65rem; background: var(--mochi-pink-mid) !important; color: #fff !important; }
+.notes-upload-choices__later { margin-top: 0.55rem; border-color: transparent !important; background: transparent !important; color: var(--mochi-text-muted) !important; }
+.notes-upload-choices__close { position: absolute; top: 0.55rem; right: 0.55rem; display: grid; place-items: center; border: 0 !important; padding: 0.3rem !important; background: transparent !important; color: var(--mochi-text-muted) !important; }
 
 /* To-do */
 .todo-page { background: #fff4fb; color: var(--mochi-text); }

@@ -11,11 +11,12 @@ import TaskItem from '@tiptap/extension-task-item'
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 import Highlight from '@tiptap/extension-highlight'
 import { TextStyle } from '@tiptap/extension-text-style'
-import { BookOpen, Brain, ClipboardCheck, FilePenLine, FileText, Link2, Plus, Download, Sparkles, Upload, Loader2, Check, CheckCheck, AlertCircle } from 'lucide-react'
+import { BookOpen, Brain, ClipboardCheck, FilePenLine, FileText, Link2, Plus, Download, Sparkles, Upload, Loader2, Check, CheckCheck, AlertCircle, MoreVertical, X } from 'lucide-react'
 import useStore from '../../../app/store/useStore'
 import EditorToolbar from './EditorToolbar'
 import ResourcesPanel from './ResourcesPanel'
 import AIPanel, { extractPdfText, parseMarkdownWithMath } from './AIPanel'
+import ConfirmModal from '../../../shared/components/ConfirmModal'
 import { FontSize } from '../../../shared/extensions/FontSize'
 import { generateNotes } from '../../../shared/lib/gemini'
 import mochiLoading from '../../../assets/mascots/mochi-loading.png'
@@ -38,13 +39,21 @@ const TabIndent = Extension.create({
   },
 })
 
+const textFromHtml = (html = '') => html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+
 const PREPARATION_STEPS = [
   { id: 'reading', label: 'Reading your resources' },
-  { id: 'notes', label: 'Organizing notes' },
   { id: 'primer', label: 'Creating primer' },
+  { id: 'notes', label: 'Organizing notes' },
   { id: 'reviewer', label: 'Preparing your reviewer' },
   { id: 'test', label: 'Building your practice test' },
 ]
+
+const tabLabel = (id) => ({
+  primer: 'Primer',
+  reviewer: 'Reviewer',
+  test: 'Practice Test',
+}[id] ?? id)
 
 export default function EditorPane({ notebookId = null }) {
   const { notes, subjects, activeNoteId, activeSubjectFilter, updateNote, createNote, loadNotes, setSubjectFilter } = useStore()
@@ -53,8 +62,17 @@ export default function EditorPane({ notebookId = null }) {
   const [title, setTitle] = useState('')
   const [aiOpen, setAiOpen] = useState(false)
   const [studyTab, setStudyTab] = useState('notes')
+  const [addTabOpen, setAddTabOpen] = useState(false)
+  const [newTabName, setNewTabName] = useState('')
+  const [tabError, setTabError] = useState('')
+  const [tabMenuId, setTabMenuId] = useState(null)
+  const [renamingTabId, setRenamingTabId] = useState(null)
+  const [renameTabName, setRenameTabName] = useState('')
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [sourceMessage, setSourceMessage] = useState('')
+  const [uploadChoices, setUploadChoices] = useState(null)
+  const [confirmAction, setConfirmAction] = useState(null)
   const [isPreparing, setIsPreparing] = useState(false)
-  const [isPreparingMaterials, setIsPreparingMaterials] = useState(false)
   const [preparationStep, setPreparationStep] = useState('reading')
   const [prepareError, setPrepareError] = useState('')
   const [saveStatus, setSaveStatus] = useState('idle') // 'idle' | 'saving' | 'saved' | 'error'
@@ -106,7 +124,9 @@ export default function EditorPane({ notebookId = null }) {
           const tab = activeStudyTabRef.current
           const data = tab === 'notes'
             ? { content: editor.getHTML() }
-            : { studyContent: { ...(currentNote?.studyContent ?? {}), [tab]: editor.getHTML() } }
+            : currentNote?.moduleTabs?.some((item) => item.id === tab && item.kind === 'custom')
+              ? { customTabContent: { ...(currentNote?.customTabContent ?? {}), [tab]: editor.getHTML() } }
+              : { studyContent: { ...(currentNote?.studyContent ?? {}), [tab]: editor.getHTML() } }
           await updateNote(noteId, data)
           setSaveStatus('saved')
           clearTimeout(savedTimer.current)
@@ -134,9 +154,12 @@ export default function EditorPane({ notebookId = null }) {
     // Each study view has its own persisted document within the module.
     const loadedKey = `${activeNote.id}:${studyTab}`
     if (lastLoadedId.current !== loadedKey) {
+      const isCustomTab = activeNote.moduleTabs?.some((item) => item.id === studyTab && item.kind === 'custom')
       const content = studyTab === 'notes'
         ? activeNote.content
-        : activeNote.studyContent?.[studyTab]
+        : isCustomTab
+          ? activeNote.customTabContent?.[studyTab]
+          : activeNote.studyContent?.[studyTab]
       editor.commands.setContent(content || '', false)
       setTitle(activeNote.title || '')
       lastLoadedId.current = loadedKey
@@ -258,21 +281,23 @@ export default function EditorPane({ notebookId = null }) {
       setStartWritingNoteId(activeNote.id)
       return
     }
-    createNote(activeSubjectFilter ? { subjectId: activeSubjectFilter } : {}).then((id) => setStartWritingNoteId(id))
+    const moduleSubjectId = notebookId ?? activeSubjectFilter ?? null
+    createNote({ subjectId: moduleSubjectId, moduleTabs: [] }).then((id) => {
+      setStartWritingNoteId(id)
+      if (moduleSubjectId) setSubjectFilter(moduleSubjectId)
+    })
   }
 
   const handleMaterialUpload = async (event) => {
     const files = Array.from(event.target.files ?? [])
     if (!files.length) return
-    setIsPreparing(true)
-    setIsPreparingMaterials(true)
-    setPreparationStep('reading')
     setPrepareError('')
 
     const moduleSubjectId = notebookId ?? activeSubjectFilter ?? null
     const id = activeNote?.id ?? await createNote({
       subjectId: moduleSubjectId,
       title: files[0].name.replace(/\.[^.]+$/, ''),
+      moduleTabs: [],
     })
     if (moduleSubjectId) setSubjectFilter(moduleSubjectId)
 
@@ -300,69 +325,208 @@ export default function EditorPane({ notebookId = null }) {
         }
       }))
 
-      await updateNote(id, { resources: [...(activeNote?.resources ?? []), ...materials] })
-      setPreparationStep('notes')
-      const source = sourceParts.filter(Boolean).join('\n\n---\n\n').trim() || `Module: ${activeNote?.title || files[0].name.replace(/\.[^.]+$/, '')}\nMaterials: ${files.map((file) => file.name).join(', ')}`
-      const notesMarkdown = await generateNotes(source, 'general')
-      const content = parseMarkdownWithMath(notesMarkdown)
-      activeNoteRef.current = { ...(activeNoteRef.current ?? {}), id, content, resources: [...(activeNote?.resources ?? []), ...materials] }
-      await updateNote(id, { content })
-
-      const studyContent = {}
-      for (const step of ['primer', 'reviewer', 'test']) {
-        setPreparationStep(step)
-        const markdown = await generateNotes(source, step)
-        studyContent[step] = parseMarkdownWithMath(markdown)
-        activeNoteRef.current = { ...activeNoteRef.current, studyContent: { ...studyContent } }
-        await updateNote(id, { studyContent: { ...studyContent } })
-      }
-
-      editor?.commands.setContent(content, false)
-      setStudyTab('notes')
+      const resources = materials.map((material, index) => ({ ...material, text: sourceParts[index] || '' }))
+      const existingResources = activeNote?.id === id ? (activeNote.resources ?? []) : []
+      const source = sourceParts.filter(Boolean).join('\n\n---\n\n').trim()
+      const nextNote = { ...(activeNoteRef.current ?? {}), id, resources: [...existingResources, ...resources] }
+      activeNoteRef.current = nextNote
+      await updateNote(id, { resources: nextNote.resources })
       setStartWritingNoteId(id)
+      setStudyTab('resources')
+      setUploadChoices({ noteId: id, source })
     } catch (error) {
       setPrepareError(error.message || "Couldn't add the selected materials. Please try again.")
-    } finally {
-      setIsPreparing(false)
-      setIsPreparingMaterials(false)
     }
     event.target.value = ''
   }
 
-  const hasStoredContent = Boolean(activeNote?.content?.replace(/<[^>]+>/g, '').trim() || activeNote?.resources?.length || Object.values(activeNote?.studyContent ?? {}).some(Boolean))
-  const showEmptyModuleState = Boolean(activeSubjectFilter && (!activeNote || (!hasStoredContent && startWritingNoteId !== activeNote.id)))
+  const moduleSubjectId = notebookId ?? activeSubjectFilter ?? null
+  const hasStoredContent = Boolean(textFromHtml(activeNote?.content) || activeNote?.resources?.length || Object.values(activeNote?.studyContent ?? {}).some(Boolean) || Object.values(activeNote?.customTabContent ?? {}).some(Boolean))
+  const showEmptyModuleState = Boolean(moduleSubjectId && (!activeNote || (!hasStoredContent && startWritingNoteId !== activeNote.id)))
   const showEditor = Boolean(activeNote && !showEmptyModuleState)
-  const activeModule = subjects.find((subject) => subject.id === activeSubjectFilter)
+  const activeModule = subjects.find((subject) => subject.id === moduleSubjectId)
+  const savedTabs = activeNote?.moduleTabs ?? []
+  const customTabs = savedTabs.filter((tab) => tab.kind === 'custom')
+  const mochiTabs = ['primer', 'reviewer', 'test']
+    .filter((id) => savedTabs.some((tab) => tab.id === id && tab.kind === 'mochi') || activeNote?.studyContent?.[id])
+    .map((id) => ({ id, label: tabLabel(id), kind: 'mochi', Icon: id === 'primer' ? BookOpen : id === 'reviewer' ? Brain : ClipboardCheck }))
   const tabs = [
-    { id: 'notes', label: 'Notes', Icon: FileText },
-    { id: 'primer', label: 'Primer', Icon: BookOpen },
-    { id: 'reviewer', label: 'Reviewer', Icon: Brain },
-    { id: 'test', label: 'Test', Icon: ClipboardCheck },
-    { id: 'resources', label: 'Resources', Icon: Link2 },
+    { id: 'notes', label: 'Notes', kind: 'default', Icon: FileText },
+    ...customTabs.map((tab) => ({ ...tab, Icon: FilePenLine })),
+    ...mochiTabs,
+    ...(activeNote?.resources?.length ? [{ id: 'resources', label: 'Resources', kind: 'resources', Icon: Link2 }] : []),
   ]
-  const handleStudyTab = async (tab) => {
+
+  const getSource = (note = activeNote, preferredSource = '') => {
+    const liveEditorText = note?.id === activeNote?.id ? editor?.getText().trim() : ''
+    const noteText = liveEditorText || textFromHtml(note?.content)
+    const resourceText = (note?.resources ?? []).map((resource) => resource.text || '').filter(Boolean).join('\n\n---\n\n')
+    return preferredSource || [noteText, resourceText].filter(Boolean).join('\n\n---\n\n').trim()
+  }
+
+  const hasEnoughSource = (source) => source.trim().length >= 40
+
+  const handleStudyTab = (tab) => {
     if (!activeNote || isPreparing) return
     setStudyTab(tab)
     setPrepareError('')
+    setSourceMessage('')
+    setHelpOpen(false)
+  }
 
-    if (tab === 'notes' || tab === 'resources' || activeNote.studyContent?.[tab]) return
+  const addCustomTab = async () => {
+    const label = newTabName.trim()
+    const names = tabs.map((tab) => tab.label.toLowerCase())
+    if (!label) { setTabError('Give your tab a name.'); return }
+    if (names.includes(label.toLowerCase())) { setTabError('A tab with that name already exists.'); return }
+    const id = `custom-${crypto.randomUUID()}`
+    const moduleTabs = [...savedTabs, { id, label, kind: 'custom' }]
+    await updateNote(activeNote.id, { moduleTabs })
+    activeNoteRef.current = { ...activeNote, moduleTabs }
+    setStudyTab(id)
+    setNewTabName('')
+    setTabError('')
+    setAddTabOpen(false)
+  }
+
+  const saveCustomTabName = async () => {
+    const label = renameTabName.trim()
+    const names = tabs.filter((tab) => tab.id !== renamingTabId).map((tab) => tab.label.toLowerCase())
+    if (!label) { setTabError('Give your tab a name.'); return }
+    if (names.includes(label.toLowerCase())) { setTabError('A tab with that name already exists.'); return }
+    const moduleTabs = savedTabs.map((tab) => tab.id === renamingTabId ? { ...tab, label } : tab)
+    await updateNote(activeNote.id, { moduleTabs })
+    activeNoteRef.current = { ...activeNote, moduleTabs }
+    setRenamingTabId(null)
+    setRenameTabName('')
+    setTabError('')
+  }
+
+  const deleteCustomTab = async (id) => {
+    const moduleTabs = savedTabs.filter((tab) => tab.id !== id)
+    const customTabContent = { ...(activeNote.customTabContent ?? {}) }
+    delete customTabContent[id]
+    await updateNote(activeNote.id, { moduleTabs, customTabContent })
+    activeNoteRef.current = { ...activeNote, moduleTabs, customTabContent }
+    if (studyTab === id) setStudyTab('notes')
+    setTabMenuId(null)
+  }
+
+  const createMochiTab = async (kind, sourceOverride = '') => {
+    if (!activeNote) return
+    if (mochiTabs.some((tab) => tab.id === kind)) { setStudyTab(kind); setHelpOpen(false); return }
+    const source = getSource(activeNote, sourceOverride)
+    if (!hasEnoughSource(source)) { setSourceMessage('Mochi needs notes or uploaded materials first.'); setHelpOpen(false); return }
 
     setIsPreparing(true)
+    setPreparationStep(kind)
+    setPrepareError('')
     try {
-      const notesSource = editor?.getText().trim() || activeNote.content?.replace(/<[^>]+>/g, ' ').trim()
-      const resourceSource = activeNote.resources?.map((resource) => resource.name || resource.label).filter(Boolean).join(', ')
-      const source = notesSource || `Module: ${activeNote.title || activeModule?.name || 'Untitled'}${resourceSource ? `\nResources: ${resourceSource}` : ''}`
-      const markdown = await generateNotes(source, tab)
+      const markdown = await generateNotes(source, kind)
       const content = parseMarkdownWithMath(markdown)
-      const studyContent = { ...(activeNote.studyContent ?? {}), [tab]: content }
-      activeNoteRef.current = { ...activeNote, studyContent }
-      await updateNote(activeNote.id, { studyContent })
-      editor?.commands.setContent(content, false)
+      const studyContent = { ...(activeNote.studyContent ?? {}), [kind]: content }
+      const moduleTabs = savedTabs.some((tab) => tab.id === kind)
+        ? savedTabs
+        : [...savedTabs, { id: kind, label: tabLabel(kind), kind: 'mochi' }]
+      activeNoteRef.current = { ...activeNote, studyContent, moduleTabs }
+      await updateNote(activeNote.id, { studyContent, moduleTabs })
+      setStudyTab(kind)
+      setHelpOpen(false)
     } catch (error) {
-      setPrepareError(error.message || `Mochi couldn't prepare this ${tab} yet.`)
+      setPrepareError(error.message || `Mochi couldn't prepare this ${tabLabel(kind).toLowerCase()} yet.`)
     } finally {
       setIsPreparing(false)
     }
+  }
+
+  const organizeNotes = async (sourceOverride = '') => {
+    if (!activeNote) return
+    const source = getSource(activeNote, sourceOverride)
+    if (!hasEnoughSource(source)) { setSourceMessage('Mochi needs notes or uploaded materials first.'); setHelpOpen(false); return }
+    setIsPreparing(true)
+    setPreparationStep('notes')
+    setPrepareError('')
+    try {
+      const markdown = await generateNotes(source, 'general')
+      const content = parseMarkdownWithMath(markdown)
+      activeNoteRef.current = { ...activeNote, content }
+      await updateNote(activeNote.id, { content })
+      editor?.commands.setContent(content, false)
+      setStudyTab('notes')
+      setHelpOpen(false)
+    } catch (error) {
+      setPrepareError(error.message || "Mochi couldn't organize these notes yet.")
+    } finally {
+      setIsPreparing(false)
+    }
+  }
+
+  const requestOrganizeNotes = (sourceOverride = '') => {
+    if (textFromHtml(activeNote?.content)) {
+      setConfirmAction({
+        title: 'Replace the current Notes tab?',
+        message: 'Mochi will replace the current Notes tab with an organized version. Your existing notes will not be changed unless you continue.',
+        label: 'Organize notes',
+        run: () => organizeNotes(sourceOverride),
+      })
+      return
+    }
+    organizeNotes(sourceOverride)
+  }
+
+  const runUploadOutputs = async (choices, source) => {
+    let currentNote = activeNoteRef.current ?? activeNote
+    if (!currentNote) return
+    setUploadChoices(null)
+    setIsPreparing(true)
+    setPreparationStep('reading')
+    setPrepareError('')
+    try {
+      if (choices.includes('notes')) {
+        setPreparationStep('notes')
+        const markdown = await generateNotes(source, 'general')
+        const content = parseMarkdownWithMath(markdown)
+        currentNote = { ...currentNote, content }
+        activeNoteRef.current = currentNote
+        await updateNote(currentNote.id, { content })
+      }
+      for (const kind of choices.filter((item) => item !== 'notes')) {
+        if (currentNote.studyContent?.[kind]) continue
+        setPreparationStep(kind)
+        const markdown = await generateNotes(source, kind)
+        const content = parseMarkdownWithMath(markdown)
+        const studyContent = { ...(currentNote.studyContent ?? {}), [kind]: content }
+        const moduleTabs = currentNote.moduleTabs?.some((tab) => tab.id === kind)
+          ? currentNote.moduleTabs
+          : [...(currentNote.moduleTabs ?? []), { id: kind, label: tabLabel(kind), kind: 'mochi' }]
+        currentNote = { ...currentNote, studyContent, moduleTabs }
+        activeNoteRef.current = currentNote
+        await updateNote(currentNote.id, { studyContent, moduleTabs })
+      }
+      setStudyTab(choices.includes('notes') ? 'notes' : choices[0])
+    } catch (error) {
+      setPrepareError(error.message || "Mochi couldn't create those study materials yet.")
+    } finally {
+      setIsPreparing(false)
+    }
+  }
+
+  const generateUploadOutputs = (choice) => {
+    const pending = uploadChoices
+    if (!pending || !activeNote) return
+    const source = getSource(activeNote, pending.source)
+    if (!hasEnoughSource(source)) { setSourceMessage('Mochi needs notes or uploaded materials first.'); return }
+    const choices = choice === 'all' ? ['notes', 'primer', 'reviewer', 'test'] : [choice]
+    if (choices.includes('notes') && (editor?.getText().trim() || textFromHtml(activeNote.content))) {
+      setConfirmAction({
+        title: 'Replace the current Notes tab?',
+        message: 'Mochi will replace the current Notes tab with generated notes from these materials.',
+        label: 'Generate notes',
+        run: () => runUploadOutputs(choices, source),
+      })
+      return
+    }
+    runUploadOutputs(choices, source)
   }
 
   const preparationTitle = activeNote?.title || activeModule?.name || 'your module'
@@ -376,6 +540,7 @@ export default function EditorPane({ notebookId = null }) {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative">
+      <input ref={materialInputRef} type="file" className="sr-only" onChange={handleMaterialUpload} accept=".txt,.md,.csv,.pdf,image/*" multiple />
       {/* ── Active note header ─────────────────────────────── */}
       {showEditor && (
         <div className="notes-study-header">
@@ -403,8 +568,34 @@ export default function EditorPane({ notebookId = null }) {
             </span>
           </div>
           <nav className="notes-study-tabs" aria-label="Study views">
-            {tabs.map(({ id, label, Icon }) => <button key={id} type="button" className={studyTab === id ? 'is-active' : ''} onClick={() => handleStudyTab(id)}><Icon size={20} />{label}</button>)}
+            {tabs.map(({ id, label, Icon, kind }) => (
+              <div className="notes-study-tab" key={id}>
+                {renamingTabId === id ? (
+                  <form className="notes-study-tab__rename" onSubmit={(event) => { event.preventDefault(); saveCustomTabName() }}>
+                    <input autoFocus value={renameTabName} onChange={(event) => setRenameTabName(event.target.value)} onBlur={saveCustomTabName} aria-label="Tab name" />
+                  </form>
+                ) : (
+                  <button type="button" className={studyTab === id ? 'is-active' : ''} onClick={() => handleStudyTab(id)}><Icon size={18} />{label}</button>
+                )}
+                {kind === 'custom' && renamingTabId !== id && (
+                  <>
+                    <button type="button" className="notes-study-tab__menu" onClick={(event) => { event.stopPropagation(); setTabMenuId(tabMenuId === id ? null : id) }} aria-label={`Options for ${label}`}><MoreVertical size={15} /></button>
+                    {tabMenuId === id && <div className="notes-study-tab__dropdown"><button type="button" onClick={() => { setRenamingTabId(id); setRenameTabName(label); setTabMenuId(null) }}>Rename</button><button type="button" onClick={() => deleteCustomTab(id)}>Delete</button></div>}
+                  </>
+                )}
+              </div>
+            ))}
+            <div className="notes-study-tabs__add">
+              {addTabOpen ? (
+                <form onSubmit={(event) => { event.preventDefault(); addCustomTab() }}>
+                  <input autoFocus value={newTabName} onChange={(event) => { setNewTabName(event.target.value); setTabError('') }} placeholder="Tab name" aria-label="New tab name" />
+                  <button type="submit" aria-label="Create tab"><Check size={15} /></button>
+                  <button type="button" onClick={() => { setAddTabOpen(false); setNewTabName(''); setTabError('') }} aria-label="Cancel"><X size={15} /></button>
+                </form>
+              ) : <button type="button" className="notes-study-tabs__add-button" onClick={() => { setAddTabOpen(true); setTabError('') }}><Plus size={15} /> Add tab</button>}
+            </div>
           </nav>
+          {tabError && <p className="notes-study-tabs__error" role="alert">{tabError}</p>}
         </div>
       )}
 
@@ -436,9 +627,8 @@ export default function EditorPane({ notebookId = null }) {
           <div className="flex-1 flex items-center justify-center">
             <div className="notes-empty-module-state">
               <img src={mochiLoading} alt="Mochi ready to study on a stack of books" />
-              <h2>Let's start studying!</h2>
-              <p>Add your lecture materials and Mochi will prepare this module for you.</p>
-              <input ref={materialInputRef} type="file" className="sr-only" onChange={handleMaterialUpload} accept=".txt,.md,.csv,.pdf,image/*" multiple />
+              <h2>Make this module yours</h2>
+              <p>Start with a clean Notes tab, or attach materials and decide what Mochi should create.</p>
               <button type="button" className="notes-empty-module-state__upload" onClick={() => materialInputRef.current?.click()}><Upload size={21} /> Upload Materials</button>
               <div className="notes-empty-module-state__divider"><span>or</span></div>
               <button type="button" className="notes-empty-module-state__scratch" onClick={handleStartFromScratch}><FilePenLine size={20} /> Start from scratch</button>
@@ -460,7 +650,45 @@ export default function EditorPane({ notebookId = null }) {
           </div>
         )}
       </div>
-      {isPreparingMaterials && (
+      {showEditor && helpOpen && (
+        <div className="notes-mochi-menu fade-in" role="dialog" aria-label="Let Mochi help">
+          <div className="notes-mochi-menu__heading"><Sparkles size={15} /> Let Mochi help</div>
+          <button type="button" onClick={() => requestOrganizeNotes()}>Organize my notes</button>
+          <button type="button" onClick={() => createMochiTab('primer')}>Create primer from my notes/resources</button>
+          <button type="button" onClick={() => createMochiTab('reviewer')}>Create reviewer from my notes/resources</button>
+          <button type="button" onClick={() => createMochiTab('test')}>Create practice test from my notes/resources</button>
+          <button type="button" onClick={() => { setHelpOpen(false); materialInputRef.current?.click() }}><Upload size={14} /> Add resources</button>
+        </div>
+      )}
+      {showEditor && sourceMessage && (
+        <div className="notes-source-message fade-in" role="status"><AlertCircle size={15} />{sourceMessage}<button type="button" onClick={() => setSourceMessage('')} aria-label="Dismiss message"><X size={15} /></button></div>
+      )}
+      {uploadChoices && (
+        <div className="notes-upload-choices" role="dialog" aria-modal="true" aria-label="Choose Mochi outputs">
+          <div className="notes-upload-choices__card">
+            <button type="button" className="notes-upload-choices__close" onClick={() => setUploadChoices(null)} aria-label="Choose later"><X size={18} /></button>
+            <Sparkles size={22} />
+            <h2>Your materials are attached</h2>
+            <p>What would you like Mochi to create? You can always create more later.</p>
+            <div>
+              <button type="button" onClick={() => generateUploadOutputs('notes')}>Generate notes</button>
+              <button type="button" onClick={() => generateUploadOutputs('primer')}>Generate primer</button>
+              <button type="button" onClick={() => generateUploadOutputs('reviewer')}>Generate reviewer</button>
+              <button type="button" onClick={() => generateUploadOutputs('test')}>Generate practice test</button>
+            </div>
+            <button type="button" className="notes-upload-choices__all" onClick={() => generateUploadOutputs('all')}>Generate all</button>
+            <button type="button" className="notes-upload-choices__later" onClick={() => setUploadChoices(null)}>I’ll decide later</button>
+          </div>
+        </div>
+      )}
+      {confirmAction && <ConfirmModal
+        title={confirmAction.title}
+        message={confirmAction.message}
+        confirmLabel={confirmAction.label}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={() => { const action = confirmAction.run; setConfirmAction(null); action() }}
+      />}
+      {isPreparing && (
         <div className="notes-module-preparing" role="status" aria-live="polite">
           <div className="notes-module-preparing__card">
             <img src={mochiLoading} alt="Mochi preparing your study materials" />
@@ -477,15 +705,7 @@ export default function EditorPane({ notebookId = null }) {
           </div>
         </div>
       )}
-      {isPreparing && !isPreparingMaterials && (
-        <div className="notes-module-preparing notes-module-preparing--single" role="status" aria-live="polite">
-          <div className="notes-module-preparing__card">
-            <Loader2 size={28} className="animate-spin" />
-            <h2>Mochi is creating your {studyTab}...</h2>
-          </div>
-        </div>
-      )}
-      {showEditor && <button type="button" className="notes-mochi-help" onClick={() => setAiOpen((open) => !open)} title="Let Mochi help"><Sparkles size={17} /> Let Mochi help</button>}
+      {showEditor && <button type="button" className="notes-mochi-help" onClick={() => { setHelpOpen((open) => !open); setSourceMessage('') }} title="Let Mochi help" aria-expanded={helpOpen}><Sparkles size={17} /> Let Mochi help</button>}
     </div>
   )
 }
