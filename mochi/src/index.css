@@ -1145,6 +1145,21 @@ input:focus, select:focus, textarea:focus {
 [data-theme="dark"] .notes-module-search,
 [data-theme="dark"] .notes-study-note-modes button,
 [data-theme="dark"] .notes-study-tabs__add-button { background: var(--mochi-surface); color: var(--mochi-text); }
+[data-theme="dark"] .schedule-page__canvas-wrap { background: #24152e !important; }
+[data-theme="dark"] .schedule-page__main,
+[data-theme="dark"] .schedule-page__header { background: var(--mochi-cream) !important; }
+[data-theme="dark"] .schedule-page__heading p { color: var(--mochi-pink) !important; }
+[data-theme="dark"] .schedule-page__action,
+[data-theme="dark"] .schedule-page__section-dropdown,
+[data-theme="dark"] .schedule-generator-modal__panel,
+[data-theme="dark"] .schedule-generator-modal__preview { background: var(--mochi-surface) !important; color: var(--mochi-text); }
+[data-theme="dark"] .schedule-day__classes > div > .group,
+[data-theme="dark"] .schedule-day__classes > div > .flex { background: var(--mochi-surface) !important; }
+[data-theme="dark"] .schedule-day__classes > div > .group[style*="mochi-peach"],
+[data-theme="dark"] .schedule-day__classes > div > .flex[style*="mochi-peach"] { background: var(--mochi-hover) !important; }
+[data-theme="dark"] .schedule-day__classes .text-xs { color: var(--mochi-text-soft) !important; }
+[data-theme="dark"] .schedule-generator-modal__field input,
+[data-theme="dark"] .schedule-generator-modal__dropzone { background: var(--mochi-hover); color: var(--mochi-text); }
 
 @media (max-width: 900px) {
   .todo-page__summary-grid { grid-template-columns: 1fr; }
