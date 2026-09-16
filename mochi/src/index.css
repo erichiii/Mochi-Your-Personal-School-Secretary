@@ -1058,8 +1058,7 @@ input:focus, select:focus, textarea:focus {
 .todo-page__filters button { min-width: 0; border: 2px solid transparent; border-radius: 999px; padding: 0.55rem 0.75rem; background: transparent; color: var(--mochi-pink-mid); font-size: 0.85rem; font-weight: 700; text-align: center; text-transform: capitalize; transition: background .18s ease, color .18s ease; }
 .todo-page__filters button:hover { background: var(--mochi-hover); }
 .todo-page__filters button.is-active { border: 2px solid var(--mochi-border); background: #fff0f9; color: var(--mochi-pink-dark); }
-.todo-page__arrange-control { display: grid; justify-items: end; gap: 0.25rem; flex: 0 0 auto; }
-.todo-page__arrange-control > span { color: var(--mochi-text-muted); font-size: 0.66rem; font-weight: 600; }
+.todo-page__arrange-control { display: flex; align-items: center; justify-content: end; flex: 0 0 auto; }
 .todo-page__arrange-control button { display: inline-flex; align-items: center; gap: 0.4rem; border: 2px solid var(--mochi-border); border-radius: 999px; padding: 0.48rem 0.8rem; background: var(--mochi-surface); color: var(--mochi-pink-dark); font-size: 0.76rem; font-weight: 700; white-space: nowrap; transition: background .18s ease, color .18s ease; }
 .todo-page__arrange-control button:hover { background: var(--mochi-hover); }
 .todo-page__arrange-control button.is-active { background: var(--mochi-pink-mid); color: #fff; }
@@ -1123,7 +1122,7 @@ input:focus, select:focus, textarea:focus {
   .todo-page__filters { gap: 0.25rem; }
   .todo-page__filters button { padding: 0.5rem 0.35rem; font-size: 0.78rem; }
   .todo-page__tasks-heading { align-items: stretch; flex-direction: column; }
-  .todo-page__arrange-control { justify-items: start; }
+  .todo-page__arrange-control { justify-content: start; }
   .todo-page__weekly-subject { display: none; }
 }
 

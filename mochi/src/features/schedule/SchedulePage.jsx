@@ -159,10 +159,13 @@ export default function SchedulePage() {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [showGenerator, parsing])
 
-  // Auto-select first section once sections load (activeSectionId resets to null on each mount)
+  // Default to the newest saved section when this page opens.
   useEffect(() => {
     if (activeSectionId !== null || scheduleSections.length === 0) return undefined
-    const selectionTimer = window.setTimeout(() => setActiveSectionId(scheduleSections[0].id), 0)
+    const newestSection = scheduleSections.reduce((newest, section) => (
+      Number(section.createdAt ?? 0) > Number(newest.createdAt ?? 0) ? section : newest
+    ))
+    const selectionTimer = window.setTimeout(() => setActiveSectionId(newestSection.id), 0)
     return () => window.clearTimeout(selectionTimer)
   }, [activeSectionId, scheduleSections])
 

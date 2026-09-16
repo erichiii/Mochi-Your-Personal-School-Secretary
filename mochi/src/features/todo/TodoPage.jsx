@@ -49,7 +49,7 @@ export default function TodoPage() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const weekEnd = new Date(today)
-    weekEnd.setDate(weekEnd.getDate() + 6)
+    weekEnd.setDate(weekEnd.getDate() + (6 - weekEnd.getDay()))
     weekEnd.setHours(23, 59, 59, 999)
     return tasks
       .filter((task) => !task.isDone && task.deadline && task.deadline >= today.getTime() && task.deadline <= weekEnd.getTime())
@@ -195,9 +195,8 @@ export default function TodoPage() {
               {['all', 'today', 'upcoming', 'completed'].map((item) => <button key={item} type="button" className={filter === item ? 'is-active' : ''} onClick={() => setFilter(item)}>{item}</button>)}
             </nav>
             <div className="todo-page__arrange-control">
-              <span>Let Mochi arrange</span>
               <button type="button" aria-pressed={mochiArrange} className={mochiArrange ? 'is-active' : ''} onClick={() => setMochiArrange((value) => !value)} title="Mochi sorts by due date, assessment weight, estimated effort, and urgency.">
-                <Sparkles size={14} /> {mochiArrange ? 'Mochi arranged' : 'Due date order'}
+                <Sparkles size={14} /> {mochiArrange ? 'Mochi arranged' : 'Let Mochi arrange?'}
               </button>
             </div>
           </div>
