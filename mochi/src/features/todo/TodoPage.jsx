@@ -196,7 +196,7 @@ export default function TodoPage() {
             </nav>
             <div className="todo-page__arrange-control">
               <span>Let Mochi arrange</span>
-              <button type="button" aria-pressed={mochiArrange} className={mochiArrange ? 'is-active' : ''} onClick={() => setMochiArrange((value) => !value)} title="Sorts by urgency, estimated workload, and priority.">
+              <button type="button" aria-pressed={mochiArrange} className={mochiArrange ? 'is-active' : ''} onClick={() => setMochiArrange((value) => !value)} title="Mochi sorts by due date, assessment weight, estimated effort, and urgency.">
                 <Sparkles size={14} /> {mochiArrange ? 'Mochi arranged' : 'Due date order'}
               </button>
             </div>

@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Bell, Calendar, Check, Tag, Timer, Trash2 } from 'lucide-react'
-import { computePriority, priorityMeta } from '../../../shared/utils/priority'
+import { computePriority, getPriorityBreakdown, priorityMeta } from '../../../shared/utils/priority'
 import PomodoroTimer from './PomodoroTimer'
 
 export const REMINDER_OPTIONS = [
@@ -45,8 +45,17 @@ const DATE_TONE = {
 
 const sortByPriority = (arr) =>
   [...arr]
-    .map((t) => ({ ...t, _score: computePriority(t) }))
-    .sort((a, b) => b._score - a._score)
+    .map((task) => ({ task, priority: getPriorityBreakdown(task) }))
+    .sort((a, b) => {
+      if (b.priority.finalScore !== a.priority.finalScore) return b.priority.finalScore - a.priority.finalScore
+      const aDeadline = a.task.deadline ?? Number.MAX_SAFE_INTEGER
+      const bDeadline = b.task.deadline ?? Number.MAX_SAFE_INTEGER
+      if (aDeadline !== bDeadline) return aDeadline - bDeadline
+      if (b.priority.gradedWeight !== a.priority.gradedWeight) return b.priority.gradedWeight - a.priority.gradedWeight
+      if (b.priority.effort !== a.priority.effort) return b.priority.effort - a.priority.effort
+      return (a.task.createdAt ?? 0) - (b.task.createdAt ?? 0)
+    })
+    .map(({ task }) => task)
 
 const sortByDueDate = (arr) =>
   [...arr].sort((a, b) => (a.deadline ?? Number.MAX_SAFE_INTEGER) - (b.deadline ?? Number.MAX_SAFE_INTEGER))
@@ -59,9 +68,9 @@ const daysLeftLabel = (deadline) => {
   due.setHours(0, 0, 0, 0)
   const days = Math.round((due.getTime() - today.getTime()) / 86_400_000)
   if (days < 0) return 'Overdue'
-  if (days === 0) return 'Today'
-  if (days === 1) return 'Tomorrow'
-  if (days <= 7) return days === 2 ? '2 days left' : 'This week'
+  if (days === 0) return 'Due today'
+  if (days === 1) return 'Due tomorrow'
+  if (days <= 7) return `${days} days left`
   return `${days} days left`
 }
 
@@ -283,11 +292,10 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full self-start"
               style={{ background: meta.bg, color: meta.text }}
-              title={`Score: ${score}/100`}
+              title="Priority is Mochi’s suggestion based on deadline, task type, and estimated workload."
             >
-              {meta.label}
+              {task.isDone ? 'Done' : `${meta.label} · ${score}`}
             </span>
-            <span style={{ fontSize: '9px', color: 'var(--mochi-text-muted)', paddingLeft: '2px' }}>{task.isDone ? 'Done' : `${score}/100`}</span>
           </div>
         </td>
 

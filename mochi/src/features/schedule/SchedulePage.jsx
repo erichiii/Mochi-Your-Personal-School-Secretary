@@ -10,6 +10,7 @@ import mochiSchedule from '../../assets/mascots/mochi-schedule.png'
 
 // ── Constants ──────────────────────────────────────────────────
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const WEEKDAYS = DAYS.slice(0, 5)
 
 const DAY_COLORS = {
   Monday:    { bg: 'var(--mochi-lavender)',  border: 'var(--mochi-lavender-mid)',  text: 'var(--mochi-lavender-dark)' },
@@ -95,6 +96,7 @@ export default function SchedulePage() {
   // Active section (null = "All")
   const [activeSectionId, setActiveSectionId] = useState(null)
   const [showExport, setShowExport] = useState(false)
+  const [showEditor, setShowEditor] = useState(false)
 
   // Image upload
   const [image, setImage] = useState(null)
@@ -298,18 +300,17 @@ export default function SchedulePage() {
       .sort((a, b) => parseTimeForSort(a.time) - parseTimeForSort(b.time))
     if (saved.length || pending.length) itemsByDay[day] = { saved, pending }
   }
-  const activeDays = DAYS.filter((d) => itemsByDay[d])
-  const hasContent = activeDays.length > 0
+  const hasContent = WEEKDAYS.some((day) => itemsByDay[day])
 
   // ── Render ─────────────────────────────────────────────────
   return (
     <>
-    <div className="h-full flex overflow-hidden" style={{ background: 'var(--mochi-cream)' }}>
+    <div className="schedule-page h-full flex overflow-hidden" style={{ background: 'var(--mochi-cream)' }}>
 
       {/* ── Left panel ── */}
       <div
         className="flex-shrink-0 flex flex-col overflow-y-auto py-6 px-4 gap-4"
-        style={{ width: '256px', borderRight: '1.5px solid var(--mochi-border)', background: 'var(--mochi-surface)' }}
+        style={{ display: showEditor ? undefined : 'none', width: '256px', borderRight: '1.5px solid var(--mochi-border)', background: 'var(--mochi-surface)' }}
       >
         {/* ── Sections ── */}
         <div className="flex items-center justify-between">
@@ -514,7 +515,7 @@ export default function SchedulePage() {
       </div>
 
       {/* ── Right: Schedule table ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="schedule-page__main flex-1 flex flex-col overflow-hidden">
 
         {/* Pending banner */}
         {pendingItems.length > 0 && (
@@ -545,45 +546,34 @@ export default function SchedulePage() {
         )}
 
         {/* Table header */}
-        <div
-          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{ borderBottom: '1.5px solid var(--mochi-border)' }}
-        >
-          <div className="flex items-center gap-3">
-            <img src={mochiSchedule} alt="Mochi with a class schedule" style={{ width: '42px', height: '42px', objectFit: 'contain', imageRendering: 'pixelated' }} />
-            <p className="text-lg font-bold" style={{ fontFamily: 'var(--font-display)', color: 'var(--mochi-text)', fontSize: '22px' }}>
-              {activeSection ? activeSection.name : 'Weekly Schedule'}
-            </p>
-            {activeSection && (() => {
-              const colors = SECTION_COLOR_MAP[activeSection.color] ?? SECTION_COLOR_MAP.lavender
-              return (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: colors.bg, border: `1px solid ${colors.border}`, color: colors.text }}>
-                  {scheduleItems.filter((i) => i.sectionId === activeSectionId).length} classes
-                </span>
-              )
-            })()}
+        <header className="schedule-page__header">
+          <div className="schedule-page__heading">
+            <img src={mochiSchedule} alt="Mochi reading a class schedule" />
+            <div>
+              <h1>Schedule</h1>
+              <p>{activeSection?.name || 'All sections'}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowExport(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
-              style={{ background: 'var(--mochi-lavender)', color: 'var(--mochi-lavender-dark)', border: '1.5px solid var(--mochi-lavender-mid)' }}
-            >
-              <Download size={12} />Export
+          <div className="schedule-page__header-actions">
+            <button onClick={() => setShowExport(true)} className="schedule-page__action">
+              <Download size={14} />Export
             </button>
-            <button
-              onClick={() => { setShowAddForm(true); setAddForm({ day: 'Monday', time: '', subject: '', room: '' }) }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
-              style={{ background: 'var(--mochi-peach)', color: 'var(--mochi-peach-dark)', border: '1.5px solid var(--mochi-peach-mid)' }}
-            >
-              <Plus size={12} />Add Row
+            <button onClick={() => setShowEditor((value) => !value)} className="schedule-page__action" aria-pressed={showEditor}>
+              <Pencil size={14} />{showEditor ? 'Done' : 'Edit'}
             </button>
+            <label className="schedule-page__section-picker">
+              <span>Your Sections</span>
+              <select value={activeSectionId ?? ''} onChange={(e) => setActiveSectionId(e.target.value || null)}>
+                <option value="">All sections</option>
+                {scheduleSections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
+              </select>
+            </label>
           </div>
-        </div>
+        </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
+        <div className="schedule-page__canvas-wrap flex-1 overflow-auto">
+          <div className="schedule-page__canvas">
 
           {/* Add row form */}
           {showAddForm && (
@@ -625,22 +615,14 @@ export default function SchedulePage() {
           )}
 
           {/* Day groups */}
-          {hasContent ? activeDays.map((day) => {
-            const { saved, pending } = itemsByDay[day]
+          {hasContent ? WEEKDAYS.map((day) => {
+            const { saved, pending } = itemsByDay[day] ?? { saved: [], pending: [] }
             const colors = DAY_COLORS[day]
             return (
-              <div key={day}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span
-                    className="text-xs font-bold px-2.5 py-1 rounded-full"
-                    style={{ background: colors.bg, border: `1.5px solid ${colors.border}`, color: colors.text }}
-                  >
-                    {day}
-                  </span>
-                  <div className="flex-1" style={{ height: '1px', background: 'var(--mochi-border)' }} />
-                </div>
+              <section key={day} className="schedule-day">
+                <h2>{day}</h2>
 
-                <div className="flex flex-col gap-1.5">
+                <div className="schedule-day__classes">
                   {/* Saved rows */}
                   {saved.map((item) => (
                     <div key={item.id}>
@@ -793,7 +775,7 @@ export default function SchedulePage() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </section>
             )
           }) : (
             !showAddForm && (
@@ -817,6 +799,7 @@ export default function SchedulePage() {
               </div>
             )
           )}
+          </div>
         </div>
       </div>
     </div>

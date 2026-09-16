@@ -153,6 +153,231 @@ body {
 .shimmer     { animation: shimmer-move 1.6s var(--ease-out) infinite;
                background: var(--mochi-hover); }
 
+/* Schedule */
+.schedule-page {
+  min-width: 0;
+  background: var(--mochi-cream);
+}
+
+.schedule-page__main {
+  min-width: 0;
+  background: #ffe9f7;
+}
+
+.schedule-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 2rem clamp(1.5rem, 3vw, 3.5rem) 1.25rem;
+  background: #ffe9f7;
+}
+
+.schedule-page__heading {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.schedule-page__heading img {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex: 0 0 auto;
+}
+
+.schedule-page__heading h1 {
+  margin: 0;
+  color: var(--mochi-text);
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 4vw, 4.5rem);
+  font-weight: 700;
+  line-height: 0.95;
+}
+
+.schedule-page__heading p {
+  margin: 0.65rem 0 0;
+  color: var(--mochi-pink-dark);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.schedule-page__header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding-top: 0.3rem;
+}
+
+.schedule-page__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.6rem;
+  padding: 0.55rem 1.05rem;
+  border: 2px solid var(--mochi-pink);
+  border-radius: 999px;
+  background: #fff6fc;
+  color: var(--mochi-text);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.schedule-page__action:hover { background: var(--mochi-pink); transform: translateY(-1px); }
+.schedule-page__action:active { transform: translateY(0); }
+
+.schedule-page__section-picker {
+  position: relative;
+  display: grid;
+  min-width: 158px;
+  color: var(--mochi-text);
+}
+
+.schedule-page__section-picker span {
+  position: absolute;
+  top: 0.43rem;
+  left: 1rem;
+  z-index: 1;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.schedule-page__section-picker select {
+  width: 100%;
+  min-height: 3.5rem;
+  appearance: auto;
+  padding: 1.35rem 2.1rem 0.45rem 1rem;
+  border: 0;
+  border-radius: 1.25rem;
+  background: var(--mochi-pink-dark);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.schedule-page__canvas-wrap {
+  min-width: 0;
+  padding: 0 clamp(1.5rem, 3vw, 3.5rem) 2.25rem;
+  background: #ffe9f7;
+}
+
+.schedule-page__canvas {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(218px, 1fr));
+  gap: 1.4rem;
+  min-width: 1160px;
+  min-height: 100%;
+  padding: 2rem 2.1rem;
+  border: 5px solid var(--mochi-pink);
+  border-radius: 2rem;
+  background: var(--mochi-surface);
+  box-shadow: 5px 6px 0 rgba(249, 68, 127, 0.14);
+}
+
+.schedule-page__canvas > .fade-in,
+.schedule-page__canvas > .flex:not(.schedule-day) {
+  grid-column: 1 / -1;
+}
+
+.schedule-day {
+  min-width: 0;
+}
+
+.schedule-day h2 {
+  margin: 0 0 1.3rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 999px;
+  background: #cb6ce6;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+
+.schedule-day__classes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.schedule-day__classes > div > .group,
+.schedule-day__classes > div > .flex {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-height: 136px;
+  padding: 1rem 1.1rem;
+  border: 2px solid #cb6ce6 !important;
+  border-radius: 1rem;
+  background: #fff !important;
+}
+
+.schedule-day__classes .w-40,
+.schedule-day__classes .w-36 {
+  width: auto;
+}
+
+.schedule-day__classes input,
+.schedule-day__classes select {
+  width: 100% !important;
+}
+
+.schedule-day__classes > div > .flex { min-height: auto; }
+
+.schedule-day__classes > div > .group[style*="mochi-peach"] {
+  background: #fff0f8 !important;
+}
+
+.schedule-day__classes .group > span:not(.text-\[10px\]) {
+  max-width: 100%;
+}
+
+.schedule-day__classes .text-sm {
+  color: var(--mochi-text) !important;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.schedule-day__classes .text-xs {
+  color: #766f77 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.schedule-day__classes .rounded-full {
+  border: 1.5px solid #cb6ce6;
+  background: #ffcef0 !important;
+  color: var(--mochi-text) !important;
+}
+
+.schedule-day__classes .group > .opacity-0 {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+}
+
+@media (max-width: 1050px) {
+  .schedule-page__header { align-items: stretch; flex-direction: column; }
+  .schedule-page__header-actions { justify-content: flex-start; padding-top: 0; }
+}
+
 /* Stagger support — set --delay as inline style on each child */
 .stagger-item {
   animation: fadeSlideIn var(--dur-slow) var(--ease-spring) both;
@@ -612,7 +837,7 @@ input:focus, select:focus, textarea:focus {
 .todo-task-table tbody tr.task-row td:first-child > div { width: 4px !important; }
 .task-days-left { display: inline-flex; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 999px; padding: 0.3rem 0.55rem; background: #fff0f9; color: var(--mochi-text-soft); font-size: 0.65rem; font-weight: 700; }
 .task-days-left[data-state="overdue"] { background: var(--mochi-pink); color: var(--mochi-pink-dark); }
-.task-days-left[data-state="today"], .task-days-left[data-state="tomorrow"] { background: var(--mochi-peach); color: var(--mochi-peach-dark); }
+.task-days-left[data-state="due-today"], .task-days-left[data-state="due-tomorrow"] { background: var(--mochi-pink); color: var(--mochi-pink-dark); }
 .task-days-left[data-state="no-due-date"] { border: 1px solid var(--mochi-border); background: transparent; color: var(--mochi-text-muted); }
 .todo-task-table tbody tr.task-row.is-completed td { border-color: rgba(92, 151, 102, 0.45); background: #eef9ef; opacity: 0.72; }
 .todo-task-table tbody tr.task-row.is-completed:hover td { background: #e5f5e6; }
