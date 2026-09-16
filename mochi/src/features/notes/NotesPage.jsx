@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import ModuleSidebar from './components/ModuleSidebar'
 import EditorPane from './components/EditorPane'
 import NotesOverview from './components/NotesOverview'
 
 export default function NotesPage() {
-  const [showWorkspace, setShowWorkspace] = useState(false)
-  const [workspaceNotebookId, setWorkspaceNotebookId] = useState(null)
+  const location = useLocation()
+  const routeNotebookId = location.state?.notebookId ?? null
+  const [showWorkspace, setShowWorkspace] = useState(Boolean(routeNotebookId))
+  const [workspaceNotebookId, setWorkspaceNotebookId] = useState(routeNotebookId)
 
   if (!showWorkspace) {
     return <NotesOverview onOpenWorkspace={(notebookId) => {

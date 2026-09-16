@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, CalendarDays, CheckCircle2, Circle, Clock3, FileText, NotebookText } from 'lucide-react'
+import { ArrowRight, BookOpen, CalendarDays, CheckCircle2, Circle, Clock3, FileText } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import useStore from '../../app/store/useStore'
 import mochiDashboard from '../../assets/mascots/mochi-dashboard.png'
@@ -37,6 +37,17 @@ const dueLabel = (deadline) => {
   return `Due ${due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
 }
 
+const daysLeftLabel = (deadline, todayStart) => {
+  if (!Number.isFinite(deadline)) return 'No due date'
+  const due = new Date(deadline)
+  due.setHours(0, 0, 0, 0)
+  const daysLeft = Math.round((due.getTime() - todayStart) / 86_400_000)
+  if (daysLeft < 0) return 'Overdue'
+  if (daysLeft === 0) return 'Due today'
+  if (daysLeft === 1) return '1 day left'
+  return `${daysLeft} days left`
+}
+
 export default function DashboardPage() {
   const [now, setNow] = useState(() => new Date())
   const {
@@ -72,8 +83,36 @@ export default function DashboardPage() {
     .filter((item) => activeScheduleSection && item.sectionId === activeScheduleSection.id && item.day === todayName)
     .sort((a, b) => timeScore(a.time) - timeScore(b.time)), [scheduleItems, activeScheduleSection, todayName])
 
-  const recentNotes = notes.slice(0, 4)
-  const topLevelSubjects = subjects.filter((subject) => !subject.parentId).slice(0, 5)
+  const recentNotes = useMemo(() => [...notes]
+    .sort((a, b) => (b.updatedAt ?? b.createdAt ?? 0) - (a.updatedAt ?? a.createdAt ?? 0))
+    .slice(0, 5), [notes])
+  const recentNotebooks = useMemo(() => {
+    const folderIds = new Set(subjects.filter((subject) => !subject.parentId).map((subject) => subject.id))
+    const notebooks = subjects.filter((subject) => folderIds.has(subject.parentId))
+
+    const subjectTree = (notebookId) => {
+      const ids = new Set([notebookId])
+      const queue = [notebookId]
+      while (queue.length) {
+        const parentId = queue.shift()
+        subjects.filter((subject) => subject.parentId === parentId).forEach((subject) => {
+          ids.add(subject.id)
+          queue.push(subject.id)
+        })
+      }
+      return ids
+    }
+
+    return notebooks
+      .map((notebook) => {
+        const notebookSubjectIds = subjectTree(notebook.id)
+        const notebookNotes = notes.filter((note) => notebookSubjectIds.has(note.subjectId))
+        const mostRecentNote = notebookNotes.reduce((latest, note) => Math.max(latest, note.updatedAt ?? note.createdAt ?? 0), 0)
+        return { notebook, noteCount: notebookNotes.length, activityAt: mostRecentNote || notebook.createdAt || 0 }
+      })
+      .sort((a, b) => b.activityAt - a.activityAt)
+      .slice(0, 5)
+  }, [notes, subjects])
   const tasksForPanel = dueThisWeek.length > 0 ? dueThisWeek.slice(0, 3) : otherTasks.slice(0, 3)
   const taskHeading = dueThisWeek.length > 0
     ? `You have ${dueThisWeek.length} task${dueThisWeek.length === 1 ? '' : 's'} due this week.`
@@ -128,7 +167,7 @@ export default function DashboardPage() {
                       </button>
                       <Link to="/todo" className="flex min-w-0 flex-1 items-center gap-3" style={{ color: 'inherit', textDecoration: 'none' }}>
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{task.title || 'Untitled task'}</span>
-                        <span className="hidden text-xs sm:inline" style={{ color: 'var(--mochi-pink-dark)' }}>{dueLabel(task.deadline)}</span>
+                        <span className="flex-shrink-0 text-xs font-bold" style={{ color: 'var(--mochi-pink-dark)' }} title={dueLabel(task.deadline)}>{daysLeftLabel(task.deadline, todayStart)}</span>
                       </Link>
                     </div>
                   ))}
@@ -163,7 +202,10 @@ export default function DashboardPage() {
         <section className="grid gap-7 xl:grid-cols-2">
           <section aria-labelledby="recent-notes-title">
             <div className="mb-3 flex items-center gap-3">
-              <h2 id="recent-notes-title" className="mochi-page-title m-0 text-2xl">Recent notes</h2>
+              <Link to="/notes" className="group flex items-center gap-1.5" style={{ color: 'inherit', textDecoration: 'none' }}>
+                <h2 id="recent-notes-title" className="mochi-page-title m-0 text-2xl">Recent notes</h2>
+                <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" style={{ color: 'var(--mochi-pink-dark)' }} aria-hidden="true" />
+              </Link>
               <div className="h-0 flex-1 border-t-2" style={{ borderColor: 'var(--mochi-pink-mid)' }} />
             </div>
             <div className="flex flex-col gap-3">
@@ -179,20 +221,24 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          <section aria-labelledby="subjects-title">
+          <section aria-labelledby="recent-notebooks-title">
             <div className="mb-3 flex items-center gap-3">
-              <h2 id="subjects-title" className="mochi-page-title m-0 text-2xl">Your subjects</h2>
+              <Link to="/notes" className="group flex items-center gap-1.5" style={{ color: 'inherit', textDecoration: 'none' }}>
+                <h2 id="recent-notebooks-title" className="mochi-page-title m-0 text-2xl">Recent notebooks</h2>
+                <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" style={{ color: 'var(--mochi-pink-dark)' }} aria-hidden="true" />
+              </Link>
               <div className="h-0 flex-1 border-t-2" style={{ borderColor: 'var(--mochi-pink-mid)' }} />
             </div>
             <div className="flex flex-col gap-3">
-              {topLevelSubjects.length > 0 ? topLevelSubjects.map((subject) => (
-                <Link key={subject.id} to="/notes" onClick={() => setSubjectFilter(subject.id)} className="group flex items-center gap-3 rounded-2xl px-5 py-4" style={{ background: 'var(--mochi-pink-dark)', border: '2px solid var(--mochi-pink-dark)', color: 'var(--mochi-surface)', textDecoration: 'none' }}>
-                  <NotebookText size={21} style={{ flexShrink: 0 }} />
-                  <span className="min-w-0 flex-1 truncate text-base font-bold">{subject.name}</span>
+              {recentNotebooks.length > 0 ? recentNotebooks.map(({ notebook, noteCount }) => (
+                <Link key={notebook.id} to="/notes" state={{ notebookId: notebook.id }} onClick={() => { setSubjectFilter(notebook.id); setActiveNote(null) }} className="group flex items-center gap-3 rounded-2xl px-5 py-4" style={{ background: 'var(--mochi-pink-dark)', border: '2px solid var(--mochi-pink-dark)', color: 'var(--mochi-surface)', textDecoration: 'none' }}>
+                  <BookOpen size={21} style={{ flexShrink: 0 }} />
+                  <span className="min-w-0 flex-1 truncate text-base font-bold">{notebook.name}</span>
+                  <span className="text-xs font-semibold" style={{ opacity: 0.84 }}>{noteCount} {noteCount === 1 ? 'note' : 'notes'}</span>
                   <ArrowRight size={24} className="transition-transform group-hover:translate-x-1" style={{ flexShrink: 0 }} />
                 </Link>
               )) : (
-                <Link to="/notes" className="rounded-2xl px-5 py-6 text-sm font-semibold" style={{ display: 'block', background: 'var(--mochi-hover)', border: '2px dashed var(--mochi-border)', color: 'var(--mochi-text-soft)', textDecoration: 'none' }}>No subjects yet. Add one from Notes.</Link>
+                <Link to="/notes" className="rounded-2xl px-5 py-6 text-sm font-semibold" style={{ display: 'block', background: 'var(--mochi-hover)', border: '2px dashed var(--mochi-border)', color: 'var(--mochi-text-soft)', textDecoration: 'none' }}>No notebooks yet. Add one from Notes.</Link>
               )}
             </div>
           </section>
