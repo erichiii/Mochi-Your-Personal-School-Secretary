@@ -804,7 +804,23 @@ input:focus, select:focus {
 }
 .tiptap-sticky .tiptap ul,
 .tiptap-sticky .tiptap ol { padding-left: 1.25rem; margin: 0.25rem 0; }
-.pomodoro-dock { position: fixed; left: 50%; bottom: 1rem; z-index: 60; max-width: calc(100vw - 2rem); border-radius: 999px; box-shadow: 0 8px 24px rgba(41, 33, 60, 0.18); transform: translateX(-50%); }
+.pomodoro-dock { position: fixed; z-index: 60; display: flex; width: 280px; flex-direction: column; align-items: center; gap: 0.65rem; padding: 0.8rem 0.9rem; border-radius: 1.35rem; box-shadow: 0 8px 24px rgba(41, 33, 60, 0.2); user-select: none; }
+.pomodoro-dock__drag { position: relative; display: flex; width: 100%; justify-content: center; cursor: grab; touch-action: none; }
+.pomodoro-dock__drag:active { cursor: grabbing; }
+.pomodoro-dock__drag img { width: 58px; height: 42px; object-fit: contain; image-rendering: pixelated; }
+.pomodoro-dock__drag button { position: absolute; top: -0.35rem; right: -0.35rem; display: grid; place-items: center; border: 0; border-radius: 50%; padding: 0.25rem; background: transparent; color: var(--mochi-text); opacity: 0.55; }
+.pomodoro-dock__drag button:hover { background: var(--mochi-hover); opacity: 1; }
+.pomodoro-dock__quote { min-height: 2.1rem; margin: 0; color: var(--mochi-text); font-size: 0.72rem; font-weight: 600; line-height: 1.35; text-align: center; }
+.pomodoro-dock__phase { border-radius: 999px; padding: 0.25rem 0.65rem; font-size: 0.68rem; font-weight: 700; }
+.pomodoro-dock__clock { font-family: var(--font-body); font-size: 2.15rem; font-weight: 800; line-height: 1; letter-spacing: 0.04em; }
+.pomodoro-dock__controls { display: flex; align-items: center; justify-content: center; gap: 0.55rem; width: 100%; }
+.pomodoro-dock__controls > button { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; }
+.pomodoro-dock__controls label { display: flex; align-items: center; gap: 0.25rem; font-size: 0.65rem; font-weight: 700; }
+.pomodoro-dock__controls select { border-radius: 999px; padding: 0.2rem 0.35rem; font-size: 0.65rem; outline: none; }
+.pomodoro-dock__footer { display: flex; align-items: center; justify-content: space-between; width: 100%; color: var(--mochi-text-muted); font-size: 0.62rem; font-weight: 600; }
+.pomodoro-dock__footer > span { display: flex; align-items: center; gap: 0.25rem; min-width: 0; }
+.pomodoro-dock__footer > span:last-child { max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pomodoro-dock__footer i { display: inline-block; width: 0.42rem; height: 0.42rem; border: 1px solid; border-radius: 50%; }
 
 /* ── Tiptap images ─────────────────────────────────────────── */
 .tiptap img {
