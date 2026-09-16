@@ -642,8 +642,8 @@ export default function EditorPane({ notebookId = null }) {
           <div className="flex-1 flex items-center justify-center">
             <div className="notes-empty-module-state">
               <img src={mochiLoading} alt="Mochi ready to study on a stack of books" />
-              <h2>Make this module yours</h2>
-              <p>Start with a clean Notes tab, or attach materials and decide what Mochi should create.</p>
+              <h2>Let's start studying</h2>
+              <p>Start with a clean notes tab or add your lecture materials to let Mochi prepare your notes for you.</p>
               <button type="button" className="notes-empty-module-state__upload" onClick={() => materialInputRef.current?.click()}><Upload size={21} /> Upload Materials</button>
               <div className="notes-empty-module-state__divider"><span>or</span></div>
               <button type="button" className="notes-empty-module-state__scratch" onClick={handleStartFromScratch}><FilePenLine size={20} /> Start from scratch</button>

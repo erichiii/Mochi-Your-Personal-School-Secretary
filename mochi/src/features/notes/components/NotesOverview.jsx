@@ -45,7 +45,11 @@ export default function NotesOverview({ onOpenWorkspace }) {
       })
     : notebooks
 
-  const openNotebook = (subject) => { setSubjectFilter(subject.id); setActiveNote(null); onOpenWorkspace(subject.id) }
+  const openNotebook = (subject) => {
+    setSubjectFilter(subject.id)
+    setActiveNote(null)
+    onOpenWorkspace(subject.id, selectedFolder?.id ?? subject.parentId ?? null)
+  }
   const selectFolder = (folderId) => { setSubjectFilter(folderId); setSearchQuery('') }
 
   const handleCreate = async () => {
@@ -65,8 +69,8 @@ export default function NotesOverview({ onOpenWorkspace }) {
 
   const handleNewNote = async () => {
     setMenuOpen(false)
-    await createNote(activeSubjectFilter ? { subjectId: activeSubjectFilter } : {})
-    onOpenWorkspace(activeSubjectFilter)
+    const noteId = await createNote(activeSubjectFilter ? { subjectId: activeSubjectFilter } : {})
+    onOpenWorkspace(activeSubjectFilter, selectedFolder?.id ?? activeSubjectFilter ?? null, noteId)
   }
 
   const startCreating = (type) => { setCreating(type); setName(''); setMenuOpen(false) }
