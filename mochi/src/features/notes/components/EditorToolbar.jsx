@@ -40,7 +40,7 @@ function Sep() {
   )
 }
 
-export default function EditorToolbar({ editor, onImageUpload, aiOpen, onToggleAI }) {
+export default function EditorToolbar({ editor, onImageUpload, noteMode, onNoteModeChange, isPreparing }) {
   if (!editor) return null
 
   const inTable = editor.isActive('table')
@@ -232,6 +232,16 @@ export default function EditorToolbar({ editor, onImageUpload, aiOpen, onToggleA
         <Btn title="Insert image" onMouseDown={onImageUpload}>
           <ImageIcon size={14} />
         </Btn>
+
+        {noteMode && (
+          <>
+            <Sep />
+            <div className="notes-study-note-modes" role="group" aria-label="Notes format">
+              <button type="button" className={noteMode === 'short' ? 'is-active' : ''} onClick={() => onNoteModeChange?.('short')} disabled={isPreparing}>Short-form</button>
+              <button type="button" className={noteMode === 'long' ? 'is-active' : ''} onClick={() => onNoteModeChange?.('long')} disabled={isPreparing}>Long-form</button>
+            </div>
+          </>
+        )}
 
       </div>
 

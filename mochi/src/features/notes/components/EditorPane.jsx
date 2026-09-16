@@ -18,7 +18,7 @@ import ResourcesPanel from './ResourcesPanel'
 import AIPanel, { extractPdfText, parseMarkdownWithMath } from './AIPanel'
 import ConfirmModal from '../../../shared/components/ConfirmModal'
 import { FontSize } from '../../../shared/extensions/FontSize'
-import { generateNotes } from '../../../shared/lib/gemini'
+import { cleanStudySource, generateNotes, generateVisualSuggestions } from '../../../shared/lib/gemini'
 import mochiLoading from '../../../assets/mascots/mochi-loading.png'
 import mochiNotesLoading from '../../../../../ui-revamp/mochi_assets/mochi_notes_loading.png'
 
@@ -56,6 +56,28 @@ const tabLabel = (id) => ({
   test: 'Practice Test',
 }[id] ?? id)
 
+const referenceKey = (resource) => [resource.url, resource.title, resource.author, resource.year, resource.rawText]
+  .map((value) => String(value ?? '').trim().toLowerCase())
+  .filter(Boolean)
+  .join('|')
+
+const extractedResources = (resources) => resources.map((resource) => ({
+  id: crypto.randomUUID(),
+  type: resource.url ? 'url' : 'reference',
+  label: resource.title || resource.url || resource.rawText.slice(0, 90) || 'Reference',
+  ...resource,
+}))
+
+const mergeResources = (existing, additions) => {
+  const keys = new Set(existing.map(referenceKey).filter(Boolean))
+  return [...existing, ...additions.filter((resource) => {
+    const key = referenceKey(resource)
+    if (!key || keys.has(key)) return false
+    keys.add(key)
+    return true
+  })]
+}
+
 export default function EditorPane({ notebookId = null }) {
   const { notes, subjects, activeNoteId, activeSubjectFilter, updateNote, createNote, loadNotes, setSubjectFilter } = useStore()
   const activeNote = notes.find((n) => n.id === activeNoteId) ?? null
@@ -63,6 +85,7 @@ export default function EditorPane({ notebookId = null }) {
   const [title, setTitle] = useState('')
   const [aiOpen, setAiOpen] = useState(false)
   const [studyTab, setStudyTab] = useState('notes')
+  const [noteMode, setNoteMode] = useState('short')
   const [addTabOpen, setAddTabOpen] = useState(false)
   const [newTabName, setNewTabName] = useState('')
   const [tabError, setTabError] = useState('')
@@ -78,6 +101,8 @@ export default function EditorPane({ notebookId = null }) {
   const [preparationStep, setPreparationStep] = useState('reading')
   const [preparingSteps, setPreparingSteps] = useState([])
   const [prepareError, setPrepareError] = useState('')
+  const [visualSuggestions, setVisualSuggestions] = useState([])
+  const [isSuggestingVisuals, setIsSuggestingVisuals] = useState(false)
   const [saveStatus, setSaveStatus] = useState('idle') // 'idle' | 'saving' | 'saved' | 'error'
   const saveTimer = useRef(null)
   const titleTimer = useRef(null)
@@ -89,10 +114,12 @@ export default function EditorPane({ notebookId = null }) {
   const activeNoteRef = useRef(activeNote)
   const activeNoteIdRef = useRef(activeNoteId)
   const activeStudyTabRef = useRef(studyTab)
+  const activeNoteModeRef = useRef(noteMode)
 
   useEffect(() => { activeNoteRef.current = activeNote }, [activeNote])
   useEffect(() => { activeNoteIdRef.current = activeNoteId }, [activeNoteId])
   useEffect(() => { activeStudyTabRef.current = studyTab }, [studyTab])
+  useEffect(() => { activeNoteModeRef.current = noteMode }, [noteMode])
 
   // Ensure data is fresh on remount (tab switch back to Notes)
   useEffect(() => { loadNotes() }, [])
@@ -126,7 +153,10 @@ export default function EditorPane({ notebookId = null }) {
           const currentNote = activeNoteRef.current
           const tab = activeStudyTabRef.current
           const data = tab === 'notes'
-            ? { content: editor.getHTML() }
+            ? {
+                content: editor.getHTML(),
+                noteVariants: { ...(currentNote?.noteVariants ?? {}), [activeNoteModeRef.current]: editor.getHTML() },
+              }
             : currentNote?.moduleTabs?.some((item) => item.id === tab && item.kind === 'custom')
               ? { customTabContent: { ...(currentNote?.customTabContent ?? {}), [tab]: editor.getHTML() } }
               : { studyContent: { ...(currentNote?.studyContent ?? {}), [tab]: editor.getHTML() } }
@@ -155,11 +185,11 @@ export default function EditorPane({ notebookId = null }) {
     }
 
     // Each study view has its own persisted document within the module.
-    const loadedKey = `${activeNote.id}:${studyTab}`
+    const loadedKey = `${activeNote.id}:${studyTab}:${noteMode}`
     if (lastLoadedId.current !== loadedKey) {
       const isCustomTab = activeNote.moduleTabs?.some((item) => item.id === studyTab && item.kind === 'custom')
       const content = studyTab === 'notes'
-        ? activeNote.content
+        ? activeNote.noteVariants?.[noteMode] ?? activeNote.content
         : isCustomTab
           ? activeNote.customTabContent?.[studyTab]
           : activeNote.studyContent?.[studyTab]
@@ -167,7 +197,7 @@ export default function EditorPane({ notebookId = null }) {
       setTitle(activeNote.title || '')
       lastLoadedId.current = loadedKey
     }
-  }, [activeNote, studyTab, editor])
+  }, [activeNote, studyTab, noteMode, editor])
 
   // Cleanup timers
   useEffect(() => () => {
@@ -368,6 +398,24 @@ export default function EditorPane({ notebookId = null }) {
     return preferredSource || [noteText, resourceText].filter(Boolean).join('\n\n---\n\n').trim()
   }
 
+  const prepareStudySource = async (note, source) => {
+    if (note.cleanedStudySource) return { note, source: note.cleanedStudySource }
+    const extracted = await cleanStudySource(source)
+    const nextNote = {
+      ...note,
+      cleanedStudySource: extracted.studyContent || source,
+      resources: mergeResources(note.resources ?? [], extractedResources(extracted.resources)),
+      visualReferences: extracted.visuals,
+    }
+    activeNoteRef.current = nextNote
+    await updateNote(note.id, {
+      cleanedStudySource: nextNote.cleanedStudySource,
+      resources: nextNote.resources,
+      visualReferences: nextNote.visualReferences,
+    })
+    return { note: nextNote, source: nextNote.cleanedStudySource }
+  }
+
   const hasEnoughSource = (source) => source.trim().length >= 40
 
   const handleStudyTab = (tab) => {
@@ -376,6 +424,61 @@ export default function EditorPane({ notebookId = null }) {
     setPrepareError('')
     setSourceMessage('')
     setHelpOpen(false)
+  }
+
+  const handleNoteModeChange = async (mode) => {
+    if (!activeNote || isPreparing) return
+    setStudyTab('notes')
+    if (activeNote.noteVariants?.[mode]) {
+      setNoteMode(mode)
+      return
+    }
+
+    const source = getSource(activeNote)
+    if (!hasEnoughSource(source)) {
+      setSourceMessage('Mochi needs notes or uploaded materials first.')
+      return
+    }
+
+    setIsPreparing(true)
+    setPreparingSteps(['reading', 'notes'])
+    setPreparationStep('reading')
+    setPrepareError('')
+    try {
+      const prepared = await prepareStudySource(activeNote, source)
+      setPreparationStep('notes')
+      const markdown = await generateNotes(prepared.source, mode)
+      const content = parseMarkdownWithMath(markdown)
+      const noteVariants = { ...(prepared.note.noteVariants ?? {}), [mode]: content }
+      const nextNote = { ...prepared.note, content, noteVariants }
+      activeNoteRef.current = nextNote
+      await updateNote(nextNote.id, { content, noteVariants })
+      setNoteMode(mode)
+      editor?.commands.setContent(content, false)
+    } catch (error) {
+      setPrepareError(error.message || "Mochi couldn't prepare these notes yet.")
+    } finally {
+      setIsPreparing(false)
+    }
+  }
+
+  const suggestVisuals = async () => {
+    if (!activeNote || isSuggestingVisuals) return
+    const source = activeNote.cleanedStudySource || getSource(activeNote)
+    if (!hasEnoughSource(source)) {
+      setSourceMessage('Mochi needs notes or uploaded materials first.')
+      return
+    }
+    setIsSuggestingVisuals(true)
+    setSourceMessage('')
+    try {
+      setVisualSuggestions(await generateVisualSuggestions(source))
+      setHelpOpen(false)
+    } catch (error) {
+      setSourceMessage(error.message || "Mochi couldn't suggest visuals yet.")
+    } finally {
+      setIsSuggestingVisuals(false)
+    }
   }
 
   const addCustomTab = async () => {
@@ -423,18 +526,20 @@ export default function EditorPane({ notebookId = null }) {
     if (!hasEnoughSource(source)) { setSourceMessage('Mochi needs notes or uploaded materials first.'); setHelpOpen(false); return }
 
     setIsPreparing(true)
-    setPreparingSteps([kind])
-    setPreparationStep(kind)
+    setPreparingSteps(['reading', kind])
+    setPreparationStep('reading')
     setPrepareError('')
     try {
-      const markdown = await generateNotes(source, kind)
+      const prepared = await prepareStudySource(activeNote, source)
+      setPreparationStep(kind)
+      const markdown = await generateNotes(prepared.source, kind)
       const content = parseMarkdownWithMath(markdown)
-      const studyContent = { ...(activeNote.studyContent ?? {}), [kind]: content }
-      const moduleTabs = savedTabs.some((tab) => tab.id === kind)
-        ? savedTabs
-        : [...savedTabs, { id: kind, label: tabLabel(kind), kind: 'mochi' }]
-      activeNoteRef.current = { ...activeNote, studyContent, moduleTabs }
-      await updateNote(activeNote.id, { studyContent, moduleTabs })
+      const studyContent = { ...(prepared.note.studyContent ?? {}), [kind]: content }
+      const moduleTabs = prepared.note.moduleTabs?.some((tab) => tab.id === kind)
+        ? prepared.note.moduleTabs
+        : [...(prepared.note.moduleTabs ?? []), { id: kind, label: tabLabel(kind), kind: 'mochi' }]
+      activeNoteRef.current = { ...prepared.note, studyContent, moduleTabs }
+      await updateNote(prepared.note.id, { studyContent, moduleTabs })
       setStudyTab(kind)
       setHelpOpen(false)
     } catch (error) {
@@ -449,16 +554,20 @@ export default function EditorPane({ notebookId = null }) {
     const source = getSource(activeNote, sourceOverride)
     if (!hasEnoughSource(source)) { setSourceMessage('Mochi needs notes or uploaded materials first.'); setHelpOpen(false); return }
     setIsPreparing(true)
-    setPreparingSteps(['notes'])
-    setPreparationStep('notes')
+    setPreparingSteps(['reading', 'notes'])
+    setPreparationStep('reading')
     setPrepareError('')
     try {
-      const markdown = await generateNotes(source, 'general')
+      const prepared = await prepareStudySource(activeNote, source)
+      setPreparationStep('notes')
+      const markdown = await generateNotes(prepared.source, 'short')
       const content = parseMarkdownWithMath(markdown)
-      activeNoteRef.current = { ...activeNote, content }
-      await updateNote(activeNote.id, { content })
+      const noteVariants = { ...(prepared.note.noteVariants ?? {}), short: content }
+      activeNoteRef.current = { ...prepared.note, content, noteVariants }
+      await updateNote(activeNote.id, { content, noteVariants })
       editor?.commands.setContent(content, false)
       setStudyTab('notes')
+      setNoteMode('short')
       setHelpOpen(false)
     } catch (error) {
       setPrepareError(error.message || "Mochi couldn't organize these notes yet.")
@@ -487,17 +596,20 @@ export default function EditorPane({ notebookId = null }) {
     setSelectedOutputs([])
     setIsPreparing(true)
     const orderedChoices = PREPARATION_STEPS.map((step) => step.id).filter((id) => choices.includes(id))
-    setPreparingSteps(orderedChoices)
-    setPreparationStep(orderedChoices[0] ?? 'notes')
+    setPreparingSteps(['reading', ...orderedChoices])
+    setPreparationStep('reading')
     setPrepareError('')
     try {
+      const prepared = await prepareStudySource(currentNote, source)
+      currentNote = prepared.note
+      source = prepared.source
       if (choices.includes('notes')) {
         setPreparationStep('notes')
-        const markdown = await generateNotes(source, 'general')
+        const markdown = await generateNotes(source, 'short')
         const content = parseMarkdownWithMath(markdown)
-        currentNote = { ...currentNote, content }
+        currentNote = { ...currentNote, content, noteVariants: { ...(currentNote.noteVariants ?? {}), short: content } }
         activeNoteRef.current = currentNote
-        await updateNote(currentNote.id, { content })
+        await updateNote(currentNote.id, { content, noteVariants: currentNote.noteVariants })
       }
       for (const kind of orderedChoices.filter((item) => item !== 'notes')) {
         if (currentNote.studyContent?.[kind]) continue
@@ -513,6 +625,7 @@ export default function EditorPane({ notebookId = null }) {
         await updateNote(currentNote.id, { studyContent, moduleTabs })
       }
       setStudyTab(orderedChoices.includes('notes') ? 'notes' : orderedChoices[0])
+      if (orderedChoices.includes('notes')) setNoteMode('short')
     } catch (error) {
       setPrepareError(error.message || "Mochi couldn't create those study materials yet.")
     } finally {
@@ -619,8 +732,9 @@ export default function EditorPane({ notebookId = null }) {
         <EditorToolbar
           editor={editor}
           onImageUpload={handleImageUpload}
-          aiOpen={aiOpen}
-          onToggleAI={() => setAiOpen((v) => !v)}
+          noteMode={studyTab === 'notes' ? noteMode : null}
+          onNoteModeChange={handleNoteModeChange}
+          isPreparing={isPreparing}
         />
       )}
 
@@ -669,10 +783,23 @@ export default function EditorPane({ notebookId = null }) {
         <div className="notes-mochi-menu fade-in" role="dialog" aria-label="Let Mochi help">
           <div className="notes-mochi-menu__heading"><Sparkles size={15} /> Let Mochi help</div>
           <button type="button" onClick={() => requestOrganizeNotes()}>Organize my notes</button>
+          <button type="button" onClick={suggestVisuals} disabled={isSuggestingVisuals}>{isSuggestingVisuals ? 'Finding helpful visuals...' : 'Suggest where visuals would help'}</button>
           <button type="button" onClick={() => createMochiTab('primer')}>Create primer from my notes/resources</button>
           <button type="button" onClick={() => createMochiTab('reviewer')}>Create reviewer from my notes/resources</button>
           <button type="button" onClick={() => createMochiTab('test')}>Create practice test from my notes/resources</button>
           <button type="button" onClick={() => { setHelpOpen(false); materialInputRef.current?.click() }}><Upload size={14} /> Add resources</button>
+        </div>
+      )}
+      {visualSuggestions.length > 0 && (
+        <div className="notes-visual-suggestions" role="dialog" aria-label="Suggested study visuals">
+          <div>
+            <strong>Helpful visuals</strong>
+            <button type="button" onClick={() => setVisualSuggestions([])} aria-label="Close visual suggestions"><X size={16} /></button>
+          </div>
+          {visualSuggestions.map((suggestion, index) => <article key={`${suggestion.title}-${index}`}>
+            <strong>{suggestion.title || suggestion.visualType}</strong>
+            <span>{suggestion.section ? `${suggestion.section}: ` : ''}{suggestion.reason}</span>
+          </article>)}
         </div>
       )}
       {showEditor && sourceMessage && (

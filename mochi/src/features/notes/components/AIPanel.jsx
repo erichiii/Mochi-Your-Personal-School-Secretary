@@ -6,7 +6,7 @@ import {
 import * as pdfjsLib from 'pdfjs-dist'
 import { marked } from 'marked'
 import katex from 'katex'
-import { generateNotes, generateFlashcards } from '../../../shared/lib/gemini'
+import { cleanStudySource, generateNotes, generateFlashcards } from '../../../shared/lib/gemini'
 import useStore from '../../../app/store/useStore'
 import ConfirmModal from '../../../shared/components/ConfirmModal'
 
@@ -92,7 +92,7 @@ export const extractPdfText = async (file) => {
 }
 
 export default function AIPanel({ editor, noteId, onClose, initialMode = 'primer' }) {
-  const { createFlashcard, notes, decks, loadDecks } = useStore()
+  const { createFlashcard, notes, decks, loadDecks, updateNote } = useStore()
 
   const [mode, setMode] = useState('primer')
   const [customInstructions, setCustomInstructions] = useState('')
@@ -164,7 +164,16 @@ export default function AIPanel({ editor, noteId, onClose, initialMode = 'primer
     setError('')
     setSuccess(false)
     try {
-      const markdown = await generateNotes(text, mode, customInstructions)
+      const extracted = await cleanStudySource(text)
+      const markdown = await generateNotes(extracted.studyContent || text, mode === 'general' ? 'short' : mode, customInstructions)
+      const activeNote = notes.find((note) => note.id === noteId)
+      if (activeNote && extracted.resources.length) {
+        const existingKeys = new Set((activeNote.resources ?? []).map((resource) => resource.url || resource.title || resource.rawText).filter(Boolean))
+        const additions = extracted.resources
+          .filter((resource) => !existingKeys.has(resource.url || resource.title || resource.rawText))
+          .map((resource) => ({ id: crypto.randomUUID(), type: resource.url ? 'url' : 'reference', label: resource.title || resource.url || resource.rawText.slice(0, 90) || 'Reference', ...resource }))
+        if (additions.length) await updateNote(noteId, { resources: [...(activeNote.resources ?? []), ...additions] })
+      }
       const html = parseMarkdownWithMath(markdown)
       const noteIsEmpty = !editor.getText().trim()
       if (insertMode === 'replace' || noteIsEmpty) {

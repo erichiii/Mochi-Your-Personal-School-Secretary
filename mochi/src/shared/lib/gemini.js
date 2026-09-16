@@ -52,10 +52,53 @@ const wrapError = (e) => {
 
 // ── Note generation ───────────────────────────────────────────
 const NOTE_PROMPTS = {
+  short: (text, extra) => `You are Mochi, a warm and helpful student secretary.
+Respond in clean Markdown. No preamble. Start directly with content.
+${extra}
+Create SHORT-FORM STUDY NOTES from the cleaned lesson content.
+
+Style:
+- concise, skimmable, and useful for quick review
+- H2 headings for major topics and bullets for key ideas
+- bold key terms, short definitions, formulas/dates/figures, and only important examples
+- finish with a ## Quick Recap section
+
+Rules:
+- Keep actual lesson concepts, definitions, formulas, dates, examples, processes, and explanations.
+- Do not include learning objectives, module instructions, copyright or publisher text, grading rubrics unrelated to an assessment, table of contents, document navigation, repeated headers/footers, references, bibliography, citations, source lists, or URLs.
+- Do not invent facts or add filler.
+
+Cleaned lesson content:
+${text}
+
+IMPORTANT: Output clean Markdown only. Start with your first heading - no greeting or preamble.`,
+
+  long: (text, extra) => `You are Mochi, a warm and helpful student secretary.
+Respond in clean Markdown. No preamble. Start directly with content.
+${extra}
+Create LONG-FORM STUDY NOTES from the cleaned lesson content for a student who wants to understand and teach the lesson out loud.
+
+Include:
+- clear H2 headings for major topics
+- every important key term with a simple definition followed by a deeper explanation
+- examples, comparisons between confusing terms, and step-by-step processes where useful
+- cause-and-effect relationships, formulas, dates, names, theories, and figures when important
+- brief **In simple terms** and **Example** callouts only when they aid understanding
+
+Rules:
+- Keep actual lesson concepts, definitions, formulas, dates, examples, processes, and explanations.
+- Do not include learning objectives, module instructions, copyright or publisher text, grading rubrics unrelated to an assessment, table of contents, document navigation, repeated headers/footers, references, bibliography, citations, source lists, or URLs.
+- Do not invent facts or add fluff.
+
+Cleaned lesson content:
+${text}
+
+IMPORTANT: Keep the tone clear, warm, academic, and easy to read aloud. Output clean Markdown only. Start with your first heading - no greeting or preamble.`,
+
   primer: (text, extra) => `You are Mochi, a warm and helpful student secretary.
 Respond in clean Markdown. No preamble. No greeting. No "Here is your primer:". Start directly with the content.
 ${extra}
-Create a comprehensive PRIMER from the following document.
+Create a comprehensive PRIMER from the cleaned lesson content. Do not include objectives, references, bibliography, URLs, copyright, or administrative content.
 A primer is a structured overview containing:
 - The main topic and its summary
 - Key concepts and important definitions
@@ -69,7 +112,7 @@ IMPORTANT: Output clean Markdown only. Start with your first heading — no gree
   reviewer: (text, extra) => `You are Mochi, a warm and helpful student secretary.
 Respond in clean Markdown. No preamble. No greeting. Start directly with content.
 ${extra}
-Create a REVIEWER from the following document for exam preparation.
+Create a REVIEWER from the cleaned lesson content for exam preparation. Do not include objectives, references, bibliography, URLs, copyright, or administrative content.
 Include:
 1. **Key Facts & Definitions** — a table with Term | Definition | Notes
 2. **Important Formulas / Dates / Figures** — bullet list
@@ -85,7 +128,7 @@ IMPORTANT: Output clean Markdown only. Start with your first heading — no gree
   test: (text, extra) => `You are Mochi, a warm and helpful student secretary.
 Respond in clean Markdown. No preamble. No greeting. Start directly with content.
 ${extra}
-Create a practice test from the following module material.
+Create a practice test from the cleaned lesson content. Do not include objectives, references, bibliography, URLs, copyright, or administrative content.
 Include a balanced mix of multiple-choice, short-answer, and application questions.
 Place an answer key after a horizontal rule at the end. Keep questions specific and study-ready.
 
@@ -97,7 +140,7 @@ IMPORTANT: Output clean Markdown only. Start with your first heading â€” no
   general: (text, extra) => `You are Mochi, a warm and helpful student secretary.
 Respond in clean Markdown. No preamble. No greeting. Start directly with content.
 ${extra}
-Create well-organized GENERAL NOTES from the following document.
+Create well-organized GENERAL NOTES from cleaned lesson content only.
 Use clear H2 headings for major sections, bullet points for details,
 and bold for key terms. Include all important information.
 Do not skip or summarize — capture everything relevant.
@@ -106,6 +149,79 @@ Document:
 ${text}
 
 IMPORTANT: Output clean Markdown only. Start with your first heading — no greeting, no preamble. In markdown tables, escape any pipe character used as mathematical notation with a backslash (write d\|n, not d|n).`,
+}
+
+const normaliseStudyExtraction = (value) => ({
+  studyContent: typeof value?.studyContent === 'string' ? value.studyContent.trim() : '',
+  resources: Array.isArray(value?.resources) ? value.resources
+    .filter((resource) => resource && typeof resource === 'object')
+    .map((resource) => ({
+      title: String(resource.title ?? '').trim(),
+      author: String(resource.author ?? '').trim(),
+      year: String(resource.year ?? '').trim(),
+      url: String(resource.url ?? '').trim(),
+      type: String(resource.type ?? 'other').trim() || 'other',
+      rawText: String(resource.rawText ?? '').trim(),
+    }))
+    .filter((resource) => resource.title || resource.author || resource.url || resource.rawText)
+    : [],
+  visuals: Array.isArray(value?.visuals) ? value.visuals
+    .filter((visual) => visual && typeof visual === 'object')
+    .map((visual) => ({
+      description: String(visual.description ?? '').trim(),
+      sourceLocation: String(visual.sourceLocation ?? '').trim(),
+      recommendedUse: String(visual.recommendedUse ?? '').trim(),
+    }))
+    .filter((visual) => visual.description || visual.sourceLocation || visual.recommendedUse)
+    : [],
+})
+
+export const cleanStudySource = async (text) => {
+  guardOnline()
+  try {
+    const model = getModel()
+    const result = await model.generateContent(`You are Mochi, a warm and helpful student secretary.
+Respond ONLY with valid JSON. No markdown fences. No preamble.
+
+Analyze the document and separate study content from resources. Return:
+{
+  "studyContent": "cleaned lesson content only",
+  "resources": [{ "title": "", "author": "", "year": "", "url": "", "type": "book | article | website | citation | file | other", "rawText": "" }],
+  "removedNonStudyContent": ["brief description"],
+  "visuals": [{ "description": "", "sourceLocation": "", "recommendedUse": "" }]
+}
+
+Rules:
+- Keep actual lesson concepts, definitions, formulas, dates, examples, processes, and explanations.
+- Remove learning objectives unless they contain actual lesson content, module instructions, copyright notices, publisher information, irrelevant grading rubrics, table of contents, document navigation, and repeated headers/footers.
+- Extract references, bibliography, citations, URLs, book/article titles, author-year lists, and source lists into resources.
+- Do not invent missing resource details; use empty strings when unknown.
+- List only study-relevant diagrams, charts, figures, or images in visuals. Do not suggest decorative images.
+
+Document:
+${text}`)
+    return normaliseStudyExtraction(parseJSON(result.response.text()))
+  } catch (e) {
+    wrapError(e)
+  }
+}
+
+export const generateVisualSuggestions = async (text) => {
+  guardOnline()
+  try {
+    const model = getModel()
+    const result = await model.generateContent(`You are Mochi. Respond ONLY with a valid JSON array. No markdown or preamble.
+From the notes below, suggest study visuals that would genuinely help a visual learner.
+Format: [{"section":"", "visualType":"diagram | timeline | table | flowchart | mind map | comparison chart", "title":"", "reason":"", "shouldAutoCreate":false}]
+Rules: Suggest only useful academic visuals, prefer flowcharts for processes, tables for comparisons, timelines for dates, and diagrams for systems. Do not suggest decorative images. Set shouldAutoCreate to false.
+
+Notes:
+${text}`)
+    const suggestions = parseJSON(result.response.text())
+    return Array.isArray(suggestions) ? suggestions.filter((suggestion) => suggestion && typeof suggestion === 'object') : []
+  } catch (e) {
+    wrapError(e)
+  }
 }
 
 export const generateNotes = async (text, mode = 'primer', customInstructions = '') => {
