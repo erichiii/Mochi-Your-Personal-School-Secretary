@@ -66,7 +66,7 @@ export default function TaskForm({ onCreate, onCancel, categories = [] }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex flex-col gap-2">
           <label style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--mochi-text-muted)' }}>
             Category
@@ -128,7 +128,7 @@ export default function TaskForm({ onCreate, onCancel, categories = [] }) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="task-form__effort flex flex-col gap-2">
           <label style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--mochi-text-muted)' }}>
             Effort{' '}
             <span style={{ textTransform: 'none', fontWeight: 400, fontSize: '10px' }}>

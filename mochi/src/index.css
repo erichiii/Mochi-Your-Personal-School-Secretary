@@ -575,6 +575,7 @@ input:focus, select:focus, textarea:focus {
 .todo-page__add-task:hover { background: var(--mochi-border); transform: translateY(-1px); }
 .todo-page__add-task:active { transform: translateY(1px); }
 .todo-page__form { padding: 1.25rem; border: 2px solid var(--mochi-border); border-radius: 1rem; background: var(--mochi-surface); box-shadow: var(--shadow-soft); }
+.task-form__effort { display: none; }
 .todo-page__summary-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(15rem, 0.95fr); gap: 1.5rem; align-items: stretch; }
 .todo-page__summary-card, .todo-page__progress-card { min-height: 14rem; padding: 1.2rem 1.55rem; border: 3px solid var(--mochi-border); border-radius: 1.55rem; background: var(--mochi-surface); box-shadow: none; }
 .todo-page__progress-card { display: flex; flex-direction: column; align-items: stretch; }
@@ -590,10 +591,15 @@ input:focus, select:focus, textarea:focus {
 .todo-page__weekly-date { margin-left: auto; flex: 0 0 auto; color: var(--mochi-pink-dark); font-weight: 700; }
 .todo-page__tasks { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
 .todo-page__tasks-heading { display: flex; align-items: center; gap: 1rem; }
-.todo-page__filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; gap: 0.65rem; }
+.todo-page__filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); flex: 1; min-width: 0; gap: 0.65rem; }
 .todo-page__filters button { min-width: 0; border: 2px solid transparent; border-radius: 999px; padding: 0.55rem 0.75rem; background: transparent; color: var(--mochi-pink-mid); font-size: 0.85rem; font-weight: 700; text-align: center; text-transform: capitalize; transition: background .18s ease, color .18s ease; }
 .todo-page__filters button:hover { background: var(--mochi-hover); }
 .todo-page__filters button.is-active { border: 2px solid var(--mochi-border); background: #fff0f9; color: var(--mochi-pink-dark); }
+.todo-page__arrange-control { display: grid; justify-items: end; gap: 0.25rem; flex: 0 0 auto; }
+.todo-page__arrange-control > span { color: var(--mochi-text-muted); font-size: 0.66rem; font-weight: 600; }
+.todo-page__arrange-control button { display: inline-flex; align-items: center; gap: 0.4rem; border: 2px solid var(--mochi-border); border-radius: 999px; padding: 0.48rem 0.8rem; background: var(--mochi-surface); color: var(--mochi-pink-dark); font-size: 0.76rem; font-weight: 700; white-space: nowrap; transition: background .18s ease, color .18s ease; }
+.todo-page__arrange-control button:hover { background: var(--mochi-hover); }
+.todo-page__arrange-control button.is-active { background: var(--mochi-pink-mid); color: #fff; }
 .todo-task-list { overflow-x: auto; padding: 0.55rem 0.75rem 0.75rem; border: 3px solid var(--mochi-border); border-radius: 1.55rem; background: #fff8fd; }
 .todo-task-table { min-width: 48rem; border-collapse: separate; border-spacing: 0 0.5rem; }
 .todo-task-table thead tr { background: transparent !important; }
@@ -604,6 +610,10 @@ input:focus, select:focus, textarea:focus {
 .todo-task-table tbody tr.task-row td:last-child { border-right: 2px solid var(--mochi-border); border-radius: 0 1.2rem 1.2rem 0; }
 .todo-task-table tbody tr.task-row:hover td { background: #ffdef2; }
 .todo-task-table tbody tr.task-row td:first-child > div { width: 4px !important; }
+.task-days-left { display: inline-flex; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 999px; padding: 0.3rem 0.55rem; background: #fff0f9; color: var(--mochi-text-soft); font-size: 0.65rem; font-weight: 700; }
+.task-days-left[data-state="overdue"] { background: var(--mochi-pink); color: var(--mochi-pink-dark); }
+.task-days-left[data-state="today"], .task-days-left[data-state="tomorrow"] { background: var(--mochi-peach); color: var(--mochi-peach-dark); }
+.task-days-left[data-state="no-due-date"] { border: 1px solid var(--mochi-border); background: transparent; color: var(--mochi-text-muted); }
 .todo-task-table tbody tr.task-row.is-completed td { border-color: rgba(92, 151, 102, 0.45); background: #eef9ef; opacity: 0.72; }
 .todo-task-table tbody tr.task-row.is-completed:hover td { background: #e5f5e6; }
 .todo-task-table tbody tr.task-row.is-completed input { color: #55775b !important; }
@@ -649,6 +659,8 @@ input:focus, select:focus, textarea:focus {
   .todo-page__summary-grid { grid-template-columns: 1fr; }
   .todo-page__filters { gap: 0.25rem; }
   .todo-page__filters button { padding: 0.5rem 0.35rem; font-size: 0.78rem; }
+  .todo-page__tasks-heading { align-items: stretch; flex-direction: column; }
+  .todo-page__arrange-control { justify-items: start; }
   .todo-page__weekly-subject { display: none; }
 }
 

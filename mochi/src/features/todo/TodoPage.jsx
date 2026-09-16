@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Circle, Plus, X } from 'lucide-react'
+import { Circle, Plus, Sparkles, X } from 'lucide-react'
 import useStore from '../../app/store/useStore'
 import TaskForm from './components/TaskForm'
 import TaskList from './components/TaskList'
@@ -30,6 +30,7 @@ export default function TodoPage() {
   const { tasks, loadTasks, createTask, updateTask, deleteTask } = useStore()
   const [formOpen, setFormOpen] = useState(false)
   const [filter, setFilter] = useState('all')
+  const [mochiArrange, setMochiArrange] = useState(false)
 
   useEffect(() => { loadTasks() }, [])
 
@@ -75,7 +76,7 @@ export default function TodoPage() {
       category: payload.category || '',
       deadline: payload.deadline ?? null,
       additionalNotes: payload.additionalNotes || '',
-      effort: payload.effort ?? 3,
+      effort: payload.effort,
       priority: 0,
       userPriority: null,
       pomodoroCount: 0,
@@ -193,11 +194,18 @@ export default function TodoPage() {
             <nav className="todo-page__filters" aria-label="Task filters">
               {['all', 'today', 'upcoming', 'completed'].map((item) => <button key={item} type="button" className={filter === item ? 'is-active' : ''} onClick={() => setFilter(item)}>{item}</button>)}
             </nav>
+            <div className="todo-page__arrange-control">
+              <span>Let Mochi arrange</span>
+              <button type="button" aria-pressed={mochiArrange} className={mochiArrange ? 'is-active' : ''} onClick={() => setMochiArrange((value) => !value)} title="Sorts by urgency, estimated workload, and priority.">
+                <Sparkles size={14} /> {mochiArrange ? 'Mochi arranged' : 'Due date order'}
+              </button>
+            </div>
           </div>
           <TaskList
             tasks={tasks}
             categories={categories}
             filter={filter}
+            mochiArrange={mochiArrange}
             onToggleDone={handleToggleDone}
             onUpdate={handleUpdate}
             onDelete={handleDelete}

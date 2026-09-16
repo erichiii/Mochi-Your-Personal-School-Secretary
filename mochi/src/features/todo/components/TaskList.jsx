@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { ArrowDownUp, Bell, Calendar, Check, Tag, Timer, Trash2 } from 'lucide-react'
+import { Bell, Calendar, Check, Tag, Timer, Trash2 } from 'lucide-react'
 import { computePriority, priorityMeta } from '../../../shared/utils/priority'
 import PomodoroTimer from './PomodoroTimer'
 
@@ -47,6 +47,23 @@ const sortByPriority = (arr) =>
   [...arr]
     .map((t) => ({ ...t, _score: computePriority(t) }))
     .sort((a, b) => b._score - a._score)
+
+const sortByDueDate = (arr) =>
+  [...arr].sort((a, b) => (a.deadline ?? Number.MAX_SAFE_INTEGER) - (b.deadline ?? Number.MAX_SAFE_INTEGER))
+
+const daysLeftLabel = (deadline) => {
+  if (!Number.isFinite(deadline)) return 'No due date'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const due = new Date(deadline)
+  due.setHours(0, 0, 0, 0)
+  const days = Math.round((due.getTime() - today.getTime()) / 86_400_000)
+  if (days < 0) return 'Overdue'
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Tomorrow'
+  if (days <= 7) return days === 2 ? '2 days left' : 'This week'
+  return `${days} days left`
+}
 
 // ── Reminder dropdown (portal) ─────────────────────────────────────────────
 
@@ -105,7 +122,6 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
   const [category, setCategory] = useState(task.category || '')
   const [deadline, setDeadline] = useState(task.deadline ? toLocalDate(task.deadline) : '')
   const [notes,    setNotes]    = useState(task.additionalNotes || '')
-  const [effort,   setEffort]   = useState(task.effort ?? 3)
   const [catEdit,      setCatEdit]      = useState(null) // null | 'select' | 'custom'
   const [dateEdit,     setDateEdit]     = useState(false)
   const [timerOpen,    setTimerOpen]    = useState(false)
@@ -118,13 +134,12 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
     setCategory(task.category || '')
     setDeadline(task.deadline ? toLocalDate(task.deadline) : '')
     setNotes(task.additionalNotes || '')
-    setEffort(task.effort ?? 3)
   }, [task])
 
   const save = (key, val) => onUpdate(task.id, { [key]: val })
 
-  const score    = computePriority({ ...task, effort })
-  const meta     = priorityMeta(score)
+  const score    = computePriority(task)
+  const meta     = priorityMeta(score, task.isDone)
   const dateInfo = task.deadline ? fmtDeadline(task.deadline) : null
   const hasReminder   = task.reminder != null
   const reminderLabel = REMINDER_OPTIONS.find((o) => o.value === (task.reminder ?? null))?.label
@@ -148,7 +163,7 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
         </td>
 
         {/* Task */}
-        <td style={{ padding: '10px 12px', width: '26%', verticalAlign: 'middle', overflow: 'hidden' }}>
+        <td style={{ padding: '10px 12px', width: '25%', verticalAlign: 'middle', overflow: 'hidden' }}>
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => onToggleDone(task)}
@@ -224,8 +239,15 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
           )}
         </td>
 
+        {/* Days left */}
+        <td style={{ padding: '10px 12px', width: '12%', verticalAlign: 'middle', overflow: 'hidden' }}>
+          <span className="task-days-left" data-state={daysLeftLabel(task.deadline).toLowerCase().replaceAll(' ', '-')}>
+            {daysLeftLabel(task.deadline)}
+          </span>
+        </td>
+
         {/* Due date */}
-        <td style={{ padding: '10px 12px', width: '13%', verticalAlign: 'middle', overflow: 'hidden' }}>
+        <td style={{ padding: '10px 12px', width: '14%', verticalAlign: 'middle', overflow: 'hidden' }}>
           {dateEdit ? (
             <input
               ref={dateRef}
@@ -255,27 +277,8 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
           )}
         </td>
 
-        {/* Effort */}
-        <td style={{ padding: '10px 12px', width: '9%', verticalAlign: 'middle' }}>
-          <div className="flex items-center gap-[3px]" title={`Effort: ${effort}/5`}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                onClick={() => { setEffort(n); save('effort', n) }}
-                title={['', 'Very easy', 'Easy', 'Medium', 'Hard', 'Very hard'][n]}
-                style={{
-                  width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                  background: n <= effort ? meta.text : 'var(--mochi-border)',
-                  border: 'none', padding: 0, cursor: 'pointer',
-                  transition: 'background 0.12s',
-                }}
-              />
-            ))}
-          </div>
-        </td>
-
         {/* Priority */}
-        <td style={{ padding: '10px 12px', width: '11%', verticalAlign: 'middle' }}>
+        <td style={{ padding: '10px 12px', width: '15%', verticalAlign: 'middle' }}>
           <div className="flex flex-col gap-0.5">
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full self-start"
@@ -284,7 +287,7 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
             >
               {meta.label}
             </span>
-            <span style={{ fontSize: '9px', color: 'var(--mochi-text-muted)', paddingLeft: '2px' }}>{score}/100</span>
+            <span style={{ fontSize: '9px', color: 'var(--mochi-text-muted)', paddingLeft: '2px' }}>{task.isDone ? 'Done' : `${score}/100`}</span>
           </div>
         </td>
 
@@ -390,7 +393,7 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
 
 // ── TaskList ───────────────────────────────────────────────────────────────
 
-export default function TaskList({ tasks, categories = [], filter = 'all', onToggleDone, onDelete, onUpdate }) {
+export default function TaskList({ tasks, categories = [], filter = 'all', mochiArrange = false, onToggleDone, onDelete, onUpdate }) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = today.getTime() + 86_400_000
@@ -400,7 +403,7 @@ export default function TaskList({ tasks, categories = [], filter = 'all', onTog
     if (filter === 'upcoming') return !task.isDone && task.deadline >= tomorrow
     return true
   })
-  const active = sortByPriority(filteredTasks.filter((t) => !t.isDone))
+  const active = (mochiArrange ? sortByPriority : sortByDueDate)(filteredTasks.filter((t) => !t.isDone))
   const done   = filteredTasks.filter((t) => t.isDone).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
 
   if (filteredTasks.length === 0) {
@@ -421,11 +424,9 @@ export default function TaskList({ tasks, categories = [], filter = 'all', onTog
             <th style={{ width: 3, padding: 0 }} />
             <th style={{ textAlign: 'left', padding: '10px 12px' }}>Task</th>
             <th style={{ textAlign: 'left', padding: '10px 12px' }}>Subject</th>
+            <th style={{ textAlign: 'left', padding: '10px 12px' }}>Days left</th>
             <th style={{ textAlign: 'left', padding: '10px 12px' }}>Due date</th>
-            <th style={{ textAlign: 'left', padding: '10px 12px' }}>Effort</th>
-            <th style={{ textAlign: 'left', padding: '10px 12px' }}>
-              <span className="flex items-center gap-1">Priority <ArrowDownUp size={9} /></span>
-            </th>
+            <th style={{ textAlign: 'left', padding: '10px 12px' }}>Priority</th>
             <th style={{ textAlign: 'left', padding: '10px 12px' }}>Notes</th>
           </tr>
         </thead>
