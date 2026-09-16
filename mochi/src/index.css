@@ -1013,12 +1013,15 @@ input:focus, select:focus, textarea:focus {
 .notes-source-message button { display: grid; place-items: center; margin-left: auto; border: 0; background: transparent; color: inherit; }
 .notes-upload-choices { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 1.5rem; background: rgba(255, 249, 253, 0.9); }
 .notes-upload-choices__card { position: relative; width: min(100%, 31rem); border: 1.5px solid var(--mochi-border); border-radius: 1.25rem; padding: 1.5rem; background: var(--mochi-surface); box-shadow: var(--shadow-soft); color: var(--mochi-text); text-align: center; }
-.notes-upload-choices__card > svg { color: var(--mochi-pink-dark); }
+.notes-upload-choices__card > img { width: 5.5rem; height: 5.5rem; margin: 0 auto; object-fit: contain; image-rendering: pixelated; }
 .notes-upload-choices__card h2 { margin: 0.7rem 0 0.35rem; color: var(--mochi-pink-dark); font-family: var(--font-display); font-size: 1.7rem; }
 .notes-upload-choices__card p { max-width: 24rem; margin: 0 auto 1rem; color: var(--mochi-text-soft); font-size: 0.9rem; line-height: 1.45; }
 .notes-upload-choices__card > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
 .notes-upload-choices__card button { border: 1.5px solid var(--mochi-border); border-radius: 0.75rem; padding: 0.7rem; background: #fff9fd; color: var(--mochi-pink-dark); font-size: 0.8rem; font-weight: 750; }
 .notes-upload-choices__card button:hover { background: var(--mochi-hover); }
+.notes-upload-choices__card > div button.is-selected { border-color: var(--mochi-pink-dark); background: var(--mochi-pink); color: var(--mochi-pink-dark); box-shadow: inset 0 0 0 1px var(--mochi-pink-dark); }
+.notes-upload-choices__selected { width: 100%; margin-top: 0.65rem; background: var(--mochi-pink-dark) !important; color: #fff !important; }
+.notes-upload-choices__selected:disabled { cursor: not-allowed; opacity: 0.45; }
 .notes-upload-choices__all { width: 100%; margin-top: 0.65rem; background: var(--mochi-pink-mid) !important; color: #fff !important; }
 .notes-upload-choices__later { margin-top: 0.55rem; border-color: transparent !important; background: transparent !important; color: var(--mochi-text-muted) !important; }
 .notes-upload-choices__close { position: absolute; top: 0.55rem; right: 0.55rem; display: grid; place-items: center; border: 0 !important; padding: 0.3rem !important; background: transparent !important; color: var(--mochi-text-muted) !important; }

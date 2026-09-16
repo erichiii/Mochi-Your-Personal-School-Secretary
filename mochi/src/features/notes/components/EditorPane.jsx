@@ -20,6 +20,7 @@ import ConfirmModal from '../../../shared/components/ConfirmModal'
 import { FontSize } from '../../../shared/extensions/FontSize'
 import { generateNotes } from '../../../shared/lib/gemini'
 import mochiLoading from '../../../assets/mascots/mochi-loading.png'
+import mochiNotesLoading from '../../../../../ui-revamp/mochi_assets/mochi_notes_loading.png'
 
 const TabIndent = Extension.create({
   name: 'tabIndent',
@@ -43,8 +44,8 @@ const textFromHtml = (html = '') => html.replace(/<[^>]+>/g, ' ').replace(/&nbsp
 
 const PREPARATION_STEPS = [
   { id: 'reading', label: 'Reading your resources' },
-  { id: 'primer', label: 'Creating primer' },
   { id: 'notes', label: 'Organizing notes' },
+  { id: 'primer', label: 'Creating primer' },
   { id: 'reviewer', label: 'Preparing your reviewer' },
   { id: 'test', label: 'Building your practice test' },
 ]
@@ -71,9 +72,11 @@ export default function EditorPane({ notebookId = null }) {
   const [helpOpen, setHelpOpen] = useState(false)
   const [sourceMessage, setSourceMessage] = useState('')
   const [uploadChoices, setUploadChoices] = useState(null)
+  const [selectedOutputs, setSelectedOutputs] = useState([])
   const [confirmAction, setConfirmAction] = useState(null)
   const [isPreparing, setIsPreparing] = useState(false)
   const [preparationStep, setPreparationStep] = useState('reading')
+  const [preparingSteps, setPreparingSteps] = useState([])
   const [prepareError, setPrepareError] = useState('')
   const [saveStatus, setSaveStatus] = useState('idle') // 'idle' | 'saving' | 'saved' | 'error'
   const saveTimer = useRef(null)
@@ -334,6 +337,7 @@ export default function EditorPane({ notebookId = null }) {
       setStartWritingNoteId(id)
       setStudyTab('resources')
       setUploadChoices({ noteId: id, source })
+      setSelectedOutputs([])
     } catch (error) {
       setPrepareError(error.message || "Couldn't add the selected materials. Please try again.")
     }
@@ -419,6 +423,7 @@ export default function EditorPane({ notebookId = null }) {
     if (!hasEnoughSource(source)) { setSourceMessage('Mochi needs notes or uploaded materials first.'); setHelpOpen(false); return }
 
     setIsPreparing(true)
+    setPreparingSteps([kind])
     setPreparationStep(kind)
     setPrepareError('')
     try {
@@ -444,6 +449,7 @@ export default function EditorPane({ notebookId = null }) {
     const source = getSource(activeNote, sourceOverride)
     if (!hasEnoughSource(source)) { setSourceMessage('Mochi needs notes or uploaded materials first.'); setHelpOpen(false); return }
     setIsPreparing(true)
+    setPreparingSteps(['notes'])
     setPreparationStep('notes')
     setPrepareError('')
     try {
@@ -478,8 +484,11 @@ export default function EditorPane({ notebookId = null }) {
     let currentNote = activeNoteRef.current ?? activeNote
     if (!currentNote) return
     setUploadChoices(null)
+    setSelectedOutputs([])
     setIsPreparing(true)
-    setPreparationStep('reading')
+    const orderedChoices = PREPARATION_STEPS.map((step) => step.id).filter((id) => choices.includes(id))
+    setPreparingSteps(orderedChoices)
+    setPreparationStep(orderedChoices[0] ?? 'notes')
     setPrepareError('')
     try {
       if (choices.includes('notes')) {
@@ -490,7 +499,7 @@ export default function EditorPane({ notebookId = null }) {
         activeNoteRef.current = currentNote
         await updateNote(currentNote.id, { content })
       }
-      for (const kind of choices.filter((item) => item !== 'notes')) {
+      for (const kind of orderedChoices.filter((item) => item !== 'notes')) {
         if (currentNote.studyContent?.[kind]) continue
         setPreparationStep(kind)
         const markdown = await generateNotes(source, kind)
@@ -503,7 +512,7 @@ export default function EditorPane({ notebookId = null }) {
         activeNoteRef.current = currentNote
         await updateNote(currentNote.id, { studyContent, moduleTabs })
       }
-      setStudyTab(choices.includes('notes') ? 'notes' : choices[0])
+      setStudyTab(orderedChoices.includes('notes') ? 'notes' : orderedChoices[0])
     } catch (error) {
       setPrepareError(error.message || "Mochi couldn't create those study materials yet.")
     } finally {
@@ -516,7 +525,7 @@ export default function EditorPane({ notebookId = null }) {
     if (!pending || !activeNote) return
     const source = getSource(activeNote, pending.source)
     if (!hasEnoughSource(source)) { setSourceMessage('Mochi needs notes or uploaded materials first.'); return }
-    const choices = choice === 'all' ? ['notes', 'primer', 'reviewer', 'test'] : [choice]
+    const choices = Array.isArray(choice) ? choice : choice === 'all' ? ['notes', 'primer', 'reviewer', 'test'] : [choice]
     if (choices.includes('notes') && (editor?.getText().trim() || textFromHtml(activeNote.content))) {
       setConfirmAction({
         title: 'Replace the current Notes tab?',
@@ -529,10 +538,16 @@ export default function EditorPane({ notebookId = null }) {
     runUploadOutputs(choices, source)
   }
 
+  const toggleOutput = (output) => {
+    setSelectedOutputs((selected) => selected.includes(output)
+      ? selected.filter((item) => item !== output)
+      : [...selected, output])
+  }
+
   const preparationTitle = activeNote?.title || activeModule?.name || 'your module'
   const getPreparationStatus = (step) => {
-    const currentIndex = PREPARATION_STEPS.findIndex((item) => item.id === preparationStep)
-    const stepIndex = PREPARATION_STEPS.findIndex((item) => item.id === step.id)
+    const currentIndex = preparingSteps.indexOf(preparationStep)
+    const stepIndex = preparingSteps.indexOf(step.id)
     if (stepIndex === currentIndex) return 'current'
     if (stepIndex < currentIndex) return 'complete'
     return 'pending'
@@ -667,15 +682,18 @@ export default function EditorPane({ notebookId = null }) {
         <div className="notes-upload-choices" role="dialog" aria-modal="true" aria-label="Choose Mochi outputs">
           <div className="notes-upload-choices__card">
             <button type="button" className="notes-upload-choices__close" onClick={() => setUploadChoices(null)} aria-label="Choose later"><X size={18} /></button>
-            <Sparkles size={22} />
+            <img src={mochiNotesLoading} alt="Mochi organizing study notes" />
             <h2>Your materials are attached</h2>
             <p>What would you like Mochi to create? You can always create more later.</p>
             <div>
-              <button type="button" onClick={() => generateUploadOutputs('notes')}>Generate notes</button>
-              <button type="button" onClick={() => generateUploadOutputs('primer')}>Generate primer</button>
-              <button type="button" onClick={() => generateUploadOutputs('reviewer')}>Generate reviewer</button>
-              <button type="button" onClick={() => generateUploadOutputs('test')}>Generate practice test</button>
+              {[
+                ['notes', 'Generate notes'],
+                ['primer', 'Generate primer'],
+                ['reviewer', 'Generate reviewer'],
+                ['test', 'Generate practice test'],
+              ].map(([id, label]) => <button key={id} type="button" className={selectedOutputs.includes(id) ? 'is-selected' : ''} onClick={() => toggleOutput(id)} aria-pressed={selectedOutputs.includes(id)}>{label}</button>)}
             </div>
+            <button type="button" className="notes-upload-choices__selected" disabled={selectedOutputs.length === 0} onClick={() => generateUploadOutputs(selectedOutputs)}>Generate selected</button>
             <button type="button" className="notes-upload-choices__all" onClick={() => generateUploadOutputs('all')}>Generate all</button>
             <button type="button" className="notes-upload-choices__later" onClick={() => setUploadChoices(null)}>I’ll decide later</button>
           </div>
@@ -694,7 +712,7 @@ export default function EditorPane({ notebookId = null }) {
             <img src={mochiLoading} alt="Mochi preparing your study materials" />
             <h2>Mochi is preparing {preparationTitle}...</h2>
             <ul>
-              {PREPARATION_STEPS.map((step) => {
+              {PREPARATION_STEPS.filter((step) => preparingSteps.includes(step.id)).map((step) => {
                 const status = getPreparationStatus(step)
                 return <li key={step.id} className={`is-${status}`}>
                   <span>{status === 'complete' ? <Check size={15} strokeWidth={3} /> : status === 'current' ? <Loader2 size={15} className="animate-spin" /> : null}</span>
