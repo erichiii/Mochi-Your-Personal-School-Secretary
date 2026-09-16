@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Calendar, Plus, X, Sparkles, Loader2, AlertCircle,
-  Pencil, Trash2, Check, CircleCheck, ImageIcon, Save, Download,
+  Pencil, Trash2, Check, CircleCheck, Circle, ImageIcon, Save, Download, ChevronDown,
 } from 'lucide-react'
 import useStore from '../../app/store/useStore'
 import { generateSchedule } from '../../shared/lib/gemini'
@@ -97,6 +97,10 @@ export default function SchedulePage() {
   const [activeSectionId, setActiveSectionId] = useState(null)
   const [showExport, setShowExport] = useState(false)
   const [showEditor, setShowEditor] = useState(false)
+  const [showGenerator, setShowGenerator] = useState(false)
+  const [showSectionMenu, setShowSectionMenu] = useState(false)
+  const [generatorSectionName, setGeneratorSectionName] = useState('')
+  const [pendingSectionId, setPendingSectionId] = useState(null)
 
   // Image upload
   const [image, setImage] = useState(null)
@@ -183,21 +187,23 @@ export default function SchedulePage() {
 
   // ── Parse handler ──────────────────────────────────────────
   const handleParse = async () => {
-    if (!image) return
+    if (!image) return false
     setParsing(true)
     setParseError('')
     try {
       const items = await generateSchedule(image.base64, image.mimeType)
       if (!items || items.length === 0) {
         setParseError('No schedule found in this image. Try a clearer photo of a class timetable.')
-        return
+        return false
       }
       setPendingItems(items.map((item, i) => ({
         ...item,
         tempId: `p-${Date.now()}-${i}`,
       })))
+      return true
     } catch (err) {
       setParseError(err.message)
+      return false
     } finally {
       setParsing(false)
     }
@@ -208,14 +214,15 @@ export default function SchedulePage() {
     for (const item of pendingItems) {
       await createScheduleItem({
         day: item.day, time: item.time, subject: item.subject,
-        room: item.room ?? '', sectionId: activeSectionId ?? null,
+        room: item.room ?? '', sectionId: pendingSectionId ?? activeSectionId ?? null,
       })
     }
     setPendingItems([])
+    setPendingSectionId(null)
     setImage(null)
   }
 
-  const discardPending = () => setPendingItems([])
+  const discardPending = () => { setPendingItems([]); setPendingSectionId(null) }
 
   const startEditPending = (item) => {
     setEditingPendingId(item.tempId)
@@ -280,6 +287,32 @@ export default function SchedulePage() {
   const handleDeleteSection = async (id) => {
     await deleteScheduleSection(id)
     if (activeSectionId === id) setActiveSectionId(null)
+  }
+
+  const openGenerator = () => {
+    setGeneratorSectionName('')
+    setImage(null)
+    setParseError('')
+    setShowGenerator(true)
+  }
+
+  const generateFromImage = async () => {
+    const name = generatorSectionName.trim()
+    if (!name) {
+      setParseError('Add a section name before generating your schedule.')
+      return
+    }
+    if (!image) {
+      setParseError('Upload a schedule image first.')
+      return
+    }
+
+    const existingSection = scheduleSections.find((section) => section.name.toLowerCase() === name.toLowerCase())
+    const sectionId = existingSection?.id ?? await createScheduleSection(name, SECTION_COLOR_CYCLE[scheduleSections.length % SECTION_COLOR_CYCLE.length])
+    setActiveSectionId(sectionId)
+    setPendingSectionId(sectionId)
+    const generated = await handleParse()
+    if (generated) setShowGenerator(false)
   }
 
   // ── Filtered items ─────────────────────────────────────────
@@ -551,23 +584,37 @@ export default function SchedulePage() {
             <img src={mochiSchedule} alt="Mochi reading a class schedule" />
             <div>
               <h1>Schedule</h1>
-              <p>{activeSection?.name || 'All sections'}</p>
+              <div className="schedule-page__section-row">
+                <p>{activeSection?.name || 'All sections'}</p>
+                <div className="schedule-page__title-actions">
+                  <button onClick={() => setShowExport(true)} className="schedule-page__action">
+                    <Download size={14} />Export
+                  </button>
+                  <button onClick={() => setShowEditor((value) => !value)} className="schedule-page__action" aria-pressed={showEditor}>
+                    <Pencil size={14} />{showEditor ? 'Done' : 'Edit'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           <div className="schedule-page__header-actions">
-            <button onClick={() => setShowExport(true)} className="schedule-page__action">
-              <Download size={14} />Export
-            </button>
-            <button onClick={() => setShowEditor((value) => !value)} className="schedule-page__action" aria-pressed={showEditor}>
-              <Pencil size={14} />{showEditor ? 'Done' : 'Edit'}
-            </button>
-            <label className="schedule-page__section-picker">
-              <span>Your Sections</span>
-              <select value={activeSectionId ?? ''} onChange={(e) => setActiveSectionId(e.target.value || null)}>
-                <option value="">All sections</option>
-                {scheduleSections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
-              </select>
-            </label>
+            <div className="schedule-page__section-menu">
+              <button type="button" className="schedule-page__section-trigger" onClick={() => setShowSectionMenu((value) => !value)} aria-expanded={showSectionMenu}>
+                <span>Your Sections</span><ChevronDown size={21} aria-hidden="true" />
+              </button>
+              {showSectionMenu && (
+                <div className="schedule-page__section-dropdown">
+                  {scheduleSections.map((section) => (
+                    <button key={section.id} type="button" className={section.id === activeSectionId ? 'is-active' : ''} onClick={() => { setActiveSectionId(section.id); setShowSectionMenu(false) }}>
+                      {section.name}
+                    </button>
+                  ))}
+                  <button type="button" className="schedule-page__add-section" onClick={() => { setShowSectionMenu(false); openGenerator() }}>
+                    <Plus size={16} />Add new
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -803,6 +850,51 @@ export default function SchedulePage() {
         </div>
       </div>
     </div>
+
+    {showGenerator && (
+      <div className="schedule-generator-modal" role="dialog" aria-modal="true" aria-labelledby="schedule-generator-title" onMouseDown={(e) => { if (e.target === e.currentTarget && !parsing) setShowGenerator(false) }}>
+        <div className="schedule-generator-modal__panel">
+          <label className="schedule-generator-modal__field">
+            <span id="schedule-generator-title"><Circle size={40} fill="#f768a0" strokeWidth={0} aria-hidden="true" />Section Name</span>
+            <input
+              autoFocus
+              value={generatorSectionName}
+              onChange={(e) => setGeneratorSectionName(e.target.value)}
+              placeholder="e.g. 3Y3T | TN34"
+              onKeyDown={(e) => { if (e.key === 'Enter' && image) generateFromImage() }}
+            />
+          </label>
+
+          {image ? (
+            <div className="schedule-generator-modal__preview">
+              <img src={image.url} alt={`Selected schedule image: ${image.name}`} />
+              <div><strong>{image.name}</strong><span>Ready to generate</span></div>
+              <button type="button" onClick={clearImage} aria-label="Remove selected image"><X size={15} /></button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={`schedule-generator-modal__dropzone${isDragOver ? ' is-dragging' : ''}`}
+              onClick={() => imageRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={handleDrop}
+            >
+              <ImageIcon size={30} />
+              <strong>Drop image here or click to upload</strong>
+              <span>JPG, PNG, or paste (Ctrl + V)</span>
+            </button>
+          )}
+          <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleFileInput} />
+
+          {parseError && <p className="schedule-generator-modal__error"><AlertCircle size={14} />{parseError}</p>}
+
+          <button type="button" className="schedule-generator-modal__submit" onClick={generateFromImage} disabled={parsing}>
+            {parsing ? <><Loader2 size={17} className="animate-spin" />Generating Schedule...</> : <><Sparkles size={17} />Generate Schedule</>}
+          </button>
+        </div>
+      </div>
+    )}
 
     {showExport && (
       <ExportModal
