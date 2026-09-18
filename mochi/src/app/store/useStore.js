@@ -1,6 +1,24 @@
 import { create } from 'zustand'
 import { db } from '../../shared/lib/db'
 
+const CELEBRATION_GIFS = [
+  'chu.gif', 'dance.gif', 'eyy.gif', 'good.gif', 'happy.gif', 'hehe.gif',
+  'high-five.gif', 'scuba.gif', 'smile.gif', 'uia.gif', 'yay.gif',
+]
+
+const CELEBRATION_REMARKS = [
+  'That is a win.',
+  'You made it happen.',
+  'A little progress, beautifully done.',
+  'One more thing off your plate.',
+  'Your future self appreciates this.',
+  'Focused and finished.',
+  'Momentum looks good on you.',
+  'That task never stood a chance.',
+]
+
+const randomItem = (items) => items[Math.floor(Math.random() * items.length)]
+
 const useStore = create((set, get) => ({
   // ── Theme ─────────────────────────────────────────────────
   theme: localStorage.getItem('mochi_theme') || 'light',
@@ -220,6 +238,8 @@ const useStore = create((set, get) => ({
 
   // ── Tasks ─────────────────────────────────────────────────
   tasks: [],
+  taskCelebration: null,
+  dismissTaskCelebration: () => set({ taskCelebration: null }),
   loadTasks: async () => {
     const tasks = await db.tasks.orderBy('createdAt').reverse().toArray()
     set({ tasks })
@@ -243,8 +263,19 @@ const useStore = create((set, get) => ({
     await get().loadTasks()
   },
   updateTask: async (id, data) => {
+    const previousTask = await db.tasks.get(id)
     await db.tasks.update(id, { ...data, updatedAt: Date.now() })
     await get().loadTasks()
+    if (data.isDone === true && !previousTask?.isDone) {
+      set({
+        taskCelebration: {
+          id: crypto.randomUUID(),
+          taskTitle: previousTask?.title?.trim() || 'Task',
+          gif: randomItem(CELEBRATION_GIFS),
+          remark: randomItem(CELEBRATION_REMARKS),
+        },
+      })
+    }
   },
   deleteTask: async (id) => {
     await db.tasks.delete(id)

@@ -1113,6 +1113,28 @@ input:focus, select:focus, textarea:focus {
 .todo-task-empty { display: grid; place-items: center; min-height: 11rem; border: 2px dashed var(--mochi-border); border-radius: 1rem; background: #fff0f9; color: var(--mochi-text-muted); text-align: center; }
 .todo-task-empty p { margin: 0; padding: 1.5rem; font-size: 0.92rem; font-weight: 600; }
 
+/* Task completion celebration */
+.task-celebration { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 1.25rem; pointer-events: none; }
+.task-celebration__confetti { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+.task-celebration__confetti i { position: absolute; top: -1.5rem; left: var(--confetti-left); width: var(--confetti-size); height: calc(var(--confetti-size) * 1.65); border-radius: 2px; background: var(--confetti-color); opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); animation: task-confetti-fall var(--confetti-duration) cubic-bezier(.18,.72,.32,1) var(--confetti-delay) both; }
+.task-celebration__confetti i.is-round { height: var(--confetti-size); border-radius: 999px; }
+.task-celebration__card { position: relative; display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); align-items: center; width: min(100%, 30rem); gap: 1rem; border: 3px solid var(--mochi-border); border-radius: 1.65rem; padding: 1rem 2.85rem 1rem 1rem; background: var(--mochi-surface); box-shadow: 0 14px 0 rgba(224, 33, 137, .16), 0 24px 48px rgba(80, 29, 68, .22); color: var(--mochi-text); pointer-events: auto; animation: task-celebration-enter .42s cubic-bezier(.16,1,.3,1) both; }
+.task-celebration__gif { width: 7.25rem; height: 7.25rem; border: 2px solid var(--mochi-pink-mid); border-radius: 1.1rem; object-fit: cover; background: var(--mochi-pink); }
+.task-celebration__eyebrow { margin: 0 0 .25rem; color: var(--mochi-pink-dark); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.task-celebration__card h2 { margin: 0; color: var(--mochi-text); font-family: var(--font-display); font-size: clamp(1.45rem, 4vw, 1.95rem); font-weight: 700; line-height: 1.05; }
+.task-celebration__task { overflow: hidden; margin: .5rem 0 0; color: var(--mochi-text-soft); font-size: .9rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.task-celebration__close { position: absolute; top: .6rem; right: .6rem; display: grid; place-items: center; width: 2rem; height: 2rem; border: 0; border-radius: 999px; background: transparent; color: var(--mochi-text-muted); transition: transform .18s ease, background .18s ease, color .18s ease; }
+.task-celebration__close:hover { background: var(--mochi-hover); color: var(--mochi-pink-dark); transform: rotate(8deg); }
+.task-celebration__close:active { transform: scale(.92); }
+
+@keyframes task-celebration-enter { from { opacity: 0; transform: translate3d(0, 1rem, 0) scale(.94); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
+@keyframes task-confetti-fall { 0% { opacity: 0; transform: translate3d(0, -1rem, 0) rotate(0deg); } 10% { opacity: 1; } 100% { opacity: 0; transform: translate3d(var(--confetti-drift), 112vh, 0) rotate(var(--confetti-rotation)); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .task-celebration__card, .task-celebration__confetti i { animation: none; }
+  .task-celebration__confetti { display: none; }
+}
+
 /* Keep the light Mochi surfaces readable when the theme is dark. */
 [data-theme="dark"] .mochi-app-shell,
 [data-theme="dark"] .notes-overview,
@@ -1199,6 +1221,8 @@ input:focus, select:focus, textarea:focus {
   .todo-page__tasks-heading { align-items: stretch; flex-direction: column; }
   .todo-page__arrange-control { justify-content: start; }
   .todo-page__weekly-subject { display: none; }
+  .task-celebration__card { grid-template-columns: 5.5rem minmax(0, 1fr); gap: .75rem; padding: .8rem 2.55rem .8rem .8rem; border-radius: 1.25rem; }
+  .task-celebration__gif { width: 5.5rem; height: 5.5rem; }
 }
 
 @media (min-width: 761px) and (max-width: 1100px) {
