@@ -908,9 +908,24 @@ input:focus, select:focus, textarea:focus {
 .notes-overview__folders, .notes-overview__notebooks { margin-top: 2rem; }
 .notes-overview h2 { margin: 0 0 0.85rem; color: var(--mochi-text); font-size: 1.55rem; font-weight: 700; }
 .notes-folder-list { flex-wrap: wrap; gap: 0.7rem; }
-.notes-folder-pill { display: flex; align-items: center; gap: 0.55rem; border: 2px solid var(--mochi-pink-mid); border-radius: 999px; padding: 0.65rem 1.1rem; background: #ffeaf7; color: var(--mochi-text); font-size: 1rem; font-weight: 700; }
-.notes-folder-pill.is-active { background: var(--mochi-border); color: #fff; }
-.notes-folder-pill:hover:not(.is-active) { background: var(--mochi-hover); }
+.notes-folder-pill-wrap { display: flex; align-items: center; border: 2px solid var(--mochi-pink-mid); border-radius: 999px; overflow: visible; background: #ffeaf7; color: var(--mochi-text); }
+.notes-folder-pill-wrap.is-active { background: var(--mochi-border); color: #fff; }
+.notes-folder-pill { display: flex; align-items: center; gap: 0.55rem; border: 0; padding: 0.65rem 0.75rem 0.65rem 1.1rem; background: transparent; color: inherit; font-size: 1rem; font-weight: 700; }
+.notes-folder-pill.is-active { background: var(--mochi-border); color: #fff; border-radius: 999px; }
+.notes-folder-pill-wrap:hover:not(.is-active) { background: var(--mochi-hover); }
+.notes-item-menu { position: relative; display: flex; align-items: center; flex-shrink: 0; }
+.notes-item-menu__trigger { display: grid; place-items: center; width: 2.35rem; height: 2.35rem; border: 0; border-radius: 50%; color: var(--mochi-text-muted); background: transparent; cursor: pointer; }
+.notes-item-menu__trigger:hover, .notes-item-menu__trigger[aria-expanded="true"] { color: var(--mochi-text); background: rgba(247, 104, 160, 0.16); }
+.notes-item-menu__dropdown { position: absolute; top: calc(100% + 0.35rem); right: 0; z-index: 30; min-width: 8.5rem; padding: 0.35rem; border: 2px solid var(--mochi-border); border-radius: 0.85rem; background: var(--mochi-surface); box-shadow: var(--shadow-soft); }
+.notes-item-menu__dropdown button { display: flex; align-items: center; gap: 0.5rem; width: 100%; border: 0; border-radius: 0.55rem; padding: 0.5rem 0.6rem; color: var(--mochi-text); background: transparent; font-size: 0.82rem; font-weight: 700; text-align: left; cursor: pointer; }
+.notes-item-menu__dropdown button:hover { background: var(--mochi-hover); }
+.notes-item-menu__dropdown button:last-child { color: #e05050; }
+.notes-folder-rename-form, .notes-notebook-rename-form { display: flex; align-items: center; width: 100%; gap: 0.5rem; }
+.notes-folder-rename-form { padding: 0.35rem 0.5rem 0.35rem 0.8rem; }
+.notes-notebook-rename-form { padding: 0.5rem 0.35rem 0.5rem 0.25rem; color: var(--mochi-pink-dark); }
+.notes-folder-rename-form input, .notes-notebook-rename-form input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--mochi-text); font: inherit; font-weight: 700; }
+.notes-folder-rename-form button, .notes-notebook-rename-form button { display: grid; place-items: center; flex-shrink: 0; border: 0; border-radius: 0.45rem; padding: 0.35rem; color: var(--mochi-text-muted); background: transparent; cursor: pointer; }
+.notes-folder-rename-form button:hover, .notes-notebook-rename-form button:hover { color: var(--mochi-text); background: var(--mochi-hover); }
 .notes-create-form { width: min(100%, 38rem); gap: 0.65rem; margin-top: 1rem; padding: 0.55rem 0.75rem; border: 2px solid var(--mochi-border); border-radius: 1rem; background: var(--mochi-surface); color: var(--mochi-pink-dark); }
 .notes-create-form input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--mochi-text); }
 .notes-create-form button { border: 0; border-radius: 0.65rem; padding: 0.45rem 0.8rem; background: var(--mochi-border); color: #fff; font-weight: 700; }
@@ -918,8 +933,10 @@ input:focus, select:focus, textarea:focus {
 .notes-overview__section-heading { justify-content: space-between; gap: 1rem; }
 .notes-overview__section-heading span { color: var(--mochi-text-muted); font-size: 0.95rem; font-weight: 600; }
 .notes-notebook-list { display: grid; gap: 0.75rem; }
-.notes-notebook-row { width: 100%; gap: 0.75rem; border: 2px solid var(--mochi-pink-mid); border-radius: 1rem; padding: 0.85rem 1rem; background: var(--mochi-surface); color: var(--mochi-pink-dark); text-align: left; }
+.notes-notebook-row { width: 100%; gap: 0.4rem; border: 2px solid var(--mochi-pink-mid); border-radius: 1rem; padding: 0.35rem 0.45rem 0.35rem 1rem; background: var(--mochi-surface); color: var(--mochi-pink-dark); }
 .notes-notebook-row:hover { background: #fff0f8; box-shadow: 3px 3px 0 rgba(247, 104, 160, 0.18); }
+.notes-notebook-row__open { display: flex; align-items: center; flex: 1; min-width: 0; gap: 0.75rem; border: 0; padding: 0.5rem 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.notes-notebook-row__delete { width: 2.5rem; height: 2.5rem; flex-shrink: 0; border-radius: 0.7rem; }
 .notes-notebook-row__icon { display: grid; place-items: center; color: var(--mochi-pink-dark); }
 .notes-notebook-row__name { flex: 1; min-width: 0; color: #f768a0; font-size: clamp(1.05rem, 1.7vw, 1.35rem); font-weight: 700; overflow-wrap: anywhere; }
 .notes-notebook-row__count { color: var(--mochi-text-muted); font-size: 0.9rem; font-weight: 600; white-space: nowrap; }
@@ -1160,7 +1177,7 @@ input:focus, select:focus, textarea:focus {
 [data-theme="dark"] .notes-module-card__select,
 [data-theme="dark"] .todo-task-table input,
 [data-theme="dark"] .tiptap { color: var(--mochi-text) !important; }
-[data-theme="dark"] .notes-folder-pill:not(.is-active),
+[data-theme="dark"] .notes-folder-pill-wrap:not(.is-active),
 [data-theme="dark"] .todo-task-table tbody tr.task-row td,
 [data-theme="dark"] .todo-task-table tbody tr.task-row:hover td { background: var(--mochi-hover) !important; }
 [data-theme="dark"] .notes-workspace-bar,
