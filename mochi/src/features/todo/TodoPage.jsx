@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Circle, Plus, Sparkles, X } from 'lucide-react'
+import { Circle, Pencil, Plus, Sparkles, X } from 'lucide-react'
 import useStore from '../../app/store/useStore'
 import TaskForm from './components/TaskForm'
 import TaskList from './components/TaskList'
@@ -29,6 +29,7 @@ const dueLabel = (deadline) => deadline
 export default function TodoPage() {
   const { tasks, loadTasks, createTask, updateTask, deleteTask } = useStore()
   const [formOpen, setFormOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState(null)
   const [filter, setFilter] = useState('all')
   const [mochiArrange, setMochiArrange] = useState(false)
 
@@ -60,7 +61,7 @@ export default function TodoPage() {
     .filter((task) => !task.isDone && !dueThisWeek.some((dueTask) => dueTask.id === task.id))
     .sort((a, b) => (a.deadline || Number.MAX_SAFE_INTEGER) - (b.deadline || Number.MAX_SAFE_INTEGER)), [tasks, dueThisWeek])
 
-  const tasksForPanel = dueThisWeek.length > 0 ? dueThisWeek.slice(0, 3) : otherTasks.slice(0, 3)
+  const tasksForPanel = dueThisWeek.length > 0 ? dueThisWeek : otherTasks
   const taskHeading = dueThisWeek.length > 0
     ? `You have ${dueThisWeek.length} task${dueThisWeek.length === 1 ? '' : 's'} due this week.`
     : otherTasks.length > 0
@@ -166,6 +167,30 @@ export default function TodoPage() {
           </div>
         )}
 
+        {editingTask && (
+          <div
+            className="todo-task-edit-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="todo-task-edit-title"
+            onMouseDown={(event) => { if (event.target === event.currentTarget) setEditingTask(null) }}
+          >
+            <div className="todo-task-edit-modal__panel">
+              <button type="button" className="todo-task-edit-modal__close" onClick={() => setEditingTask(null)} aria-label="Close edit task dialog">
+                <X size={18} />
+              </button>
+              <h2 id="todo-task-edit-title">Edit task</h2>
+              <TaskForm
+                key={editingTask.id}
+                task={editingTask}
+                onUpdate={handleUpdate}
+                categories={categories}
+                onCancel={() => setEditingTask(null)}
+              />
+            </div>
+          </div>
+        )}
+
         {/* ── Today + Progress panels ──────────────────────────── */}
         <div className="todo-page__summary-grid stagger-item" style={{ '--delay': '80ms' }}>
           {/* Tasks Today */}
@@ -177,6 +202,7 @@ export default function TodoPage() {
                 <span className="todo-page__weekly-task">{task.title || 'Untitled task'}</span>
                 {task.category && <span className="todo-page__weekly-subject">{task.category}</span>}
                 <span className="todo-page__weekly-date">{dueLabel(task.deadline)}</span>
+                <button type="button" onClick={() => setEditingTask(task)} title="Edit task" aria-label={`Edit ${task.title || 'task'}`}><Pencil size={14} /></button>
               </div>)}
             </div>}
           </div>
@@ -207,6 +233,7 @@ export default function TodoPage() {
             mochiArrange={mochiArrange}
             onToggleDone={handleToggleDone}
             onUpdate={handleUpdate}
+            onEdit={setEditingTask}
             onDelete={handleDelete}
           />
         </section>

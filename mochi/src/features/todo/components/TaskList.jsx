@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { Bell, Calendar, Check, Tag, Timer, Trash2 } from 'lucide-react'
+import { Bell, Calendar, Check, Pencil, Tag, Timer, Trash2 } from 'lucide-react'
 import { computePriority, getPriorityBreakdown, priorityMeta } from '../../../shared/utils/priority'
 import useStore from '../../../app/store/useStore'
 
@@ -126,7 +126,7 @@ function ReminderDropdown({ position, value, onChange, onClose }) {
 
 // ── Task row ───────────────────────────────────────────────────────────────
 
-function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
+function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate, onEdit }) {
   const { pomodoro, startPomodoro } = useStore()
   const [title,    setTitle]    = useState(task.title || '')
   const [category, setCategory] = useState(task.category || '')
@@ -340,6 +340,14 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
 
             {/* Hover-only action buttons */}
             <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity">
+              <button
+                onClick={() => onEdit?.(task)}
+                className="p-1.5 rounded-lg"
+                style={{ color: 'var(--mochi-text-muted)' }}
+                title="Edit task"
+              >
+                <Pencil size={11} />
+              </button>
               <div className="relative">
                 <button
                   onClick={openReminder}
@@ -388,7 +396,7 @@ function TaskRow({ task, categories = [], onToggleDone, onDelete, onUpdate }) {
 
 // ── TaskList ───────────────────────────────────────────────────────────────
 
-export default function TaskList({ tasks, categories = [], filter = 'all', mochiArrange = false, onToggleDone, onDelete, onUpdate }) {
+export default function TaskList({ tasks, categories = [], filter = 'all', mochiArrange = false, onToggleDone, onDelete, onUpdate, onEdit }) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = today.getTime() + 86_400_000
@@ -409,7 +417,7 @@ export default function TaskList({ tasks, categories = [], filter = 'all', mochi
     )
   }
 
-  const rowProps = { categories, onToggleDone, onDelete, onUpdate }
+  const rowProps = { categories, onToggleDone, onDelete, onUpdate, onEdit }
 
   return (
     <div className="todo-task-list">

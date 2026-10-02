@@ -113,7 +113,7 @@ export default function DashboardPage() {
       .sort((a, b) => b.activityAt - a.activityAt)
       .slice(0, 5)
   }, [notes, subjects])
-  const tasksForPanel = dueThisWeek.length > 0 ? dueThisWeek.slice(0, 3) : otherTasks.slice(0, 3)
+  const tasksForPanel = dueThisWeek.length > 0 ? dueThisWeek : otherTasks
   const taskHeading = dueThisWeek.length > 0
     ? `You have ${dueThisWeek.length} task${dueThisWeek.length === 1 ? '' : 's'} due this week.`
     : otherTasks.length > 0
@@ -152,7 +152,7 @@ export default function DashboardPage() {
               {taskSupportingText ? (
                 <p className="mb-0 mt-3 text-sm" style={{ color: 'var(--mochi-text-soft)' }}>{taskSupportingText}</p>
               ) : (
-                <div className="mt-4 flex flex-col gap-2">
+                <div className="dashboard-tasks-list mt-4 flex flex-col gap-2">
                   {tasksForPanel.map((task) => (
                     <div key={task.id} className="group flex items-center gap-3 rounded-xl px-3 py-2" style={{ background: 'var(--mochi-hover)' }}>
                       <button

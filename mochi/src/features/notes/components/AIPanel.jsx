@@ -70,8 +70,8 @@ const MODES = [
   },
   {
     key: 'general',
-    label: 'General notes',
-    desc: 'Organised notes from doc',
+    label: 'Long-form notes',
+    desc: 'Detailed notes + short-form version',
     bg: 'var(--mochi-peach)',
     border: 'var(--mochi-peach-mid)',
     text: 'var(--mochi-peach-dark)',
@@ -91,7 +91,7 @@ export const extractPdfText = async (file) => {
   return pages.join('\n\n')
 }
 
-export default function AIPanel({ editor, noteId, onClose, initialMode = 'primer' }) {
+export default function AIPanel({ editor, noteId, onClose, initialMode = 'primer', onNotesGenerated }) {
   const { createFlashcard, notes, decks, loadDecks, updateNote } = useStore()
 
   const [mode, setMode] = useState('primer')
@@ -165,7 +165,16 @@ export default function AIPanel({ editor, noteId, onClose, initialMode = 'primer
     setSuccess(false)
     try {
       const extracted = await cleanStudySource(text)
-      const markdown = await generateNotes(extracted.studyContent || text, mode === 'general' ? 'short' : mode, customInstructions)
+      const source = extracted.studyContent || text
+      const isNotesGeneration = mode === 'general'
+      const generated = isNotesGeneration
+        ? await Promise.all([
+            generateNotes(source, 'short', customInstructions),
+            generateNotes(source, 'long', customInstructions),
+          ])
+        : [null, await generateNotes(source, mode, customInstructions)]
+      const [shortMarkdown, longMarkdown] = generated
+      const markdown = longMarkdown
       const activeNote = notes.find((note) => note.id === noteId)
       if (activeNote && extracted.resources.length) {
         const existingKeys = new Set((activeNote.resources ?? []).map((resource) => resource.url || resource.title || resource.rawText).filter(Boolean))
@@ -181,6 +190,12 @@ export default function AIPanel({ editor, noteId, onClose, initialMode = 'primer
       } else {
         editor.commands.focus('end')
         editor.commands.insertContent(html)
+      }
+      if (isNotesGeneration) {
+        await onNotesGenerated?.({
+          short: parseMarkdownWithMath(shortMarkdown),
+          long: editor.getHTML(),
+        })
       }
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
@@ -456,7 +471,7 @@ export default function AIPanel({ editor, noteId, onClose, initialMode = 'primer
           ) : (
             <>
               <Sparkles size={13} />
-              Generate {activeMode.label}
+              {mode === 'general' ? 'Generate short + long notes' : `Generate ${activeMode.label}`}
             </>
           )}
         </button>

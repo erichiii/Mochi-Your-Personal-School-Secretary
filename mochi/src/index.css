@@ -1084,18 +1084,26 @@ input:focus, select:focus, textarea:focus {
 .todo-page__form { padding: 1.25rem; border: 2px solid var(--mochi-border); border-radius: 1rem; background: var(--mochi-surface); box-shadow: var(--shadow-soft); }
 .task-form__effort { display: none; }
 .todo-page__summary-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(15rem, 0.95fr); gap: 1.5rem; align-items: stretch; }
-.todo-page__summary-card, .todo-page__progress-card { min-height: 14rem; padding: 1.2rem 1.55rem; border: 3px solid var(--mochi-border); border-radius: 1.55rem; background: var(--mochi-surface); box-shadow: none; }
+.todo-page__summary-card, .todo-page__progress-card { height: 14rem; min-height: 14rem; padding: 1.2rem 1.55rem; border: 3px solid var(--mochi-border); border-radius: 1.55rem; background: var(--mochi-surface); box-shadow: none; }
+.todo-page__summary-card { display: flex; flex-direction: column; overflow: hidden; }
 .todo-page__progress-card { display: flex; flex-direction: column; align-items: stretch; }
 .todo-page__progress-card > div { flex: 1; }
 .todo-page__weekly-heading { margin: 0; color: var(--mochi-text); font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; line-height: 1.35; }
 .todo-page__weekly-empty { max-width: 28rem; margin: 1rem 0 0; color: var(--mochi-text-soft); font-size: 0.9rem; font-weight: 600; line-height: 1.55; }
-.todo-page__weekly-list { display: grid; gap: 0.45rem; margin-top: 1rem; }
+.todo-page__weekly-list { display: grid; flex: 1; min-height: 0; gap: 0.45rem; margin-top: 1rem; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding-right: 0.25rem; }
 .todo-page__weekly-row { display: flex; align-items: center; gap: 0.6rem; min-width: 0; color: var(--mochi-text); font-size: 0.78rem; }
 .todo-page__weekly-row button { display: grid; place-items: center; flex: 0 0 auto; border: 0; padding: 0; background: transparent; color: var(--mochi-pink-mid); }
+.todo-page__weekly-row button:last-child { color: var(--mochi-text-muted); }
 .todo-page__weekly-task { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .todo-page__weekly-subject::before { content: '|'; margin-right: 0.55rem; color: var(--mochi-text-muted); }
 .todo-page__weekly-subject { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--mochi-text-soft); }
 .todo-page__weekly-date { margin-left: auto; flex: 0 0 auto; color: var(--mochi-pink-dark); font-weight: 700; }
+.dashboard-tasks-list { max-height: 9.25rem; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding-right: 0.25rem; }
+.todo-task-edit-modal { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 1rem; background: rgba(43, 17, 38, 0.34); }
+.todo-task-edit-modal__panel { position: relative; width: min(100%, 38rem); max-height: min(92vh, 42rem); overflow-y: auto; padding: 1.5rem; border: 3px solid var(--mochi-border); border-radius: 1.55rem; background: var(--mochi-surface); box-shadow: var(--shadow-soft); }
+.todo-task-edit-modal__panel h2 { margin: 0 0 1rem; color: var(--mochi-text); font-family: var(--font-display); font-size: 1.5rem; }
+.todo-task-edit-modal__close { position: absolute; top: 0.7rem; right: 0.7rem; display: grid; place-items: center; width: 2rem; height: 2rem; border: 0; border-radius: 999px; background: transparent; color: var(--mochi-text-muted); }
+.todo-task-edit-modal__close:hover { background: var(--mochi-hover); color: var(--mochi-pink-dark); }
 .todo-page__tasks { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
 .todo-page__tasks-heading { display: flex; align-items: center; gap: 1rem; }
 .todo-page__filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); flex: 1; min-width: 0; gap: 0.65rem; }

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Calendar, Plus, X } from 'lucide-react'
+import { Calendar, Check, Plus, X } from 'lucide-react'
 
 const fieldStyle = {
   background: 'var(--mochi-cream)',
@@ -15,13 +15,21 @@ const fieldStyle = {
 
 const EFFORT_LABELS = ['', 'Very easy', 'Easy', 'Medium', 'Hard', 'Very hard']
 
-export default function TaskForm({ onCreate, onCancel, categories = [] }) {
-  const [title, setTitle] = useState('')
-  const [category, setCategory] = useState('')
-  const [deadline, setDeadline] = useState('')
-  const [additionalNotes, setAdditionalNotes] = useState('')
-  const [categoryMode, setCategoryMode] = useState('select')
-  const [effort, setEffort] = useState(3)
+const toDateInput = (deadline) => {
+  if (!deadline) return ''
+  const date = new Date(deadline)
+  if (Number.isNaN(date.getTime())) return ''
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+export default function TaskForm({ onCreate, onUpdate, task = null, onCancel, categories = [] }) {
+  const isEditing = Boolean(task)
+  const [title, setTitle] = useState(task?.title || '')
+  const [category, setCategory] = useState(task?.category || '')
+  const [deadline, setDeadline] = useState(toDateInput(task?.deadline))
+  const [additionalNotes, setAdditionalNotes] = useState(task?.additionalNotes || '')
+  const [categoryMode, setCategoryMode] = useState(task?.category && !categories.includes(task.category) ? 'custom' : 'select')
+  const [effort, setEffort] = useState(task?.effort || 3)
   const deadlineRef = useRef(null)
 
   const reset = () => {
@@ -36,13 +44,21 @@ export default function TaskForm({ onCreate, onCancel, categories = [] }) {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!title.trim()) return
-    onCreate({
+    const payload = {
       title: title.trim(),
       category: category.trim(),
       deadline: deadline ? new Date(deadline + 'T00:00:00').getTime() : null,
       additionalNotes: additionalNotes.trim(),
       effort,
-    })
+    }
+
+    if (isEditing) {
+      onUpdate?.(task.id, payload)
+      onCancel?.()
+      return
+    }
+
+    onCreate?.(payload)
     reset()
   }
 
@@ -178,7 +194,7 @@ export default function TaskForm({ onCreate, onCancel, categories = [] }) {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all"
           style={{ background: 'var(--mochi-mint)', color: 'var(--mochi-mint-dark)', border: '1.5px solid var(--mochi-mint-mid)' }}
         >
-          <Plus size={12} /> Add task
+          {isEditing ? <><Check size={12} /> Save changes</> : <><Plus size={12} /> Add task</>}
         </button>
         <button
           type="button"

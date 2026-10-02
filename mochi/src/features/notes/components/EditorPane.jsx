@@ -44,7 +44,7 @@ const textFromHtml = (html = '') => html.replace(/<[^>]+>/g, ' ').replace(/&nbsp
 
 const PREPARATION_STEPS = [
   { id: 'reading', label: 'Reading your resources' },
-  { id: 'notes', label: 'Organizing notes' },
+  { id: 'notes', label: 'Creating short + long notes' },
   { id: 'primer', label: 'Creating primer' },
   { id: 'reviewer', label: 'Preparing your reviewer' },
   { id: 'test', label: 'Building your practice test' },
@@ -78,6 +78,18 @@ const mergeResources = (existing, additions) => {
   })]
 }
 
+const generateNoteVariants = async (source) => {
+  const [shortMarkdown, longMarkdown] = await Promise.all([
+    generateNotes(source, 'short'),
+    generateNotes(source, 'long'),
+  ])
+
+  return {
+    short: parseMarkdownWithMath(shortMarkdown),
+    long: parseMarkdownWithMath(longMarkdown),
+  }
+}
+
 export default function EditorPane({ notebookId = null }) {
   const { notes, subjects, activeNoteId, activeSubjectFilter, updateNote, createNote, loadNotes, setSubjectFilter } = useStore()
   const activeNote = notes.find((n) => n.id === activeNoteId) ?? null
@@ -85,7 +97,7 @@ export default function EditorPane({ notebookId = null }) {
   const [title, setTitle] = useState('')
   const [aiOpen, setAiOpen] = useState(false)
   const [studyTab, setStudyTab] = useState('notes')
-  const [noteMode, setNoteMode] = useState('short')
+  const [noteMode, setNoteMode] = useState('long')
   const [addTabOpen, setAddTabOpen] = useState(false)
   const [newTabName, setNewTabName] = useState('')
   const [tabError, setTabError] = useState('')
@@ -374,6 +386,16 @@ export default function EditorPane({ notebookId = null }) {
     event.target.value = ''
   }
 
+  const persistNoteGeneration = async ({ short, long }) => {
+    if (!activeNote || !activeNoteId) return
+    const noteVariants = { ...(activeNoteRef.current?.noteVariants ?? activeNote.noteVariants ?? {}), short, long }
+    const nextNote = { ...(activeNoteRef.current ?? activeNote), content: long, noteVariants }
+    activeNoteRef.current = nextNote
+    activeNoteModeRef.current = 'long'
+    setNoteMode('long')
+    await updateNote(activeNoteId, { content: long, noteVariants })
+  }
+
   const moduleSubjectId = notebookId ?? activeSubjectFilter ?? null
   const hasStoredContent = Boolean(textFromHtml(activeNote?.content) || activeNote?.resources?.length || Object.values(activeNote?.studyContent ?? {}).some(Boolean) || Object.values(activeNote?.customTabContent ?? {}).some(Boolean))
   const showEmptyModuleState = Boolean(moduleSubjectId && (!activeNote || (!hasStoredContent && startWritingNoteId !== activeNote.id)))
@@ -429,7 +451,7 @@ export default function EditorPane({ notebookId = null }) {
   const handleNoteModeChange = async (mode) => {
     if (!activeNote || isPreparing) return
     setStudyTab('notes')
-    if (activeNote.noteVariants?.[mode]) {
+    if (activeNote.noteVariants?.short && activeNote.noteVariants?.long) {
       setNoteMode(mode)
       return
     }
@@ -447,9 +469,9 @@ export default function EditorPane({ notebookId = null }) {
     try {
       const prepared = await prepareStudySource(activeNote, source)
       setPreparationStep('notes')
-      const markdown = await generateNotes(prepared.source, mode)
-      const content = parseMarkdownWithMath(markdown)
-      const noteVariants = { ...(prepared.note.noteVariants ?? {}), [mode]: content }
+      const generated = await generateNoteVariants(prepared.source)
+      const noteVariants = { ...(prepared.note.noteVariants ?? {}), ...generated }
+      const content = noteVariants[mode]
       const nextNote = { ...prepared.note, content, noteVariants }
       activeNoteRef.current = nextNote
       await updateNote(nextNote.id, { content, noteVariants })
@@ -560,14 +582,14 @@ export default function EditorPane({ notebookId = null }) {
     try {
       const prepared = await prepareStudySource(activeNote, source)
       setPreparationStep('notes')
-      const markdown = await generateNotes(prepared.source, 'short')
-      const content = parseMarkdownWithMath(markdown)
-      const noteVariants = { ...(prepared.note.noteVariants ?? {}), short: content }
+      const generated = await generateNoteVariants(prepared.source)
+      const noteVariants = { ...(prepared.note.noteVariants ?? {}), ...generated }
+      const content = noteVariants.long
       activeNoteRef.current = { ...prepared.note, content, noteVariants }
       await updateNote(activeNote.id, { content, noteVariants })
       editor?.commands.setContent(content, false)
       setStudyTab('notes')
-      setNoteMode('short')
+      setNoteMode('long')
       setHelpOpen(false)
     } catch (error) {
       setPrepareError(error.message || "Mochi couldn't organize these notes yet.")
@@ -605,9 +627,10 @@ export default function EditorPane({ notebookId = null }) {
       source = prepared.source
       if (choices.includes('notes')) {
         setPreparationStep('notes')
-        const markdown = await generateNotes(source, 'short')
-        const content = parseMarkdownWithMath(markdown)
-        currentNote = { ...currentNote, content, noteVariants: { ...(currentNote.noteVariants ?? {}), short: content } }
+        const generated = await generateNoteVariants(source)
+        const noteVariants = { ...(currentNote.noteVariants ?? {}), ...generated }
+        const content = noteVariants.long
+        currentNote = { ...currentNote, content, noteVariants }
         activeNoteRef.current = currentNote
         await updateNote(currentNote.id, { content, noteVariants: currentNote.noteVariants })
       }
@@ -625,7 +648,7 @@ export default function EditorPane({ notebookId = null }) {
         await updateNote(currentNote.id, { studyContent, moduleTabs })
       }
       setStudyTab(orderedChoices.includes('notes') ? 'notes' : orderedChoices[0])
-      if (orderedChoices.includes('notes')) setNoteMode('short')
+      if (orderedChoices.includes('notes')) setNoteMode('long')
     } catch (error) {
       setPrepareError(error.message || "Mochi couldn't create those study materials yet.")
     } finally {
@@ -643,7 +666,7 @@ export default function EditorPane({ notebookId = null }) {
       setConfirmAction({
         title: 'Replace the current Notes tab?',
         message: 'Mochi will replace the current Notes tab with generated notes from these materials.',
-        label: 'Generate notes',
+        label: 'Generate both note versions',
         run: () => runUploadOutputs(choices, source),
       })
       return
@@ -771,7 +794,13 @@ export default function EditorPane({ notebookId = null }) {
 
         {/* AI panel */}
         {showEditor && aiOpen && (
-          <AIPanel editor={editor} noteId={activeNoteId} onClose={() => setAiOpen(false)} initialMode={studyTab === 'reviewer' ? 'reviewer' : studyTab === 'primer' ? 'primer' : 'general'} />
+          <AIPanel
+            editor={editor}
+            noteId={activeNoteId}
+            onClose={() => setAiOpen(false)}
+            onNotesGenerated={persistNoteGeneration}
+            initialMode={studyTab === 'reviewer' ? 'reviewer' : studyTab === 'primer' ? 'primer' : 'general'}
+          />
         )}
         {showEditor && prepareError && !isPreparing && (
           <div className="notes-module-preparing notes-module-preparing--error" role="alert">
@@ -814,7 +843,7 @@ export default function EditorPane({ notebookId = null }) {
             <p>What would you like Mochi to create? You can always create more later.</p>
             <div>
               {[
-                ['notes', 'Generate notes'],
+                ['notes', 'Generate short + long notes'],
                 ['primer', 'Generate primer'],
                 ['reviewer', 'Generate reviewer'],
                 ['test', 'Generate practice test'],
